@@ -117,20 +117,67 @@ homebrew_taps:
 homebrew_cask_appdir: /Applications
 
 homebrew_cask_apps:
-  - docker               # Docker Desktop (vyžaduje NemoClaw)
-  - visual-studio-code
-  - iterm2
-  - google-chrome
-  - firefox
-  - sequel-ace           # GUI pro MySQL/MariaDB
-  - tableplus            # GUI pro více DB
-  - insomnia             # REST / GraphQL klient
-  - sublime-text
-  - slack
-  - transmit
-  - dropbox
-  - handbrake
-  - licecap
+  # ── Infrastruktura ────────────────────────────────────────────────────────
+  - docker               # Docker Desktop (nutné pro Kiwix a OpenClaw)
+
+  # ── Editory / IDE ─────────────────────────────────────────────────────────
+  - visual-studio-code   # VS Code – hlavní editor
+  - windsurf             # Codeium Windsurf – AI-first IDE
+  - sublime-text         # Sublime Text – rychlý editor
+
+  # ── Terminály ─────────────────────────────────────────────────────────────
+  - ghostty              # Ghostty – GPU-accelerated terminál (nový standard)
+  - iterm2               # iTerm2 – záložní terminál
+  # - warp              # Warp – AI terminál (alternativa)
+
+  # ── Prohlížeče ────────────────────────────────────────────────────────────
+  - brave-browser        # Brave – privacy-first prohlížeč (doporučeno)
+  - google-chrome        # Chrome – pro testování
+  - firefox              # Firefox – pro testování
+  # - arc               # Arc – alternativní prohlížeč
+
+  # ── Produktivita / Systém ─────────────────────────────────────────────────
+  - raycast              # Raycast – Spotlight replacement (AI, snippets, scripts)
+
+  # ── Komunikace ────────────────────────────────────────────────────────────
+  - slack                # Slack – teamová komunikace
+  - discord              # Discord – komunity a voice chat
+
+  # ── Správa souborů / DB ───────────────────────────────────────────────────
+  - transmit             # Transmit – SFTP / S3 / cloud storage
+  - sequel-ace           # Sequel Ace – GUI pro MySQL/MariaDB
+  - tableplus            # TablePlus – multi-DB GUI (Postgres, SQLite…)
+
+  # ── Vývojové nástroje ─────────────────────────────────────────────────────
+  - insomnia             # Insomnia – REST / GraphQL klient
+  # - postman            # Postman – alternativa k Insomnia
+  - balenaetcher         # balenaEtcher – zápis OS image na SD/USB
+  - licecap              # LiCEcap – záznam GIF screenshotů
+
+  # ── Bezpečnost / VPN ──────────────────────────────────────────────────────
+  - lastpass             # LastPass – správce hesel
+  - openvpn-connect      # OpenVPN Connect – VPN klient
+  # - 1password          # 1Password – alternativa k LastPass
+  # - mullvadvpn         # Mullvad – privacy VPN
+
+  # ── Media / Zábava ────────────────────────────────────────────────────────
+  - vlc                  # VLC – univerzální přehrávač médií
+  - spotify              # Spotify – hudba
+  - handbrake            # HandBrake – konverze video formátů
+  # - plex               # Plex – domácí media server
+
+  # ── Kreativní nástroje ────────────────────────────────────────────────────
+  - blender              # Blender – 3D modelování, animace, rendering
+  - fl-studio            # FL Studio – DAW pro hudební produkci
+  # - gimp               # GIMP – rastrová grafika (open-source PS)
+  # - inkscape           # Inkscape – vektorová grafika (open-source AI)
+  # - davinci-resolve    # DaVinci Resolve – video střih
+
+  # ── Systémové utility ─────────────────────────────────────────────────────
+  - dropbox              # Dropbox – cloud sync
+  # - stats              # Stats – system monitor v menu baru
+  # - rectangle          # Rectangle – window manager
+  # - alt-tab            # AltTab – Windows-like app switcher
 
 # ==============================================================================
 # MAC APP STORE
