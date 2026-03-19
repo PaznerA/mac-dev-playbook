@@ -35,7 +35,7 @@
   notify: Restart nginx
 
 - name: Deploy nginx virtual host templates
-  ansible.builtin.copy:
+  ansible.builtin.template:
     src: "nginx/sites-available/{{ item }}"
     dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/{{ item }}"
     mode: '0644'
@@ -89,9 +89,7 @@
   ansible.builtin.command: brew services start nginx
   register: nginx_svc
   changed_when: "'already started' not in nginx_svc.stdout"
-  failed_when:
-    - nginx_svc.rc != 0
-    - "'already started' not in nginx_svc.stdout"
+  failed_when: nginx_svc.rc != 0 and 'already started' not in nginx_svc.stdout
 
 - name: Test nginx configuration
   ansible.builtin.command: "{{ homebrew_prefix }}/bin/nginx -t"

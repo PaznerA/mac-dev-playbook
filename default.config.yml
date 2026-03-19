@@ -680,8 +680,10 @@ tempo_storage_path: "/Users/pazny/observability/tempo"
 # ── Alloy – co sbírat ─────────────────────────────────────────────────────────
 alloy_scrape_nginx: true           # nginx stub_status → Prometheus
 alloy_scrape_phpfpm: true          # PHP-FPM status → Prometheus
+phpfpm_exporter_port: 9253         # Port php-fpm_exporteru
 alloy_scrape_mariadb: false        # MariaDB metriky (zapni pokud install_mariadb: true)
 alloy_scrape_redis: true           # Redis metriky → Prometheus
+redis_port: 6379                   # Redis port
 alloy_tail_nginx_logs: true        # Nginx access+error logy → Loki
 alloy_tail_agent_logs: true        # ~/pazny/agents/*.log → Loki
 alloy_tail_php_logs: true          # PHP-FPM logy → Loki

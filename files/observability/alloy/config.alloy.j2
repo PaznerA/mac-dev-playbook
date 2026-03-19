@@ -46,7 +46,7 @@ prometheus.scrape "nginx" {
 // PHP-FPM metriky (php-fpm_exporter / status page)
 prometheus.scrape "phpfpm" {
   targets = [{
-    __address__ = "localhost:9253",
+    __address__ = "localhost:{{ phpfpm_exporter_port | default(9253) }}",
   }]
   forward_to  = [prometheus.remote_write.default.receiver]
   job_name    = "phpfpm"
@@ -57,7 +57,7 @@ prometheus.scrape "phpfpm" {
 {% if alloy_scrape_redis | default(true) %}
 // Redis metriky
 prometheus.exporter.redis "local" {
-  redis_addr = "localhost:6379"
+  redis_addr = "localhost:{{ redis_port | default(6379) }}"
 }
 
 prometheus.scrape "redis" {
