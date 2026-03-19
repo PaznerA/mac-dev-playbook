@@ -16,7 +16,7 @@
     state: directory
     mode: '0755'
 
-- name: Deploy starship config (preset: {{ starship_preset | default('gruvbox-rainbow') }})
+- name: Deploy starship config
   ansible.builtin.template:
     src: starship.toml.j2
     dest: "{{ ansible_env.HOME }}/.config/starship.toml"
@@ -65,8 +65,8 @@
     marker: "# {mark} MODERN CLI ALIASES (ansible managed)"
     block: |
       # Modern CLI tool aliases
-      {% for alias in shell_aliases | default([]) %}
-      alias {{ alias.name }}="{{ alias.command }}"
+      {% for item in shell_aliases | default([]) %}
+      alias {{ item.alias }}="{{ item.command }}"
       {% endfor %}
     create: true
 
