@@ -184,7 +184,7 @@ loki.write "default" {
     url = "http://localhost:{{ loki_port | default(3100) }}/loki/api/v1/push"
   }
   external_labels = {
-    host = "mac-studio-local",
+    host = "{{ observability_hostname | default(ansible_hostname) }}",
   }
 }
 
@@ -194,9 +194,10 @@ loki.write "default" {
 
 {% if alloy_receive_otlp | default(true) %}
 // OTLP přijímač – aplikace posílají traces přes OpenTelemetry SDK
+// Alloy naslouchá na alloy_otlp_*_port (4317/4318) a přeposílá Tempu na tempo_otlp_*_port (4327/4328)
 otelcol.receiver.otlp "default" {
   grpc {
-    endpoint = "0.0.0.0:{{ tempo_otlp_grpc_port | default(4317) }}"
+    endpoint = "0.0.0.0:{{ alloy_otlp_grpc_port | default(4317) }}"
   }
   http {
     endpoint = "0.0.0.0:{{ alloy_otlp_http_port | default(4318) }}"

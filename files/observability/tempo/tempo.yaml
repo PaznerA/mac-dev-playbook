@@ -32,7 +32,7 @@ metrics_generator:
   registry:
     external_labels:
       source: tempo
-      host: mac-studio-local
+      host: {{ observability_hostname | default(ansible_hostname) }}
   storage:
     path: {{ homebrew_prefix }}/var/lib/tempo/generator/wal
     remote_write:

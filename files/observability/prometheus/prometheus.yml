@@ -7,7 +7,7 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    host: mac-studio-local
+    host: {{ observability_hostname | default(ansible_hostname) }}
 
 # ── Pravidla alertů ───────────────────────────────────────────────────────────
 rule_files:
