@@ -378,13 +378,13 @@ dotnet_global_tools:
 # ==============================================================================
 
 # Uživatel a domovský adresář pro agentické prostředí
-openclaw_user: "pazny"
-openclaw_base_dir: "/Users/pazny"
+openclaw_user: "{{ ansible_user_id }}"
+openclaw_base_dir: "/Users/{{ ansible_user_id }}"
 
 # Adresáře agentického systému
-openclaw_agents_dir: "/Users/pazny/agents"         # instalace, konfigurace agentů
-openclaw_projects_dir: "/Users/pazny/projects"     # projekty hostované přes nginx
-openclaw_log_dir: "/Users/pazny/agents/log"        # strukturované .md logy
+openclaw_agents_dir: "/Users/{{ ansible_user_id }}/agents"         # instalace, konfigurace agentů
+openclaw_projects_dir: "/Users/{{ ansible_user_id }}/projects"     # projekty hostované přes nginx
+openclaw_log_dir: "/Users/{{ ansible_user_id }}/agents/log"        # strukturované .md logy
 
 # OpenClaw konfigurace (~/.openclaw/)
 openclaw_config_dir: "~/.openclaw"
@@ -424,7 +424,6 @@ dotfiles_files:
 
 osx_script: "~/.osx --no-restart"
 
-configure_sudoers: false
 sudoers_custom_config: ""
 # sudoers_custom_config: |
 #   %admin ALL=(ALL) NOPASSWD: ALL
@@ -490,8 +489,8 @@ ssh_password_auth: false          # false = pouze klíče (bezpečnější)
 samba_workgroup: "WORKGROUP"
 samba_shares:
   - name: "projects"
-    path: "/Users/pazny/projects"
-    comment: "Pazny projects"
+    path: "/Users/{{ ansible_user_id }}/projects"
+    comment: "{{ ansible_user_id }} projects"
     browseable: true
     writable: true
 
@@ -502,7 +501,6 @@ vnc_password: ""   # PŘEPIŠ! Prázdné = VNC se nespustí bezpečně
 # DOCK
 # ==============================================================================
 
-configure_dock: false
 dockitems_remove: []
 dockitems_persist: []
 
@@ -510,7 +508,6 @@ dockitems_persist: []
 # SUBLIME TEXT
 # ==============================================================================
 
-configure_sublime: false
 sublime_base_path: "~/Library/Application Support/Sublime Text"
 sublime_config_path: "Packages/User"
 sublime_package_control:
@@ -551,7 +548,7 @@ mariadb_users:
 # ==============================================================================
 
 wordpress_domain: "wordpress.dev.local"
-wordpress_dir: "/Users/pazny/projects/wordpress"
+wordpress_dir: "/Users/{{ ansible_user_id }}/projects/wordpress"
 wordpress_db_name: "wordpress"
 wordpress_db_user: "wordpress"
 wordpress_db_password: "changeme_wp"    # Musí odpovídat mariadb_users výše
@@ -563,8 +560,8 @@ wordpress_table_prefix: "wp_"
 # ==============================================================================
 
 nextcloud_domain: "cloud.dev.local"
-nextcloud_dir: "/Users/pazny/projects/nextcloud"
-nextcloud_data_dir: "/Users/pazny/nextcloud-data"
+nextcloud_dir: "/Users/{{ ansible_user_id }}/projects/nextcloud"
+nextcloud_data_dir: "/Users/{{ ansible_user_id }}/nextcloud-data"
 nextcloud_db_name: "nextcloud"
 nextcloud_db_user: "nextcloud"
 nextcloud_db_password: "changeme_nc"   # Musí odpovídat mariadb_users výše
@@ -579,7 +576,7 @@ nextcloud_admin_password: "changeme_admin"  # PŘEPIŠ!
 
 kiwix_domain: "kiwix.dev.local"
 kiwix_port: 8888                           # Lokální port kiwix-serve
-kiwix_data_dir: "/Users/pazny/kiwix"       # Sem ukládej .zim soubory
+kiwix_data_dir: "/Users/{{ ansible_user_id }}/kiwix"       # Sem ukládej .zim soubory
 
 # ZIM soubory ke stažení (prázdné = nestahovat automaticky)
 # Velikosti: Wikipedia CZ ~2GB, EN ~90GB, Gutenberg ~60GB
@@ -600,7 +597,7 @@ kiwix_zim_files: []
 
 maps_domain: "maps.dev.local"
 maps_port: 8080
-maps_data_dir: "/Users/pazny/maps"        # Sem ukládej .mbtiles soubory
+maps_data_dir: "/Users/{{ ansible_user_id }}/maps"        # Sem ukládej .mbtiles soubory
 
 # MBTiles soubory ke stažení (prázdné = nestahovat automaticky)
 # Viz: https://data.maptiler.com/downloads/ nebo https://openmaptiles.org/
@@ -673,15 +670,15 @@ grafana_analytics: false    # Vypnout telemetrii
 
 # ── Prometheus ────────────────────────────────────────────────────────────────
 prometheus_retention: "30d"
-prometheus_storage_path: "/Users/pazny/observability/prometheus"
+prometheus_storage_path: "/Users/{{ ansible_user_id }}/observability/prometheus"
 
 # ── Loki ──────────────────────────────────────────────────────────────────────
 loki_retention: "744h"   # 31 dní
-loki_storage_path: "/Users/pazny/observability/loki"
+loki_storage_path: "/Users/{{ ansible_user_id }}/observability/loki"
 
 # ── Tempo ─────────────────────────────────────────────────────────────────────
 tempo_retention: "168h"  # 7 dní (traces bývají objemnější)
-tempo_storage_path: "/Users/pazny/observability/tempo"
+tempo_storage_path: "/Users/{{ ansible_user_id }}/observability/tempo"
 
 # ── Alloy – co sbírat ─────────────────────────────────────────────────────────
 alloy_scrape_nginx: true           # nginx stub_status → Prometheus
@@ -724,7 +721,7 @@ grafana_dashboards:
 n8n_domain: "n8n.dev.local"
 n8n_port: 5678
 n8n_version: "latest"      # nebo konkrétní: "1.40.0"
-n8n_data_dir: "/Users/pazny/n8n"
+n8n_data_dir: "/Users/{{ ansible_user_id }}/n8n"
 n8n_timezone: "Europe/Prague"
 
 # ==============================================================================
@@ -734,8 +731,8 @@ n8n_timezone: "Europe/Prague"
 gitea_domain: "git.dev.local"
 gitea_port: 3003         # 3000=Grafana, 3001=Uptime Kuma, 3002=rezerva → Gitea na 3003
 gitea_ssh_port: 2222
-gitea_data_dir: "/Users/pazny/gitea"
-gitea_admin_user: "pazny"
+gitea_data_dir: "/Users/{{ ansible_user_id }}/gitea"
+gitea_admin_user: "{{ ansible_user_id }}"
 gitea_admin_email: ""                          # VYPLŇ!
 gitea_secret_key: "changeme_random_32_chars"   # PŘEPIŠ! (openssl rand -hex 32)
 gitea_internal_token: "changeme_internal_tok"  # PŘEPIŠ! (openssl rand -hex 32)
@@ -752,8 +749,8 @@ gitlab_domain: "gitlab.dev.local"
 gitlab_http_port: 8929          # Interní HTTP port (nginx přebírá SSL, forwarduje sem)
 gitlab_ssh_port: 2224           # Git SSH (22=systém, 2222=Gitea → Gitlab na 2224)
 gitlab_version: "latest"        # nebo konkrétní: "17.9.1-ce.0"
-gitlab_data_dir: "/Users/pazny/gitlab"          # Repozitáře, uploads, artefakty (velké!)
-gitlab_config_dir: "/Users/pazny/gitlab-config" # gitlab.rb + klíče (malé, ale důležité)
+gitlab_data_dir: "/Users/{{ ansible_user_id }}/gitlab"          # Repozitáře, uploads, artefakty (velké!)
+gitlab_config_dir: "/Users/{{ ansible_user_id }}/gitlab-config" # gitlab.rb + klíče (malé, ale důležité)
 gitlab_timezone: "Europe/Prague"
 gitlab_signup_enabled: false    # Zakáže registraci nových uživatelů
 gitlab_puma_workers: 2          # Worker procesy (min 2, pro 36 GB klidně 4)
@@ -767,7 +764,7 @@ gitlab_sidekiq_concurrency: 10  # Background job vlákna
 openwebui_domain: "ai.dev.local"
 openwebui_port: 3004             # Interní port kontejneru 8080 → host 3004
 openwebui_version: "main"        # nebo konkrétní: "0.5.20"
-openwebui_data_dir: "/Users/pazny/openwebui"
+openwebui_data_dir: "/Users/{{ ansible_user_id }}/openwebui"
 
 # ==============================================================================
 # IIAB – WOODPECKER CI (CI/CD napojen na Gitea)
@@ -778,7 +775,7 @@ woodpecker_domain: "ci.dev.local"
 woodpecker_port: 8060            # Web UI
 woodpecker_grpc_port: 9060       # gRPC pro agenty (interní)
 woodpecker_version: "latest"
-woodpecker_data_dir: "/Users/pazny/woodpecker"
+woodpecker_data_dir: "/Users/{{ ansible_user_id }}/woodpecker"
 woodpecker_agent_secret: "changeme_woodpecker_agent"  # PŘEPIŠ! (openssl rand -hex 32)
 woodpecker_gitea_client: ""      # VYPLŇ po vytvoření OAuth2 app v Gitee
 woodpecker_gitea_secret: ""      # VYPLŇ po vytvoření OAuth2 app v Gitee
@@ -792,7 +789,7 @@ woodpecker_max_workflows: 4      # Max paralelních pipeline runů na agenta
 portainer_domain: "portainer.dev.local"
 portainer_port: 9000
 portainer_version: "latest"
-portainer_data_dir: "/Users/pazny/portainer"
+portainer_data_dir: "/Users/{{ ansible_user_id }}/portainer"
 
 # ==============================================================================
 # IIAB – JELLYFIN (media server)
@@ -801,11 +798,11 @@ portainer_data_dir: "/Users/pazny/portainer"
 jellyfin_domain: "media.dev.local"
 jellyfin_port: 8096
 jellyfin_version: "latest"
-jellyfin_config_dir: "/Users/pazny/jellyfin/config"
-jellyfin_cache_dir: "/Users/pazny/jellyfin/cache"
-jellyfin_movies_dir: "/Users/pazny/media/movies"   # Přepiš na svou knihovnu
-jellyfin_shows_dir: "/Users/pazny/media/shows"
-jellyfin_music_dir: "/Users/pazny/media/music"
+jellyfin_config_dir: "/Users/{{ ansible_user_id }}/jellyfin/config"
+jellyfin_cache_dir: "/Users/{{ ansible_user_id }}/jellyfin/cache"
+jellyfin_movies_dir: "/Users/{{ ansible_user_id }}/media/movies"   # Přepiš na svou knihovnu
+jellyfin_shows_dir: "/Users/{{ ansible_user_id }}/media/shows"
+jellyfin_music_dir: "/Users/{{ ansible_user_id }}/media/music"
 
 # ==============================================================================
 # IIAB – UPTIME KUMA (monitoring dashboard)
@@ -814,7 +811,7 @@ jellyfin_music_dir: "/Users/pazny/media/music"
 uptime_kuma_domain: "uptime.dev.local"
 uptime_kuma_port: 3001
 uptime_kuma_version: "1"   # nebo konkrétní: "1.23.13"
-uptime_kuma_data_dir: "/Users/pazny/uptime-kuma"
+uptime_kuma_data_dir: "/Users/{{ ansible_user_id }}/uptime-kuma"
 
 # ==============================================================================
 # IIAB – CALIBRE-WEB (ebook server)
@@ -823,7 +820,7 @@ uptime_kuma_data_dir: "/Users/pazny/uptime-kuma"
 calibreweb_domain: "books.dev.local"
 calibreweb_port: 8083
 calibreweb_version: "latest"   # nebo konkrétní: "0.6.21"
-calibreweb_books_dir: "/Users/pazny/calibre"   # Calibre library
+calibreweb_books_dir: "/Users/{{ ansible_user_id }}/calibre"   # Calibre library
 
 # ==============================================================================
 # TAILSCALE – WireGuard mesh VPN
@@ -854,7 +851,7 @@ dnsmasq_additional_addresses: []          # Další vlastní DNS záznamy
 # ==============================================================================
 
 restic_backup_paths:
-  - "{{ ansible_env.HOME }}/pazny"     # Agenti, projekty, data služeb
+  - "{{ ansible_env.HOME }}"     # Domovský adresář uživatele
 
 # Restic repozitář – nakonfiguruj dle cíle:
 # restic_repo: "s3:s3.us-east-005.backblazeb2.com/bucket-name"

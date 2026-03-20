@@ -12,6 +12,12 @@
         - "{{ playbook_dir }}/config.yml"
       tags: ['always']
 
+    - name: Include credentials.
+      include_vars: "{{ item }}"
+      with_fileglob:
+        - "{{ playbook_dir }}/credentials.yml"
+      tags: ['always']
+
   # ============================================================================
   # HANDLERS – centralizované, volatelné přes notify: z libovolného task souboru
   # ============================================================================
