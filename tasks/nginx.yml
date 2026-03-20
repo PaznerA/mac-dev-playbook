@@ -27,7 +27,7 @@
     - "{{ homebrew_prefix }}/var/log/nginx"
 
 - name: Deploy main nginx.conf
-  ansible.builtin.copy:
+  ansible.builtin.template:
     src: nginx/nginx.conf
     dest: "{{ homebrew_prefix }}/etc/nginx/nginx.conf"
     backup: true

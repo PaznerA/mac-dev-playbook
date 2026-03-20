@@ -34,7 +34,7 @@
       rm composer-setup.php
       exit 1
     fi
-    php composer-setup.php --install-dir=/opt/homebrew/bin --filename=composer --quiet
+    php composer-setup.php --install-dir={{ homebrew_prefix }}/bin --filename=composer --quiet
     rm composer-setup.php
   args:
     creates: "{{ homebrew_prefix }}/bin/composer"

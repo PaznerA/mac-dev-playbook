@@ -29,7 +29,7 @@
       notify: Restart nginx
 
     - name: Restart php-fpm
-      ansible.builtin.command: brew services restart "php@{{ php_version }}"
+      ansible.builtin.command: brew services restart "php@{{ php_version | default('8.3') }}"
 
     - name: Restart mariadb
       ansible.builtin.command: brew services restart mariadb
