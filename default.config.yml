@@ -791,6 +791,29 @@ restic_backup_paths:
 # restic_repo: "/Volumes/Backup/restic"
 
 # ==============================================================================
+# EXTERNÍ ÚLOŽIŠTĚ – přesun datových adresářů na sekundární SSD
+# Interní SSD (0.5 TB) = macOS, Homebrew, zdrojový kód, MariaDB (nízká latence)
+# Externí SSD (1 TB)   = Kiwix ZIM, Calibre, mapy, Docker, Ollama, observability
+#
+# Jak to funguje:
+#   1. Nastav configure_external_storage: true
+#   2. Připoj SSD na external_storage_root (např. /Volumes/SSD1TB)
+#   3. Spusť playbook – task přesměruje všechny data-heavy cesty na SSD
+#   4. Původní cesty v domovském adresáři se NEPOUŽIJÍ (set_fact override)
+#
+# Co zůstává na interním SSD (výkon):
+#   - macOS systém, Homebrew, zdrojový kód, MariaDB, Redis
+# ==============================================================================
+
+configure_external_storage: false       # true = přesměrovat data na externí SSD
+external_storage_root: "/Volumes/SSD1TB"
+
+# Volitelné přesuny (pouze pokud configure_external_storage: true)
+external_storage_docker: true           # Docker Desktop disk image (~20-100 GB)
+external_storage_ollama: true           # Ollama modely (~10-150 GB)
+external_storage_caches: true           # npm, pip, Composer, Homebrew cache (~10-50 GB)
+
+# ==============================================================================
 # POST-PROVISION
 # ==============================================================================
 
