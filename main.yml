@@ -233,6 +233,10 @@
       when: install_gitea | default(false)
       tags: ['iiab', 'gitea', 'git']
 
+    - import_tasks: tasks/iiab/gitlab.yml
+      when: install_gitlab | default(false)
+      tags: ['iiab', 'gitlab', 'git']
+
     - import_tasks: tasks/iiab/uptime-kuma.yml
       when: install_uptime_kuma | default(false)
       tags: ['iiab', 'uptime-kuma', 'monitoring']

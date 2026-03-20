@@ -52,6 +52,7 @@ install_kiwix: false              # Kiwix – offline Wikipedia, Gutenberg, ZIM 
 install_offline_maps: false       # Offline mapy – tileserver-gl + MBTiles    [vyžaduje: node]
 install_n8n: false                # n8n – workflow automation                  [vyžaduje: Docker]
 install_gitea: false              # Gitea – self-hosted Git server             [Homebrew]
+install_gitlab: false             # GitLab CE – full DevOps platform           [vyžaduje: Docker, ~4 GB RAM]
 install_uptime_kuma: false        # Uptime Kuma – monitoring dashboard         [vyžaduje: Docker]
 install_calibreweb: false         # Calibre-Web – ebook server                [vyžaduje: Docker, calibre]
 
@@ -735,6 +736,24 @@ gitea_admin_email: ""                          # VYPLŇ!
 gitea_secret_key: "changeme_random_32_chars"   # PŘEPIŠ! (openssl rand -hex 32)
 gitea_internal_token: "changeme_internal_tok"  # PŘEPIŠ! (openssl rand -hex 32)
 gitea_disable_registration: false              # true = pouze admin může přidávat uživatele
+
+# ==============================================================================
+# IIAB – GITLAB CE (full DevOps platform)
+# Poznámka: GitLab Omnibus je těžká aplikace (~4 GB RAM v klidu, ~1 GB image).
+#           Doporučeno pouze pokud nepotřebuješ jen Git (na to stačí Gitea).
+#           Interní PostgreSQL, Redis, Sidekiq – vše v jednom kontejneru.
+# ==============================================================================
+
+gitlab_domain: "gitlab.dev.local"
+gitlab_http_port: 8929          # Interní HTTP port (nginx přebírá SSL, forwarduje sem)
+gitlab_ssh_port: 2224           # Git SSH (22=systém, 2222=Gitea → Gitlab na 2224)
+gitlab_version: "latest"        # nebo konkrétní: "17.9.1-ce.0"
+gitlab_data_dir: "/Users/pazny/gitlab"          # Repozitáře, uploads, artefakty (velké!)
+gitlab_config_dir: "/Users/pazny/gitlab-config" # gitlab.rb + klíče (malé, ale důležité)
+gitlab_timezone: "Europe/Prague"
+gitlab_signup_enabled: false    # Zakáže registraci nových uživatelů
+gitlab_puma_workers: 2          # Worker procesy (min 2, pro 36 GB klidně 4)
+gitlab_sidekiq_concurrency: 10  # Background job vlákna
 
 # ==============================================================================
 # IIAB – UPTIME KUMA (monitoring dashboard)

@@ -31,6 +31,7 @@
     calibreweb_books_dir: "{{ external_storage_root }}/calibre"
     n8n_data_dir: "{{ external_storage_root }}/n8n"
     gitea_data_dir: "{{ external_storage_root }}/gitea"
+    gitlab_data_dir: "{{ external_storage_root }}/gitlab"
     uptime_kuma_data_dir: "{{ external_storage_root }}/uptime-kuma"
     nextcloud_data_dir: "{{ external_storage_root }}/nextcloud-data"
     wordpress_dir: "{{ external_storage_root }}/wordpress"
@@ -54,6 +55,7 @@
     - "{{ external_storage_root }}/calibre"
     - "{{ external_storage_root }}/n8n"
     - "{{ external_storage_root }}/gitea"
+    - "{{ external_storage_root }}/gitlab"
     - "{{ external_storage_root }}/uptime-kuma"
     - "{{ external_storage_root }}/nextcloud-data"
     - "{{ external_storage_root }}/wordpress"
@@ -148,6 +150,7 @@
       │    calibre     → {{ external_storage_root }}/calibre
       │    n8n         → {{ external_storage_root }}/n8n
       │    gitea       → {{ external_storage_root }}/gitea
+      │    gitlab      → {{ external_storage_root }}/gitlab
       │    uptime-kuma → {{ external_storage_root }}/uptime-kuma
       │    nextcloud   → {{ external_storage_root }}/nextcloud-data
       │    wordpress   → {{ external_storage_root }}/wordpress

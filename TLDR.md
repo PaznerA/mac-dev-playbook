@@ -16,7 +16,7 @@ Playbook nainstaluje a nakonfiguruje **vsechno** od nuly:
 | **Web server** | Nginx s reverse proxy, HTTPS (mkcert), vhost sablony pro PHP/Node/Python/Go/static |
 | **AI agent** | OpenClaw + Ollama + stazeni modelu (qwen3.5:27b) |
 | **Observability** | Grafana + Prometheus + Loki + Tempo + Alloy (plny LGTM stack) |
-| **IIAB sluzby** | MariaDB, WordPress, Nextcloud, Kiwix, offline mapy, n8n, Gitea, Uptime Kuma, Calibre-Web |
+| **IIAB sluzby** | MariaDB, WordPress, Nextcloud, Kiwix, offline mapy, n8n, Gitea, GitLab CE, Uptime Kuma, Calibre-Web |
 | **Sit** | Tailscale VPN, dnsmasq (*.dev.local DNS), SSH/Samba/VNC (volitelne) |
 | **Shell** | Starship prompt, fzf, zoxide, bat, eza, lazygit + aliasy v .zshrc |
 | **macOS** | Finder, klavesnice, Dock, Safari, screenshot — automatizovane defaults |
@@ -168,7 +168,8 @@ ollama list
 │   └── homebrew/
 ├── calibre/            # e-book knihovna
 ├── docker/             # Docker Desktop disk image (MANUAL!)
-├── gitea/              # Git repozitare
+├── gitea/              # Git repozitare (Gitea)
+├── gitlab/             # GitLab repozitare + data (VELKE - desitky GB)
 ├── kiwix/              # ZIM archivy (Wikipedia, Gutenberg...)
 ├── maps/               # MBTiles (offline mapy)
 ├── n8n/                # Workflow data
@@ -246,6 +247,8 @@ ansible-playbook main.yml -K --tags "kiwix"
 | Uptime Kuma | 3001 | uptime.dev.local |
 | Gitea | 3003 | git.dev.local |
 | Gitea SSH | 2222 | — |
+| GitLab | 8929 | gitlab.dev.local |
+| GitLab SSH | 2224 | — |
 | n8n | 5678 | n8n.dev.local |
 | WordPress | — | wordpress.dev.local |
 | Nextcloud | — | cloud.dev.local |
