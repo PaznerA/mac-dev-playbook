@@ -100,11 +100,12 @@
       -f {{ nextcloud_dir }}/cron.php
 
 - name: "[Nextcloud] Deploy nginx vhost"
-  ansible.builtin.copy:
+  ansible.builtin.template:
     src: "nginx/sites-available/nextcloud.conf"
     dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/nextcloud.conf"
     mode: '0644'
   notify: Restart nginx
+  when: install_nginx | default(true)
 
 - name: "[Nextcloud] Enable nginx vhost (symlink)"
   ansible.builtin.file:
@@ -113,6 +114,7 @@
     state: link
     force: true
   notify: Restart nginx
+  when: install_nginx | default(true)
 
 - name: "[Nextcloud] Print installation info"
   ansible.builtin.debug:

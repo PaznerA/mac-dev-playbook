@@ -99,10 +99,10 @@
           <true/>
 
           <key>StandardOutPath</key>
-          <string>{{ openclaw_agents_dir | default('~/pazny/agents') }}/maps.stdout.log</string>
+          <string>{{ openclaw_agents_dir | default(ansible_env.HOME + '/pazny/agents') }}/maps.stdout.log</string>
 
           <key>StandardErrorPath</key>
-          <string>{{ openclaw_agents_dir | default('~/pazny/agents') }}/maps.stderr.log</string>
+          <string>{{ openclaw_agents_dir | default(ansible_env.HOME + '/pazny/agents') }}/maps.stderr.log</string>
 
           <key>WorkingDirectory</key>
           <string>{{ maps_data_dir }}</string>
@@ -119,11 +119,12 @@
   failed_when: false
 
 - name: "[Maps] Deploy nginx reverse proxy vhost"
-  ansible.builtin.copy:
+  ansible.builtin.template:
     src: nginx/sites-available/maps.conf
     dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/maps.conf"
     mode: '0644'
   notify: Restart nginx
+  when: install_nginx | default(true)
 
 - name: "[Maps] Enable nginx vhost (symlink)"
   ansible.builtin.file:
@@ -132,6 +133,7 @@
     state: link
     force: true
   notify: Restart nginx
+  when: install_nginx | default(true)
 
 - name: "[Maps] Create MBTiles download helper script"
   ansible.builtin.copy:

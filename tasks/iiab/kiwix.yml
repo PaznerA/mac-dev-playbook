@@ -71,10 +71,10 @@
           <true/>
 
           <key>StandardOutPath</key>
-          <string>{{ openclaw_agents_dir | default('~/pazny/agents') }}/kiwix.stdout.log</string>
+          <string>{{ openclaw_agents_dir | default(ansible_env.HOME + '/pazny/agents') }}/kiwix.stdout.log</string>
 
           <key>StandardErrorPath</key>
-          <string>{{ openclaw_agents_dir | default('~/pazny/agents') }}/kiwix.stderr.log</string>
+          <string>{{ openclaw_agents_dir | default(ansible_env.HOME + '/pazny/agents') }}/kiwix.stderr.log</string>
       </dict>
       </plist>
     mode: '0644'
@@ -88,11 +88,12 @@
   failed_when: false
 
 - name: "[Kiwix] Deploy nginx reverse proxy vhost"
-  ansible.builtin.copy:
+  ansible.builtin.template:
     src: nginx/sites-available/kiwix.conf
     dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/kiwix.conf"
     mode: '0644'
   notify: Restart nginx
+  when: install_nginx | default(true)
 
 - name: "[Kiwix] Enable nginx vhost (symlink)"
   ansible.builtin.file:
@@ -101,6 +102,7 @@
     state: link
     force: true
   notify: Restart nginx
+  when: install_nginx | default(true)
 
 - name: "[Kiwix] Create ZIM file download helper script"
   ansible.builtin.copy:

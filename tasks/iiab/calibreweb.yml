@@ -44,9 +44,9 @@
           <string>-v</string>
           <string>{{ ansible_env.HOME }}/pazny/calibre-web/books:/books</string>
           <string>-e</string>
-          <string>PUID=1000</string>
+          <string>PUID={{ ansible_user_uid }}</string>
           <string>-e</string>
-          <string>PGID=1000</string>
+          <string>PGID={{ ansible_user_gid }}</string>
           <string>-e</string>
           <string>TZ=Europe/Prague</string>
           <string>-e</string>
