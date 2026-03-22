@@ -8,6 +8,10 @@
     name: mariadb
     state: present
 
+- name: "[MariaDB] Install PyMySQL (required by community.mysql modules)"
+  ansible.builtin.command: pip3 install PyMySQL
+  changed_when: false
+
 - name: "[MariaDB] Start MariaDB service"
   ansible.builtin.command: brew services start mariadb
   register: mariadb_svc
