@@ -18,21 +18,27 @@
     path: "{{ nextcloud_dir }}/index.php"
   register: nc_installed
 
-- name: "[Nextcloud] Get latest Nextcloud version"
-  ansible.builtin.uri:
-    url: https://download.nextcloud.com/server/releases/latest.tar.bz2
-    method: HEAD
-    follow_redirects: safe
-  register: nc_latest
+- name: "[Nextcloud] Download latest Nextcloud"
+  ansible.builtin.shell: |
+    curl -L --fail --retry 3 --retry-delay 5 \
+      -o /tmp/nextcloud.tar.bz2 \
+      https://download.nextcloud.com/server/releases/latest.tar.bz2
+  args:
+    creates: /tmp/nextcloud.tar.bz2
   when: not nc_installed.stat.exists
 
-- name: "[Nextcloud] Download latest Nextcloud"
-  ansible.builtin.get_url:
-    url: https://download.nextcloud.com/server/releases/latest.tar.bz2
-    dest: /tmp/nextcloud.tar.bz2
-    mode: '0644'
-    timeout: 300
+- name: "[Nextcloud] Verify downloaded archive"
+  ansible.builtin.stat:
+    path: /tmp/nextcloud.tar.bz2
+  register: nc_archive
   when: not nc_installed.stat.exists
+
+- name: "[Nextcloud] Fail if download incomplete"
+  ansible.builtin.fail:
+    msg: "Nextcloud archive /tmp/nextcloud.tar.bz2 missing or empty after download"
+  when:
+    - not nc_installed.stat.exists
+    - not nc_archive.stat.exists or nc_archive.stat.size < 10000000
 
 - name: "[Nextcloud] Extract Nextcloud"
   ansible.builtin.unarchive:
