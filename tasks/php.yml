@@ -3,6 +3,11 @@
 # PHP – instalace, PHP-FPM a konfigurace
 # ==============================================================================
 
+- name: Tap shivammathur/php for PHP extensions
+  community.general.homebrew_tap:
+    name: shivammathur/php
+    state: present
+
 - name: Install PHP via Homebrew
   community.general.homebrew:
     name: "php@{{ php_version }}"
@@ -10,16 +15,16 @@
 
 - name: Install common PHP extensions via Homebrew
   community.general.homebrew:
-    name: "{{ item }}"
+    name: "shivammathur/php/{{ item }}"
     state: present
   loop:
     - "php@{{ php_version }}-redis"
     - "php@{{ php_version }}-imagick"
-  ignore_errors: true   # extension availability varies by version
+  ignore_errors: true   # extension availability varies by PHP version
 
 - name: Install additional PHP extensions from config
   community.general.homebrew:
-    name: "{{ item }}"
+    name: "shivammathur/php/{{ item }}"
     state: present
   loop: "{{ php_extensions | default([]) }}"
   ignore_errors: true
@@ -95,9 +100,17 @@
     mode: '0644'
   notify: Restart php-fpm
 
+- name: Ensure php-fpm.d directory exists
+  ansible.builtin.file:
+    path: "{{ homebrew_prefix }}/etc/php/{{ php_version }}/php-fpm.d"
+    state: directory
+    mode: '0755'
+
 - name: Configure PHP-FPM pool (www.conf)
   ansible.builtin.blockinfile:
     path: "{{ homebrew_prefix }}/etc/php/{{ php_version }}/php-fpm.d/www.conf"
+    create: true
+    mode: '0644'
     marker: "; {mark} ANSIBLE MANAGED BLOCK"
     block: |
       ; Výkonnostní nastavení pro Mac Studio 36GB
