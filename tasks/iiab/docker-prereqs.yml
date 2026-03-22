@@ -1,8 +1,31 @@
 ---
 # ==============================================================================
-# DOCKER PREREQS – Python balíčky potřebné pro community.docker.* moduly
-# Musí běžet před jakýmkoli taskem používajícím community.docker.*
+# DOCKER PREREQS – spuštění Docker Desktop + Python SDK pro community.docker.*
 # ==============================================================================
+
+- name: "[Docker] Check if Docker daemon is responding"
+  ansible.builtin.command: docker info
+  register: docker_info
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "[Docker] Start Docker Desktop if not running"
+  ansible.builtin.command: open -a Docker
+  when: docker_info.rc != 0
+  changed_when: true
+  check_mode: false
+
+- name: "[Docker] Wait for Docker daemon to be ready (up to 60 s)"
+  ansible.builtin.shell: |
+    for i in $(seq 1 20); do
+      docker info >/dev/null 2>&1 && exit 0
+      sleep 3
+    done
+    exit 1
+  when: docker_info.rc != 0
+  changed_when: false
+  check_mode: false
 
 - name: "[Docker] Install Python docker SDK + dependencies"
   ansible.builtin.shell: >-
