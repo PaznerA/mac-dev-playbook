@@ -8,9 +8,9 @@
 #   → otevře se prohlížeč pro login na https://login.tailscale.com
 #
 # Služby pak dostupné přes:
-#   http://mac-studio.<tailnet>.ts.net:3000   (Grafana)
-#   http://mac-studio.<tailnet>.ts.net:3003   (Gitea)
-#   http://mac-studio.<tailnet>.ts.net:5678   (n8n)
+#   http://<hostname>.<tailnet>.ts.net:3000   (Grafana)
+#   http://<hostname>.<tailnet>.ts.net:3003   (Gitea)
+#   http://<hostname>.<tailnet>.ts.net:5678   (n8n)
 #   ... atd.
 # ==============================================================================
 
