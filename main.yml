@@ -194,6 +194,12 @@
     # ──────────────────────────────────────────────────────────────────────────
     # IIAB – self-hosted knowledge services
     # ──────────────────────────────────────────────────────────────────────────
+
+    # Python docker SDK + PyMySQL – prerekvizita pro všechny community.docker.*
+    # a community.mysql.* moduly; rychlé no-op pokud jsou už nainstalovány
+    - import_tasks: tasks/iiab/docker-prereqs.yml
+      tags: ['iiab', 'docker']
+
     - include_tasks: tasks/iiab/mariadb.yml
       when: install_mariadb | default(false)
       tags: ['iiab', 'mariadb', 'database']

@@ -16,18 +16,6 @@
     - "{{ mariadb_data_dir | default(ansible_env.HOME + '/mariadb/data') }}"
     - "{{ ansible_env.HOME }}/agents/log"
 
-# PyMySQL potřebuje community.mysql moduly na control node (Mac → Docker TCP)
-- name: "[MariaDB] Install PyMySQL (required by community.mysql modules)"
-  ansible.builtin.shell: >-
-    {{ homebrew_prefix }}/bin/python3 -m pip install
-    --break-system-packages PyMySQL
-  register: pymysql_result
-  changed_when: "'Successfully installed' in pymysql_result.stdout"
-  failed_when:
-    - pymysql_result.rc != 0
-    - "'already satisfied' not in pymysql_result.stdout"
-  check_mode: false
-
 - name: "[MariaDB] Pull MariaDB Docker image"
   community.docker.docker_image:
     name: "mariadb:{{ mariadb_version | default('lts') }}"
