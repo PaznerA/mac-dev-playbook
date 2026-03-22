@@ -927,6 +927,11 @@ homeassistant_version: "stable"     # stable / latest / konkrétní tag (2025.1.
 homeassistant_port: 8123
 homeassistant_timezone: "Europe/Prague"
 homeassistant_config_dir: "{{ ansible_env.HOME }}/homeassistant"
+# true = privileged + network_mode: host → mDNS/Bonjour auto-discovery
+# Pozor (macOS): host mode sahá do Docker VM sítě, ne přímo na Mac fyzickou síť.
+# Pro plný Bonjour/mDNS na Mac je potřeba nativní instalace HA nebo host networking
+# přes --network host v Docker Desktop (experimentální funkce).
+homeassistant_privileged: false
 
 # ==============================================================================
 # RUSTFS – S3-compatible object storage

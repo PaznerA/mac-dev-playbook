@@ -253,14 +253,24 @@ services:
   homeassistant:
     image: homeassistant/home-assistant:{{ homeassistant_version | default('stable') }}
     restart: unless-stopped
+{% if homeassistant_privileged | default(false) %}
+    # privileged + network_mode: host – nutné pro mDNS/Bonjour auto-discovery.
+    # Poznámka (macOS): Docker Desktop běží ve VM, takže host mode sahá do VM
+    # sítě. Pro USB dongly (Zigbee, Z-Wave) použij volumes: /dev/ttyUSB0:/dev/...
+    privileged: true
+    network_mode: host
+    # network_mode: host není kompatibilní s ports: ani networks: – HA naslouchá
+    # přímo na portu {{ homeassistant_port | default(8123) }} hostu (VM sítě).
+{% else %}
     ports:
       - "127.0.0.1:{{ homeassistant_port | default(8123) }}:8123"
+    networks:
+      - iiab_net
+{% endif %}
     volumes:
       - {{ homeassistant_config_dir | default(ansible_env.HOME + '/homeassistant') }}:/config
     environment:
       TZ: "{{ homeassistant_timezone | default('Europe/Prague') }}"
-    networks:
-      - iiab_net
     logging:
       driver: "json-file"
       options:
