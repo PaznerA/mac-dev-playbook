@@ -33,6 +33,65 @@ services:
         max-file: "5"
 
 {% endif %}
+{% if install_wordpress | default(false) %}
+  wordpress:
+    image: wordpress:{{ wordpress_version | default('latest') }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ wordpress_port | default(8084) }}:80"
+    volumes:
+      - {{ wordpress_dir }}:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: "{% if install_mariadb | default(false) %}mariadb{% else %}{{ wordpress_db_host | default('127.0.0.1') }}{% endif %}"
+      WORDPRESS_DB_USER: "{{ wordpress_db_user }}"
+      WORDPRESS_DB_PASSWORD: "{{ wordpress_db_password }}"
+      WORDPRESS_DB_NAME: "{{ wordpress_db_name }}"
+      WORDPRESS_TABLE_PREFIX: "{{ wordpress_table_prefix | default('wp_') }}"
+{% if install_mariadb | default(false) %}
+    depends_on:
+      - mariadb
+{% endif %}
+    networks:
+      - iiab_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+{% endif %}
+{% if install_nextcloud | default(false) %}
+  nextcloud:
+    image: nextcloud:{{ nextcloud_version | default('stable') }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ nextcloud_port | default(8085) }}:80"
+    volumes:
+      - {{ nextcloud_dir }}:/var/www/html
+      - {{ nextcloud_data_dir }}:/data
+    environment:
+      MYSQL_HOST: "{% if install_mariadb | default(false) %}mariadb{% else %}{{ nextcloud_db_host | default('127.0.0.1') }}{% endif %}"
+      MYSQL_DATABASE: "{{ nextcloud_db_name }}"
+      MYSQL_USER: "{{ nextcloud_db_user }}"
+      MYSQL_PASSWORD: "{{ nextcloud_db_password }}"
+      NEXTCLOUD_ADMIN_USER: "{{ nextcloud_admin_user }}"
+      NEXTCLOUD_ADMIN_PASSWORD: "{{ nextcloud_admin_password }}"
+      NEXTCLOUD_DATA_DIR: "/data"
+      NEXTCLOUD_TRUSTED_DOMAINS: "{{ nextcloud_domain | default('cloud.dev.local') }}"
+      OVERWRITEPROTOCOL: "https"
+{% if install_mariadb | default(false) %}
+    depends_on:
+      - mariadb
+{% endif %}
+    networks:
+      - iiab_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+{% endif %}
 {% if install_n8n | default(false) %}
   n8n:
     image: n8nio/n8n:{{ n8n_version | default('latest') }}
