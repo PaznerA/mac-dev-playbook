@@ -219,8 +219,8 @@
   community.general.osx_defaults:
     domain: com.apple.dock
     key: tilesize
-    type: int
-    value: "{{ macos_dock_tilesize | default(48) }}"
+    type: float
+    value: "{{ macos_dock_tilesize | default(48) | float }}"
 
 - name: "[Dock] Set minimize effect"
   community.general.osx_defaults:
