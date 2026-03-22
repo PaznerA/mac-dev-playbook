@@ -38,7 +38,22 @@
       ansible.builtin.command: brew services restart "php@{{ php_version | default('8.3') }}"
 
     - name: Restart mariadb
-      ansible.builtin.command: brew services restart mariadb
+      ansible.builtin.shell: |
+        launchctl unload {{ homebrew_prefix }}/opt/mariadb/homebrew.mxcl.mariadb.plist 2>/dev/null || true
+        launchctl load -w {{ homebrew_prefix }}/opt/mariadb/homebrew.mxcl.mariadb.plist
+      failed_when: false
+
+    - name: Restart traefik
+      ansible.builtin.shell: |
+        launchctl unload {{ ansible_env.HOME }}/Library/LaunchAgents/homebrew.mxcl.traefik.plist 2>/dev/null || true
+        launchctl load -w {{ ansible_env.HOME }}/Library/LaunchAgents/homebrew.mxcl.traefik.plist
+      failed_when: false
+
+    - name: Restart homeassistant
+      ansible.builtin.shell: |
+        launchctl unload {{ ansible_env.HOME }}/Library/LaunchAgents/com.homeassistant.plist 2>/dev/null || true
+        launchctl load -w {{ ansible_env.HOME }}/Library/LaunchAgents/com.homeassistant.plist
+      failed_when: false
 
     - name: Restart openclaw
       ansible.builtin.command: >
@@ -270,6 +285,14 @@
     - import_tasks: tasks/iiab/calibreweb.yml
       when: install_calibreweb | default(false)
       tags: ['iiab', 'calibre', 'ebooks']
+
+    - include_tasks: tasks/iiab/traefik.yml
+      when: install_traefik | default(false)
+      tags: ['iiab', 'traefik', 'proxy']
+
+    - include_tasks: tasks/iiab/homeassistant.yml
+      when: install_homeassistant | default(false)
+      tags: ['iiab', 'homeassistant', 'iot']
 
     # ──────────────────────────────────────────────────────────────────────────
     # Post-provision háky

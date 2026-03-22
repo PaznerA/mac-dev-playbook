@@ -60,6 +60,8 @@ install_portainer: false          # Portainer CE – Docker management UI       
 install_jellyfin: false           # Jellyfin – media server                    [vyžaduje: Docker]
 install_uptime_kuma: false        # Uptime Kuma – monitoring dashboard         [vyžaduje: Docker]
 install_calibreweb: false         # Calibre-Web – ebook server                [vyžaduje: Docker, calibre]
+install_traefik: false            # Traefik – reverse proxy / ingress pro lokální vývoj
+install_homeassistant: false      # Home Assistant – home automation            [vyžaduje: Docker]
 
 # ── Síť / přístup ─────────────────────────────────────────────────────────────
 install_tailscale: true           # Tailscale – WireGuard mesh VPN (vzdálený přístup ke všem službám)
@@ -902,3 +904,21 @@ external_storage_caches: true           # npm, pip, Composer, Homebrew cache (~1
 # ==============================================================================
 
 post_provision_tasks: []
+
+# ==============================================================================
+# TRAEFIK
+# ==============================================================================
+
+traefik_http_port: 80
+traefik_https_port: 443
+traefik_dashboard_port: 8080
+traefik_log_level: "INFO"           # DEBUG / INFO / WARN / ERROR
+
+# ==============================================================================
+# HOME ASSISTANT
+# ==============================================================================
+
+homeassistant_version: "stable"     # stable / latest / konkrétní tag (2025.1.0)
+homeassistant_port: 8123
+homeassistant_timezone: "Europe/Prague"
+homeassistant_config_dir: "{{ ansible_env.HOME }}/homeassistant"
