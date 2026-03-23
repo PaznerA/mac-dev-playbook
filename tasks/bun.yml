@@ -10,11 +10,11 @@
 
 - name: Add Bun completions to .zshrc
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} BUN – ANSIBLE MANAGED"
     block: |
       # Bun completions
-      [ -s "{{ ansible_env.HOME }}/.bun/_bun" ] && source "{{ ansible_env.HOME }}/.bun/_bun"
+      [ -s "{{ ansible_facts['env']['HOME'] }}/.bun/_bun" ] && source "{{ ansible_facts['env']['HOME'] }}/.bun/_bun"
       export BUN_INSTALL="$HOME/.bun"
       export PATH="$BUN_INSTALL/bin:$PATH"
     create: true

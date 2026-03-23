@@ -12,14 +12,14 @@
 
 - name: Ensure starship config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config"
     state: directory
     mode: '0755'
 
 - name: Deploy starship config
   ansible.builtin.template:
     src: starship.toml.j2
-    dest: "{{ ansible_env.HOME }}/.config/starship.toml"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/starship.toml"
     mode: '0644'
     backup: true
 
@@ -27,13 +27,13 @@
 
 - name: Ensure ~/.zshrc exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     state: touch
     mode: '0644'
 
 - name: Add starship init to ~/.zshrc
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} STARSHIP PROMPT (ansible managed)"
     block: |
       # Starship cross-shell prompt
@@ -42,7 +42,7 @@
 
 - name: Add zoxide init to ~/.zshrc
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} ZOXIDE (ansible managed)"
     block: |
       # Zoxide – smart cd
@@ -51,7 +51,7 @@
 
 - name: Add fzf init to ~/.zshrc
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} FZF (ansible managed)"
     block: |
       # fzf – fuzzy finder
@@ -61,7 +61,7 @@
 
 - name: Add modern CLI aliases to ~/.zshrc
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} MODERN CLI ALIASES (ansible managed)"
     block: |
       # Modern CLI tool aliases
@@ -74,7 +74,7 @@
 
 - name: Add starship init to ~/.bash_profile
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.bash_profile"
+    path: "{{ ansible_facts['env']['HOME'] }}/.bash_profile"
     marker: "# {mark} STARSHIP PROMPT (ansible managed)"
     block: |
       eval "$(starship init bash)"

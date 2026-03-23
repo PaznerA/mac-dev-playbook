@@ -24,8 +24,8 @@
   loop:
     - "{{ gitlab_data_dir }}"
     - "{{ gitlab_config_dir }}"
-    - "{{ ansible_env.HOME }}/gitlab-logs"
-    - "{{ ansible_env.HOME }}/agents/log"
+    - "{{ ansible_facts['env']['HOME'] }}/gitlab-logs"
+    - "{{ ansible_facts['env']['HOME'] }}/agents/log"
 
 # ── Konfigurace (gitlab.rb) ───────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@
 ### Deprecation: `ansible_env` → `ansible_facts`
 
 Ansible-core 2.24 odstraní auto-injekci top-level facts přes `INJECT_FACTS_AS_VARS`.
-Všechna místa kde se používá `ansible_env.HOME`, `ansible_env.PATH` apod. je třeba
+Všechna místa kde se používá `ansible_facts['env']['HOME']`, `ansible_facts['env']['PATH']` apod. je třeba
 nahradit za `ansible_facts['env']['HOME']` (nebo equivalent).
 
 Dotčené soubory (neúplný seznam):

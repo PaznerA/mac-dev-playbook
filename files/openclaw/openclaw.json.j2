@@ -18,7 +18,7 @@
       "reasoning": false,
       "maxConcurrent": {{ openclaw_max_concurrent_agents | default(4) }},
       "contextWindow": 131072,
-      "systemPromptFile": "{{ ansible_env.HOME }}/.openclaw/SOUL.md"
+      "systemPromptFile": "{{ ansible_facts['env']['HOME'] }}/.openclaw/SOUL.md"
     }
   },
 

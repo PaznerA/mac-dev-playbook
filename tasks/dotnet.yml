@@ -10,7 +10,7 @@
 
 - name: Add .NET to shell profile (.zshrc)
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} DOTNET – ANSIBLE MANAGED"
     block: |
       export DOTNET_ROOT="{{ homebrew_prefix }}/share/dotnet"
@@ -24,7 +24,7 @@
   ansible.builtin.command: dotnet tool install -g {{ item.name }}
   loop: "{{ dotnet_global_tools | default([]) }}"
   environment:
-    PATH: "{{ homebrew_prefix }}/share/dotnet:{{ ansible_env.HOME }}/.dotnet/tools:{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ homebrew_prefix }}/share/dotnet:{{ ansible_facts['env']['HOME'] }}/.dotnet/tools:{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
     DOTNET_ROOT: "{{ homebrew_prefix }}/share/dotnet"
   register: dotnet_tool_result
   changed_when: "'already installed' not in dotnet_tool_result.stderr"
@@ -37,7 +37,7 @@
   register: dotnet_version
   changed_when: false
   environment:
-    PATH: "{{ homebrew_prefix }}/share/dotnet:{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ homebrew_prefix }}/share/dotnet:{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
     DOTNET_ROOT: "{{ homebrew_prefix }}/share/dotnet"
 
 - name: Print .NET version

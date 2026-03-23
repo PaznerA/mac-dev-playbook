@@ -11,12 +11,12 @@
     state: directory
     mode: '0755'
   loop:
-    - "{{ traefik_config_dir | default(ansible_env.HOME + '/iiab/traefik') }}"
-    - "{{ traefik_config_dir | default(ansible_env.HOME + '/iiab/traefik') }}/conf.d"
+    - "{{ traefik_config_dir | default(ansible_facts['env']['HOME'] + '/iiab/traefik') }}"
+    - "{{ traefik_config_dir | default(ansible_facts['env']['HOME'] + '/iiab/traefik') }}/conf.d"
 
 - name: "[Traefik] Deploy traefik.yml config"
   ansible.builtin.copy:
-    dest: "{{ traefik_config_dir | default(ansible_env.HOME + '/iiab/traefik') }}/traefik.yml"
+    dest: "{{ traefik_config_dir | default(ansible_facts['env']['HOME'] + '/iiab/traefik') }}/traefik.yml"
     mode: '0644'
     content: |
       api:
@@ -52,6 +52,6 @@
        Dashboard:  http://localhost:{{ traefik_dashboard_port | default(8080) }}/dashboard/
        HTTP:       :{{ traefik_http_port | default(80) }}
        HTTPS:      :{{ traefik_https_port | default(443) }}
-       Konfig:     {{ traefik_config_dir | default(ansible_env.HOME + '/iiab/traefik') }}/traefik.yml
-       conf.d:     {{ traefik_config_dir | default(ansible_env.HOME + '/iiab/traefik') }}/conf.d/
+       Konfig:     {{ traefik_config_dir | default(ansible_facts['env']['HOME'] + '/iiab/traefik') }}/traefik.yml
+       conf.d:     {{ traefik_config_dir | default(ansible_facts['env']['HOME'] + '/iiab/traefik') }}/conf.d/
       ══════════════════════════════════════════════════════

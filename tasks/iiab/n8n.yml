@@ -10,7 +10,7 @@
     mode: '0755'
   loop:
     - "{{ n8n_data_dir }}"
-    - "{{ ansible_env.HOME }}/agents/log"
+    - "{{ ansible_facts['env']['HOME'] }}/agents/log"
 
 - name: Enable n8n nginx vhost
   ansible.builtin.file:

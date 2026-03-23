@@ -16,7 +16,7 @@
 
 - name: Add pyenv to shell profile (.zshrc)
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} PYENV – ANSIBLE MANAGED"
     block: |
       export PYENV_ROOT="$HOME/.pyenv"
@@ -33,8 +33,8 @@
   args:
     executable: /bin/zsh
   environment:
-    PYENV_ROOT: "{{ ansible_env.HOME }}/.pyenv"
-    PATH: "{{ ansible_env.HOME }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
+    PYENV_ROOT: "{{ ansible_facts['env']['HOME'] }}/.pyenv"
+    PATH: "{{ ansible_facts['env']['HOME'] }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
   changed_when: false
 
 - name: Set Python global version via pyenv
@@ -44,8 +44,8 @@
   args:
     executable: /bin/zsh
   environment:
-    PYENV_ROOT: "{{ ansible_env.HOME }}/.pyenv"
-    PATH: "{{ ansible_env.HOME }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
+    PYENV_ROOT: "{{ ansible_facts['env']['HOME'] }}/.pyenv"
+    PATH: "{{ ansible_facts['env']['HOME'] }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
   changed_when: false
 
 - name: Upgrade pip
@@ -55,8 +55,8 @@
   args:
     executable: /bin/zsh
   environment:
-    PYENV_ROOT: "{{ ansible_env.HOME }}/.pyenv"
-    PATH: "{{ ansible_env.HOME }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
+    PYENV_ROOT: "{{ ansible_facts['env']['HOME'] }}/.pyenv"
+    PATH: "{{ ansible_facts['env']['HOME'] }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
   changed_when: false
 
 - name: Install pip packages
@@ -67,6 +67,6 @@
     executable: /bin/zsh
   loop: "{{ pip_packages | default([]) }}"
   environment:
-    PYENV_ROOT: "{{ ansible_env.HOME }}/.pyenv"
-    PATH: "{{ ansible_env.HOME }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
+    PYENV_ROOT: "{{ ansible_facts['env']['HOME'] }}/.pyenv"
+    PATH: "{{ ansible_facts['env']['HOME'] }}/.pyenv/bin:{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
   changed_when: false

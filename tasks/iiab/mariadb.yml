@@ -13,6 +13,6 @@
     state: directory
     mode: '0755'
   loop:
-    - "{{ mariadb_data_dir | default(ansible_env.HOME + '/mariadb/data') }}"
-    - "{{ ansible_env.HOME }}/agents/log"
+    - "{{ mariadb_data_dir | default(ansible_facts['env']['HOME'] + '/mariadb/data') }}"
+    - "{{ ansible_facts['env']['HOME'] }}/agents/log"
 

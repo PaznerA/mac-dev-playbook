@@ -10,7 +10,7 @@
 
 - name: Ensure Go workspace directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/go/{{ item }}"
+    path: "{{ ansible_facts['env']['HOME'] }}/go/{{ item }}"
     state: directory
     mode: '0755'
   loop:
@@ -20,7 +20,7 @@
 
 - name: Add Go to shell profile (.zshrc)
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} GO – ANSIBLE MANAGED"
     block: |
       export GOPATH="$HOME/go"
@@ -34,8 +34,8 @@
     {{ homebrew_prefix }}/bin/go install {{ item }}
   loop: "{{ go_packages | default([]) }}"
   environment:
-    GOPATH: "{{ ansible_env.HOME }}/go"
+    GOPATH: "{{ ansible_facts['env']['HOME'] }}/go"
     GOROOT: "{{ homebrew_prefix }}/opt/go/libexec"
-    PATH: "{{ ansible_env.HOME }}/go/bin:{{ homebrew_prefix }}/opt/go/libexec/bin:{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
-    HOME: "{{ ansible_env.HOME }}"
+    PATH: "{{ ansible_facts['env']['HOME'] }}/go/bin:{{ homebrew_prefix }}/opt/go/libexec/bin:{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
+    HOME: "{{ ansible_facts['env']['HOME'] }}"
   changed_when: false

@@ -128,7 +128,7 @@
 
 - name: "[External SSD] Add storage environment exports to ~/.zshrc"
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} EXTERNAL STORAGE (ansible managed)"
     block: |
       # ── External SSD: {{ external_storage_root }} ──

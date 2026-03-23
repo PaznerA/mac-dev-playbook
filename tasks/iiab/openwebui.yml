@@ -13,7 +13,7 @@
     mode: '0755'
   loop:
     - "{{ openwebui_data_dir }}"
-    - "{{ ansible_env.HOME }}/agents/log"
+    - "{{ ansible_facts['env']['HOME'] }}/agents/log"
 
 - name: "[Open WebUI] Enable nginx vhost"
   ansible.builtin.file:

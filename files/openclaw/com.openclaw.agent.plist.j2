@@ -17,7 +17,7 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>HOME</key>
-        <string>{{ ansible_env.HOME }}</string>
+        <string>{{ ansible_facts['env']['HOME'] }}</string>
         <key>PATH</key>
         <string>{{ homebrew_prefix }}/bin:/usr/local/bin:/usr/bin:/bin</string>
         <key>OLLAMA_API_KEY</key>

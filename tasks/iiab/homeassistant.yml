@@ -7,7 +7,7 @@
 
 - name: "[HomeAssistant] Ensure config directory exists"
   ansible.builtin.file:
-    path: "{{ homeassistant_config_dir | default(ansible_env.HOME + '/homeassistant') }}"
+    path: "{{ homeassistant_config_dir | default(ansible_facts['env']['HOME'] + '/homeassistant') }}"
     state: directory
     mode: '0755'
 
@@ -18,5 +18,5 @@
        Home Assistant připraven (spouští se přes IIAB stack)
       ══════════════════════════════════════════════════════
        Web UI:    http://localhost:{{ homeassistant_port | default(8123) }}
-       Konfig:    {{ homeassistant_config_dir | default(ansible_env.HOME + '/homeassistant') }}
+       Konfig:    {{ homeassistant_config_dir | default(ansible_facts['env']['HOME'] + '/homeassistant') }}
       ══════════════════════════════════════════════════════

@@ -37,22 +37,35 @@
     path: "{{ homebrew_prefix }}/bin/tempo"
   register: tempo_binary_stat
 
+- name: Set Tempo platform support flag
+  ansible.builtin.set_fact:
+    tempo_binary_supported: "{{ ansible_facts['system'] != 'Darwin' }}"
+
+- name: Warn when Tempo binary install is skipped on macOS
+  ansible.builtin.debug:
+    msg: "Skipping Tempo binary install on macOS: upstream Tempo releases currently provide Linux/Windows artifacts only."
+  when: not tempo_binary_supported
+
 - name: Download Grafana Tempo binary archive
   ansible.builtin.get_url:
-    url: "https://github.com/grafana/tempo/releases/download/v{{ tempo_version }}/tempo_{{ tempo_version }}_darwin_{{ 'arm64' if ansible_machine == 'arm64' else 'amd64' }}.tar.gz"
-    dest: "/tmp/tempo_{{ tempo_version }}_darwin.tar.gz"
+    url: "https://github.com/grafana/tempo/releases/download/v{{ tempo_version }}/tempo_{{ tempo_version }}_linux_{{ 'arm64' if ansible_facts['machine'] == 'arm64' else 'amd64' }}.tar.gz"
+    dest: "/tmp/tempo_{{ tempo_version }}_linux.tar.gz"
     mode: '0644'
-  when: not tempo_binary_stat.stat.exists
+  when:
+    - tempo_binary_supported
+    - not tempo_binary_stat.stat.exists
 
 - name: Extract Tempo binary to homebrew bin
   ansible.builtin.unarchive:
-    src: "/tmp/tempo_{{ tempo_version }}_darwin.tar.gz"
+    src: "/tmp/tempo_{{ tempo_version }}_linux.tar.gz"
     dest: "{{ homebrew_prefix }}/bin"
     include:
       - tempo
     mode: '0755'
     remote_src: true
-  when: not tempo_binary_stat.stat.exists
+  when:
+    - tempo_binary_supported
+    - not tempo_binary_stat.stat.exists
 
 # ── nginx-prometheus-exporter – binary install (not in Homebrew) ─────────────
 
@@ -157,15 +170,15 @@
   loop:
     - "{{ homebrew_prefix }}/etc/grafana/provisioning/datasources"
     - "{{ homebrew_prefix }}/etc/grafana/provisioning/dashboards"
-    - "{{ homebrew_prefix }}/etc/alloy"
+    - "{{ homebrew_prefix }}/etc/grafana-alloy"
     - "{{ homebrew_prefix }}/var/log/grafana-alloy"
-    - "{{ ansible_env.HOME }}/observability/dashboards"
+    - "{{ ansible_facts['env']['HOME'] }}/observability/dashboards"
 
 # ── Prometheus konfigurace ────────────────────────────────────────────────────
 
 - name: Deploy Prometheus configuration
   ansible.builtin.template:
-    src: observability/prometheus/prometheus.yml
+    src: "{{ playbook_dir }}/files/observability/prometheus/prometheus.yml"
     dest: "{{ homebrew_prefix }}/etc/prometheus.yml"
     backup: true
     mode: '0644'
@@ -182,7 +195,7 @@
 
 - name: Deploy Loki configuration
   ansible.builtin.template:
-    src: observability/loki/local-config.yaml
+    src: "{{ playbook_dir }}/files/observability/loki/local-config.yaml"
     dest: "{{ homebrew_prefix }}/etc/loki/local-config.yaml"
     backup: true
     mode: '0644'
@@ -197,7 +210,7 @@
 
 - name: Deploy Tempo configuration
   ansible.builtin.template:
-    src: observability/tempo/tempo.yaml
+    src: "{{ playbook_dir }}/files/observability/tempo/tempo.yaml"
     dest: "{{ homebrew_prefix }}/etc/tempo.yaml"
     backup: true
     mode: '0644'
@@ -218,14 +231,14 @@
 
 - name: Deploy Grafana datasources provisioning
   ansible.builtin.template:
-    src: observability/grafana/provisioning/datasources/all.yml.j2
+    src: "{{ playbook_dir }}/files/observability/grafana/provisioning/datasources/all.yml.j2"
     dest: "{{ homebrew_prefix }}/etc/grafana/provisioning/datasources/all.yml"
     mode: '0644'
   notify: Restart grafana
 
 - name: Deploy Grafana dashboard provisioning config
   ansible.builtin.template:
-    src: observability/grafana/provisioning/dashboards/all.yml.j2
+    src: "{{ playbook_dir }}/files/observability/grafana/provisioning/dashboards/all.yml.j2"
     dest: "{{ homebrew_prefix }}/etc/grafana/provisioning/dashboards/all.yml"
     mode: '0644'
   notify: Restart grafana
@@ -262,8 +275,8 @@
 
 - name: Deploy Grafana Alloy configuration
   ansible.builtin.template:
-    src: observability/alloy/config.alloy.j2
-    dest: "{{ homebrew_prefix }}/etc/alloy/config.alloy"
+    src: "{{ playbook_dir }}/files/observability/alloy/config.alloy.j2"
+    dest: "{{ homebrew_prefix }}/etc/grafana-alloy/config.alloy"
     mode: '0644'
   notify: Restart alloy
 
@@ -271,7 +284,7 @@
 
 - name: Ensure Grafana dashboard download directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/observability/dashboards"
+    path: "{{ ansible_facts['env']['HOME'] }}/observability/dashboards"
     state: directory
     mode: '0755'
 
@@ -281,7 +294,7 @@
     - prometheus
     - loki
     - grafana
-    - alloy
+    - grafana-alloy
     - node_exporter
   register: svc_result
   changed_when: "'already started' not in svc_result.stdout"
@@ -332,7 +345,7 @@
 - name: Download community Grafana dashboards
   ansible.builtin.get_url:
     url: "https://grafana.com/api/dashboards/{{ item.id }}/revisions/latest/download"
-    dest: "{{ ansible_env.HOME }}/observability/dashboards/dashboard-{{ item.id }}.json"
+    dest: "{{ ansible_facts['env']['HOME'] }}/observability/dashboards/dashboard-{{ item.id }}.json"
     mode: '0644'
   loop: "{{ grafana_dashboards | default([]) }}"
   ignore_errors: true  # Pokud není internet, přeskočíme
@@ -346,14 +359,14 @@
     force_basic_auth: true
     body_format: json
     body:
-      dashboard: "{{ lookup('file', ansible_env.HOME + '/observability/dashboards/dashboard-' + item.id | string + '.json') | from_json }}"
+      dashboard: "{{ lookup('file', ansible_facts['env']['HOME'] + '/observability/dashboards/dashboard-' + item.id | string + '.json') | from_json }}"
       folderId: 0
       overwrite: true
     status_code: [200, 412]
   loop: "{{ grafana_dashboards | default([]) }}"
   ignore_errors: true
   when: >
-    (ansible_env.HOME + '/observability/dashboards/dashboard-' + item.id | string + '.json') is file
+    (ansible_facts['env']['HOME'] + '/observability/dashboards/dashboard-' + item.id | string + '.json') is file
 
 # ── Nginx vhost pro Grafana ───────────────────────────────────────────────────
 

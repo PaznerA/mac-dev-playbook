@@ -119,7 +119,7 @@ loki.process "nginx" {
   stage.static_labels {
     values = {
       job    = "nginx",
-      host   = "{{ observability_hostname | default(ansible_hostname) }}",
+      host   = "{{ observability_hostname | default(ansible_facts['hostname']) }}",
     }
   }
 }
@@ -141,7 +141,7 @@ loki.source.file "nginx_error" {
 // OpenClaw agent logy (.md soubory v ~/agents/log/)
 local.file_match "agent_logs" {
   path_targets = [{
-    __path__ = "{{ ansible_env.HOME }}/agents/log/*.md",
+    __path__ = "{{ ansible_facts['env']['HOME'] }}/agents/log/*.md",
   }]
 }
 
@@ -184,7 +184,7 @@ loki.write "default" {
     url = "http://localhost:{{ loki_port | default(3100) }}/loki/api/v1/push"
   }
   external_labels = {
-    host = "{{ observability_hostname | default(ansible_hostname) }}",
+    host = "{{ observability_hostname | default(ansible_facts['hostname']) }}",
   }
 }
 

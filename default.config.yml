@@ -72,7 +72,7 @@ install_dnsmasq: true             # dnsmasq – auto *.dev.local DNS (bez /etc/h
 # HOMEBREW – obecné nastavení
 # ==============================================================================
 
-homebrew_prefix: "{{ '/opt/homebrew' if ansible_machine == 'arm64' else '/usr/local' }}"
+homebrew_prefix: "{{ '/opt/homebrew' if ansible_facts['machine'] == 'arm64' else '/usr/local' }}"
 
 homebrew_installed_packages:
   # Základní nástroje
@@ -383,12 +383,12 @@ dotnet_global_tools:
 
 # Uživatel a domovský adresář pro agentické prostředí
 openclaw_user: "{{ ansible_user_id }}"
-openclaw_base_dir: "{{ ansible_env.HOME }}"
+openclaw_base_dir: "{{ ansible_facts['env']['HOME'] }}"
 
 # Adresáře agentického systému
-openclaw_agents_dir: "{{ ansible_env.HOME }}/agents"         # instalace, konfigurace agentů
-openclaw_projects_dir: "{{ ansible_env.HOME }}/projects"     # projekty hostované přes nginx
-openclaw_log_dir: "{{ ansible_env.HOME }}/agents/log"        # strukturované .md logy
+openclaw_agents_dir: "{{ ansible_facts['env']['HOME'] }}/agents"         # instalace, konfigurace agentů
+openclaw_projects_dir: "{{ ansible_facts['env']['HOME'] }}/projects"     # projekty hostované přes nginx
+openclaw_log_dir: "{{ ansible_facts['env']['HOME'] }}/agents/log"        # strukturované .md logy
 
 # OpenClaw konfigurace (~/.openclaw/)
 openclaw_config_dir: "~/.openclaw"
@@ -414,7 +414,7 @@ openclaw_max_concurrent_subagents: 8
 # ==============================================================================
 
 # Adresář PI agenta
-pi_config_dir: "{{ ansible_env.HOME }}/.pi/agent"
+pi_config_dir: "{{ ansible_facts['env']['HOME'] }}/.pi/agent"
 
 # Nainstalovat pi-autoresearch extension (optimalizační smyčka pro experimenty)
 pi_install_autoresearch: true
@@ -506,7 +506,7 @@ ssh_password_auth: false          # false = pouze klíče (bezpečnější)
 samba_workgroup: "WORKGROUP"
 samba_shares:
   - name: "projects"
-    path: "{{ ansible_env.HOME }}/projects"
+    path: "{{ ansible_facts['env']['HOME'] }}/projects"
     comment: "{{ ansible_user_id }} projects"
     browseable: true
     writable: true
@@ -548,7 +548,7 @@ sublime_package_control:
 mariadb_root_password: "changeme_root"   # PŘEPIŠ před spuštěním!
 mariadb_version: "lts"                  # lts / 11 / 10.11 – Docker image tag
 mariadb_port: 3306
-mariadb_data_dir: "{{ ansible_env.HOME }}/mariadb/data"   # persistence dat mimo kontejner
+mariadb_data_dir: "{{ ansible_facts['env']['HOME'] }}/mariadb/data"   # persistence dat mimo kontejner
 
 mariadb_databases:
   - name: "wordpress"
@@ -567,7 +567,7 @@ mariadb_users:
 # ==============================================================================
 
 wordpress_domain: "wordpress.dev.local"
-wordpress_dir: "{{ ansible_env.HOME }}/projects/wordpress"
+wordpress_dir: "{{ ansible_facts['env']['HOME'] }}/projects/wordpress"
 wordpress_db_name: "wordpress"
 wordpress_db_user: "wordpress"
 wordpress_db_password: "changeme_wp"    # Musí odpovídat mariadb_users výše
@@ -581,8 +581,8 @@ wordpress_port: 8084                    # Lokální port kontejneru (nginx proxy
 # ==============================================================================
 
 nextcloud_domain: "cloud.dev.local"
-nextcloud_dir: "{{ ansible_env.HOME }}/projects/nextcloud"
-nextcloud_data_dir: "{{ ansible_env.HOME }}/nextcloud-data"
+nextcloud_dir: "{{ ansible_facts['env']['HOME'] }}/projects/nextcloud"
+nextcloud_data_dir: "{{ ansible_facts['env']['HOME'] }}/nextcloud-data"
 nextcloud_db_name: "nextcloud"
 nextcloud_db_user: "nextcloud"
 nextcloud_db_password: "changeme_nc"   # Musí odpovídat mariadb_users výše
@@ -599,7 +599,7 @@ nextcloud_port: 8085                    # Lokální port kontejneru (nginx proxy
 
 kiwix_domain: "kiwix.dev.local"
 kiwix_port: 8888                           # Lokální port kiwix-serve
-kiwix_data_dir: "{{ ansible_env.HOME }}/kiwix"       # Sem ukládej .zim soubory
+kiwix_data_dir: "{{ ansible_facts['env']['HOME'] }}/kiwix"       # Sem ukládej .zim soubory
 
 # ZIM soubory ke stažení (prázdné = nestahovat automaticky)
 # Velikosti: Wikipedia CZ ~2GB, EN ~90GB, Gutenberg ~60GB
@@ -620,7 +620,7 @@ kiwix_zim_files: []
 
 maps_domain: "maps.dev.local"
 maps_port: 8080
-maps_data_dir: "{{ ansible_env.HOME }}/maps"        # Sem ukládej .mbtiles soubory
+maps_data_dir: "{{ ansible_facts['env']['HOME'] }}/maps"        # Sem ukládej .mbtiles soubory
 
 # MBTiles soubory ke stažení (prázdné = nestahovat automaticky)
 # Viz: https://data.maptiler.com/downloads/ nebo https://openmaptiles.org/
@@ -685,7 +685,7 @@ alloy_otlp_http_port: 4318    # Alloy veřejný OTLP HTTP (apps → Alloy)
 # ── Domény ────────────────────────────────────────────────────────────────────
 grafana_domain: "grafana.dev.local"
 # Ostatní služby nejsou veřejně exponovány (localhost only), přes Grafana
-observability_hostname: "{{ ansible_hostname }}"  # Hostname v Grafana labelech
+observability_hostname: "{{ ansible_facts['hostname'] }}"  # Hostname v Grafana labelech
 
 # ── Grafana ───────────────────────────────────────────────────────────────────
 grafana_admin_user: "admin"
@@ -695,15 +695,15 @@ grafana_analytics: false    # Vypnout telemetrii
 
 # ── Prometheus ────────────────────────────────────────────────────────────────
 prometheus_retention: "30d"
-prometheus_storage_path: "{{ ansible_env.HOME }}/observability/prometheus"
+prometheus_storage_path: "{{ ansible_facts['env']['HOME'] }}/observability/prometheus"
 
 # ── Loki ──────────────────────────────────────────────────────────────────────
 loki_retention: "744h"   # 31 dní
-loki_storage_path: "{{ ansible_env.HOME }}/observability/loki"
+loki_storage_path: "{{ ansible_facts['env']['HOME'] }}/observability/loki"
 
 # ── Tempo ─────────────────────────────────────────────────────────────────────
 tempo_retention: "168h"  # 7 dní (traces bývají objemnější)
-tempo_storage_path: "{{ ansible_env.HOME }}/observability/tempo"
+tempo_storage_path: "{{ ansible_facts['env']['HOME'] }}/observability/tempo"
 
 # ── Alloy – co sbírat ─────────────────────────────────────────────────────────
 alloy_scrape_nginx: true           # nginx stub_status → Prometheus
@@ -746,7 +746,7 @@ grafana_dashboards:
 n8n_domain: "n8n.dev.local"
 n8n_port: 5678
 n8n_version: "latest"      # nebo konkrétní: "1.40.0"
-n8n_data_dir: "{{ ansible_env.HOME }}/n8n"
+n8n_data_dir: "{{ ansible_facts['env']['HOME'] }}/n8n"
 n8n_timezone: "Europe/Prague"
 
 # ==============================================================================
@@ -756,7 +756,7 @@ n8n_timezone: "Europe/Prague"
 gitea_domain: "git.dev.local"
 gitea_port: 3003         # 3000=Grafana, 3001=Uptime Kuma, 3002=rezerva → Gitea na 3003
 gitea_ssh_port: 2222
-gitea_data_dir: "{{ ansible_env.HOME }}/gitea"
+gitea_data_dir: "{{ ansible_facts['env']['HOME'] }}/gitea"
 gitea_admin_user: "{{ ansible_user_id }}"
 gitea_admin_email: ""                          # VYPLŇ!
 gitea_secret_key: "changeme_random_32_chars"   # PŘEPIŠ! (openssl rand -hex 32)
@@ -774,8 +774,8 @@ gitlab_domain: "gitlab.dev.local"
 gitlab_http_port: 8929          # Interní HTTP port (nginx přebírá SSL, forwarduje sem)
 gitlab_ssh_port: 2224           # Git SSH (22=systém, 2222=Gitea → Gitlab na 2224)
 gitlab_version: "latest"        # nebo konkrétní: "17.9.1-ce.0"
-gitlab_data_dir: "{{ ansible_env.HOME }}/gitlab"          # Repozitáře, uploads, artefakty (velké!)
-gitlab_config_dir: "{{ ansible_env.HOME }}/gitlab-config" # gitlab.rb + klíče (malé, ale důležité)
+gitlab_data_dir: "{{ ansible_facts['env']['HOME'] }}/gitlab"          # Repozitáře, uploads, artefakty (velké!)
+gitlab_config_dir: "{{ ansible_facts['env']['HOME'] }}/gitlab-config" # gitlab.rb + klíče (malé, ale důležité)
 gitlab_timezone: "Europe/Prague"
 gitlab_signup_enabled: false    # Zakáže registraci nových uživatelů
 gitlab_puma_workers: 2          # Worker procesy (min 2, pro 36 GB klidně 4)
@@ -789,7 +789,7 @@ gitlab_sidekiq_concurrency: 10  # Background job vlákna
 openwebui_domain: "ai.dev.local"
 openwebui_port: 3004             # Interní port kontejneru 8080 → host 3004
 openwebui_version: "main"        # nebo konkrétní: "0.5.20"
-openwebui_data_dir: "{{ ansible_env.HOME }}/openwebui"
+openwebui_data_dir: "{{ ansible_facts['env']['HOME'] }}/openwebui"
 
 # ==============================================================================
 # IIAB – WOODPECKER CI (CI/CD napojen na Gitea)
@@ -800,7 +800,7 @@ woodpecker_domain: "ci.dev.local"
 woodpecker_port: 8060            # Web UI
 woodpecker_grpc_port: 9060       # gRPC pro agenty (interní)
 woodpecker_version: "latest"
-woodpecker_data_dir: "{{ ansible_env.HOME }}/woodpecker"
+woodpecker_data_dir: "{{ ansible_facts['env']['HOME'] }}/woodpecker"
 woodpecker_agent_secret: "changeme_woodpecker_agent"  # PŘEPIŠ! (openssl rand -hex 32)
 woodpecker_gitea_client: ""      # VYPLŇ po vytvoření OAuth2 app v Gitee
 woodpecker_gitea_secret: ""      # VYPLŇ po vytvoření OAuth2 app v Gitee
@@ -814,7 +814,7 @@ woodpecker_max_workflows: 4      # Max paralelních pipeline runů na agenta
 portainer_domain: "portainer.dev.local"
 portainer_port: 9002                   # 9000/9001 rezervováno pro RustFS (S3 API + console)
 portainer_version: "latest"
-portainer_data_dir: "{{ ansible_env.HOME }}/portainer"
+portainer_data_dir: "{{ ansible_facts['env']['HOME'] }}/portainer"
 
 # ==============================================================================
 # IIAB – JELLYFIN (media server)
@@ -823,11 +823,11 @@ portainer_data_dir: "{{ ansible_env.HOME }}/portainer"
 jellyfin_domain: "media.dev.local"
 jellyfin_port: 8096
 jellyfin_version: "latest"
-jellyfin_config_dir: "{{ ansible_env.HOME }}/jellyfin/config"
-jellyfin_cache_dir: "{{ ansible_env.HOME }}/jellyfin/cache"
-jellyfin_movies_dir: "{{ ansible_env.HOME }}/media/movies"   # Přepiš na svou knihovnu
-jellyfin_shows_dir: "{{ ansible_env.HOME }}/media/shows"
-jellyfin_music_dir: "{{ ansible_env.HOME }}/media/music"
+jellyfin_config_dir: "{{ ansible_facts['env']['HOME'] }}/jellyfin/config"
+jellyfin_cache_dir: "{{ ansible_facts['env']['HOME'] }}/jellyfin/cache"
+jellyfin_movies_dir: "{{ ansible_facts['env']['HOME'] }}/media/movies"   # Přepiš na svou knihovnu
+jellyfin_shows_dir: "{{ ansible_facts['env']['HOME'] }}/media/shows"
+jellyfin_music_dir: "{{ ansible_facts['env']['HOME'] }}/media/music"
 
 # ==============================================================================
 # IIAB – UPTIME KUMA (monitoring dashboard)
@@ -836,7 +836,7 @@ jellyfin_music_dir: "{{ ansible_env.HOME }}/media/music"
 uptime_kuma_domain: "uptime.dev.local"
 uptime_kuma_port: 3001
 uptime_kuma_version: "1"   # nebo konkrétní: "1.23.13"
-uptime_kuma_data_dir: "{{ ansible_env.HOME }}/uptime-kuma"
+uptime_kuma_data_dir: "{{ ansible_facts['env']['HOME'] }}/uptime-kuma"
 
 # ==============================================================================
 # IIAB – CALIBRE-WEB (ebook server)
@@ -845,7 +845,7 @@ uptime_kuma_data_dir: "{{ ansible_env.HOME }}/uptime-kuma"
 calibreweb_domain: "books.dev.local"
 calibreweb_port: 8083
 calibreweb_version: "latest"   # nebo konkrétní: "0.6.21"
-calibreweb_books_dir: "{{ ansible_env.HOME }}/calibre"   # Calibre library
+calibreweb_books_dir: "{{ ansible_facts['env']['HOME'] }}/calibre"   # Calibre library
 calibreweb_timezone: "Europe/Prague"
 
 # ==============================================================================
@@ -877,7 +877,7 @@ dnsmasq_additional_addresses: []          # Další vlastní DNS záznamy
 # ==============================================================================
 
 restic_backup_paths:
-  - "{{ ansible_env.HOME }}"     # Domovský adresář uživatele
+  - "{{ ansible_facts['env']['HOME'] }}"     # Domovský adresář uživatele
 
 # Restic repozitář – nakonfiguruj dle cíle:
 # restic_repo: "s3:s3.us-east-005.backblazeb2.com/bucket-name"
@@ -918,7 +918,7 @@ post_provision_tasks: []
 # ==============================================================================
 
 # ── IIAB Stack ────────────────────────────────────────────────────────────────
-iiab_compose_dir: "{{ ansible_env.HOME }}/iiab"   # umístění docker-compose.yml
+iiab_compose_dir: "{{ ansible_facts['env']['HOME'] }}/iiab"   # umístění docker-compose.yml
 
 # ── Traefik ────────────────────────────────────────────────────────────────────
 traefik_image_version: "latest"
@@ -926,13 +926,13 @@ traefik_http_port: 80
 traefik_https_port: 443
 traefik_dashboard_port: 8080
 traefik_log_level: "INFO"           # DEBUG / INFO / WARN / ERROR
-traefik_config_dir: "{{ ansible_env.HOME }}/iiab/traefik"
+traefik_config_dir: "{{ ansible_facts['env']['HOME'] }}/iiab/traefik"
 
 # ── Home Assistant ─────────────────────────────────────────────────────────────
 homeassistant_version: "stable"     # stable / latest / konkrétní tag (2025.1.0)
 homeassistant_port: 8123
 homeassistant_timezone: "Europe/Prague"
-homeassistant_config_dir: "{{ ansible_env.HOME }}/homeassistant"
+homeassistant_config_dir: "{{ ansible_facts['env']['HOME'] }}/homeassistant"
 # true = privileged + network_mode: host → mDNS/Bonjour auto-discovery
 # Pozor (macOS): host mode sahá do Docker VM sítě, ne přímo na Mac fyzickou síť.
 # Pro plný Bonjour/mDNS na Mac je potřeba nativní instalace HA nebo host networking
@@ -946,6 +946,6 @@ homeassistant_privileged: false
 rustfs_version: "latest"
 rustfs_api_port: 9000               # S3 API (aws-cli, rclone, restic, SDK…)
 rustfs_console_port: 9001           # Web konzole
-rustfs_data_dir: "{{ ansible_env.HOME }}/rustfs/data"
+rustfs_data_dir: "{{ ansible_facts['env']['HOME'] }}/rustfs/data"
 rustfs_access_key: "rustfsadmin"    # PŘEPIŠ před spuštěním!
 rustfs_secret_key: "changeme_rustfs_secret"   # PŘEPIŠ!

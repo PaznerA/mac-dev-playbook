@@ -10,13 +10,13 @@
 
 - name: Ensure NVM directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.nvm"
+    path: "{{ ansible_facts['env']['HOME'] }}/.nvm"
     state: directory
     mode: '0755'
 
 - name: Add NVM to shell profile (.zshrc)
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     marker: "# {mark} NVM – ANSIBLE MANAGED"
     block: |
       export NVM_DIR="$HOME/.nvm"
@@ -36,7 +36,7 @@
     executable: /bin/zsh
   changed_when: false
   environment:
-    NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
 
 - name: Install global npm packages
   ansible.builtin.shell: |
@@ -49,7 +49,7 @@
   loop: "{{ node_global_packages | default([]) }}"
   changed_when: false
   environment:
-    NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
 
 - name: Install extra npm packages from config
   ansible.builtin.shell: |
@@ -62,4 +62,4 @@
   loop: "{{ npm_packages | default([]) }}"
   changed_when: false
   environment:
-    NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"

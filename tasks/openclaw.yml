@@ -32,7 +32,7 @@
 - name: "[Ollama] Pull primary model ({{ openclaw_model }})"
   ansible.builtin.command: ollama pull {{ openclaw_model }}
   environment:
-    PATH: "{{ homebrew_prefix }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
   changed_when: false
   # Stahování modelu může trvat déle (27B ~ 17GB)
   async: 1800
@@ -55,7 +55,7 @@
   args:
     executable: /bin/zsh
   environment:
-    NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
   when: openclaw_which.rc != 0
   changed_when: true
 
@@ -70,11 +70,11 @@
     - "{{ openclaw_agents_dir }}"
     - "{{ openclaw_log_dir }}"
     - "{{ openclaw_projects_dir }}"
-    - "{{ ansible_env.HOME }}/.openclaw"
+    - "{{ ansible_facts['env']['HOME'] }}/.openclaw"
 
 - name: "[OpenClaw] Create openclaw workspace subdirs"
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.openclaw/{{ item }}"
+    path: "{{ ansible_facts['env']['HOME'] }}/.openclaw/{{ item }}"
     state: directory
     mode: '0755'
   loop:
@@ -86,31 +86,31 @@
 - name: "[OpenClaw] Deploy main config (openclaw.json)"
   ansible.builtin.template:
     src: ../files/openclaw/openclaw.json.j2
-    dest: "{{ ansible_env.HOME }}/.openclaw/openclaw.json"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/openclaw.json"
     mode: '0600'
     backup: true
 
 - name: "[OpenClaw] Deploy SOUL.md (Inspektor Klepítko persona)"
   ansible.builtin.copy:
     src: openclaw/SOUL.md
-    dest: "{{ ansible_env.HOME }}/.openclaw/SOUL.md"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/SOUL.md"
     mode: '0644'
 
 - name: "[OpenClaw] Deploy AGENTS.md (sub-agents config)"
   ansible.builtin.copy:
     src: openclaw/AGENTS.md
-    dest: "{{ ansible_env.HOME }}/.openclaw/AGENTS.md"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/AGENTS.md"
     mode: '0644'
 
 - name: "[OpenClaw] Deploy TOOLS.md (allowed tools)"
   ansible.builtin.copy:
     src: openclaw/TOOLS.md
-    dest: "{{ ansible_env.HOME }}/.openclaw/TOOLS.md"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/TOOLS.md"
     mode: '0644'
 
 - name: "[OpenClaw] Secure openclaw config directory permissions"
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.openclaw"
+    path: "{{ ansible_facts['env']['HOME'] }}/.openclaw"
     mode: '0700'
     state: directory
 
@@ -209,14 +209,14 @@
 - name: "[OpenClaw] Deploy launchd plist for daemon"
   ansible.builtin.template:
     src: ../files/openclaw/com.openclaw.agent.plist.j2
-    dest: "{{ ansible_env.HOME }}/Library/LaunchAgents/com.openclaw.agent.plist"
+    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.openclaw.agent.plist"
     mode: '0644'
   when: openclaw_install_daemon | default(true)
 
 - name: "[OpenClaw] Load launchd daemon"
   ansible.builtin.command: >
     launchctl load -w
-    {{ ansible_env.HOME }}/Library/LaunchAgents/com.openclaw.agent.plist
+    {{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.openclaw.agent.plist
   register: launchd_load
   changed_when: launchd_load.rc == 0
   failed_when: false

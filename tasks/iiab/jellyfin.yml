@@ -22,7 +22,7 @@
     - "{{ jellyfin_movies_dir }}"
     - "{{ jellyfin_shows_dir }}"
     - "{{ jellyfin_music_dir }}"
-    - "{{ ansible_env.HOME }}/agents/log"
+    - "{{ ansible_facts['env']['HOME'] }}/agents/log"
 
 - name: "[Jellyfin] Enable nginx vhost"
   ansible.builtin.file:

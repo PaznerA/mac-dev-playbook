@@ -54,8 +54,8 @@
     arguments: "{{ item.name }}{% if item.version is defined %}:{{ item.version }}{% endif %}"
   loop: "{{ php_composer_packages | default([]) }}"
   environment:
-    COMPOSER_HOME: "{{ ansible_env.HOME }}/.composer"
-    PATH: "{{ homebrew_prefix }}/opt/php@{{ php_version }}/bin:{{ ansible_env.PATH }}"
+    COMPOSER_HOME: "{{ ansible_facts['env']['HOME'] }}/.composer"
+    PATH: "{{ homebrew_prefix }}/opt/php@{{ php_version }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
 
 - name: Set PHP memory_limit
   community.general.ini_file:

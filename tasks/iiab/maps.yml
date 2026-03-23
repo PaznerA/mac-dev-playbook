@@ -20,7 +20,7 @@
   args:
     executable: /bin/zsh
   environment:
-    NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
   changed_when: false
 
 - name: "[Maps] Create tileserver-gl configuration"
@@ -63,7 +63,7 @@
 
 - name: "[Maps] Create launchd plist for tileserver-gl"
   ansible.builtin.copy:
-    dest: "{{ ansible_env.HOME }}/Library/LaunchAgents/com.tileserver.maps.plist"
+    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.tileserver.maps.plist"
     content: |
       <?xml version="1.0" encoding="UTF-8"?>
       <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
@@ -87,9 +87,9 @@
           <key>EnvironmentVariables</key>
           <dict>
               <key>HOME</key>
-              <string>{{ ansible_env.HOME }}</string>
+              <string>{{ ansible_facts['env']['HOME'] }}</string>
               <key>NVM_DIR</key>
-              <string>{{ ansible_env.HOME }}/.nvm</string>
+              <string>{{ ansible_facts['env']['HOME'] }}/.nvm</string>
           </dict>
 
           <key>RunAtLoad</key>
@@ -99,10 +99,10 @@
           <true/>
 
           <key>StandardOutPath</key>
-          <string>{{ openclaw_agents_dir | default(ansible_env.HOME + '/agents') }}/maps.stdout.log</string>
+          <string>{{ openclaw_agents_dir | default(ansible_facts['env']['HOME'] + '/agents') }}/maps.stdout.log</string>
 
           <key>StandardErrorPath</key>
-          <string>{{ openclaw_agents_dir | default(ansible_env.HOME + '/agents') }}/maps.stderr.log</string>
+          <string>{{ openclaw_agents_dir | default(ansible_facts['env']['HOME'] + '/agents') }}/maps.stderr.log</string>
 
           <key>WorkingDirectory</key>
           <string>{{ maps_data_dir }}</string>
@@ -113,7 +113,7 @@
 - name: "[Maps] Load launchd daemon"
   ansible.builtin.command: >
     launchctl load -w
-    {{ ansible_env.HOME }}/Library/LaunchAgents/com.tileserver.maps.plist
+    {{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.tileserver.maps.plist
   register: maps_launchd
   changed_when: maps_launchd.rc == 0
   failed_when: false

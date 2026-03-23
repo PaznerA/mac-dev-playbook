@@ -40,7 +40,7 @@
 
 - name: "[Stack] Unload old individual LaunchAgent plists"
   ansible.builtin.shell: |
-    launchctl unload "{{ ansible_env.HOME }}/Library/LaunchAgents/{{ item }}" 2>/dev/null || true
+    launchctl unload "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/{{ item }}" 2>/dev/null || true
   loop:
     - com.mariadb.plist
     - com.n8n.plist
@@ -60,7 +60,7 @@
 
 - name: "[Stack] Remove old individual LaunchAgent plists"
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/Library/LaunchAgents/{{ item }}"
+    path: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/{{ item }}"
     state: absent
   loop:
     - com.mariadb.plist
@@ -81,7 +81,7 @@
 
 - name: "[Stack] Create com.iiab-stack LaunchAgent plist"
   ansible.builtin.copy:
-    dest: "{{ ansible_env.HOME }}/Library/LaunchAgents/com.iiab-stack.plist"
+    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.iiab-stack.plist"
     mode: '0644'
     content: |
       <?xml version="1.0" encoding="UTF-8"?>
@@ -104,9 +104,9 @@
         <key>KeepAlive</key>
         <false/>
         <key>StandardOutPath</key>
-        <string>{{ ansible_env.HOME }}/agents/log/iiab-stack.log</string>
+        <string>{{ ansible_facts['env']['HOME'] }}/agents/log/iiab-stack.log</string>
         <key>StandardErrorPath</key>
-        <string>{{ ansible_env.HOME }}/agents/log/iiab-stack.error.log</string>
+        <string>{{ ansible_facts['env']['HOME'] }}/agents/log/iiab-stack.error.log</string>
       </dict>
       </plist>
 
@@ -121,7 +121,7 @@
 - name: "[Stack] Load iiab-stack LaunchAgent"
   ansible.builtin.command: >
     launchctl load -w
-    {{ ansible_env.HOME }}/Library/LaunchAgents/com.iiab-stack.plist
+    {{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.iiab-stack.plist
   when: stack_launchd_status.stdout | trim == 'not_loaded'
   register: stack_load
   changed_when: stack_load.rc == 0

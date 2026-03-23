@@ -17,7 +17,7 @@
   args:
     executable: /bin/zsh
   environment:
-    NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
   register: pi_which
   changed_when: false
   failed_when: false
@@ -31,7 +31,7 @@
   args:
     executable: /bin/zsh
   environment:
-    NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
   when: pi_which.rc != 0
   changed_when: true
 
@@ -60,7 +60,7 @@
 - name: "[PI] Clone pi-autoresearch repository"
   ansible.builtin.git:
     repo: "https://github.com/davebcn87/pi-autoresearch.git"
-    dest: "{{ ansible_env.HOME }}/.pi/pi-autoresearch-src"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.pi/pi-autoresearch-src"
     version: main
     force: false
   when:
@@ -70,7 +70,7 @@
 
 - name: "[PI] Install pi-autoresearch extension files"
   ansible.builtin.shell: >
-    cp -r "{{ ansible_env.HOME }}/.pi/pi-autoresearch-src/extensions/pi-autoresearch"
+    cp -r "{{ ansible_facts['env']['HOME'] }}/.pi/pi-autoresearch-src/extensions/pi-autoresearch"
     "{{ pi_config_dir }}/extensions/"
   args:
     creates: "{{ pi_config_dir }}/extensions/pi-autoresearch"
@@ -80,7 +80,7 @@
 
 - name: "[PI] Install pi-autoresearch skill files"
   ansible.builtin.shell: >
-    cp -r "{{ ansible_env.HOME }}/.pi/pi-autoresearch-src/skills/autoresearch-create"
+    cp -r "{{ ansible_facts['env']['HOME'] }}/.pi/pi-autoresearch-src/skills/autoresearch-create"
     "{{ pi_config_dir }}/skills/"
   args:
     creates: "{{ pi_config_dir }}/skills/autoresearch-create"
