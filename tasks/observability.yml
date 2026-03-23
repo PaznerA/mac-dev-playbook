@@ -51,10 +51,14 @@
     url: "https://github.com/grafana/tempo/releases/download/v{{ tempo_version }}/tempo_{{ tempo_version }}_linux_{{ 'arm64' if ansible_facts['machine'] == 'arm64' else 'amd64' }}.tar.gz"
     dest: "/tmp/tempo_{{ tempo_version }}_linux.tar.gz"
     mode: '0644'
-  register: tempo_download
   when:
     - tempo_binary_supported
     - not tempo_binary_stat.stat.exists
+
+- name: Check if Tempo archive was downloaded
+  ansible.builtin.stat:
+    path: "/tmp/tempo_{{ tempo_version }}_linux.tar.gz"
+  register: tempo_archive_stat
 
 - name: Extract Tempo binary to homebrew bin
   ansible.builtin.unarchive:
@@ -67,8 +71,7 @@
   when:
     - tempo_binary_supported
     - not tempo_binary_stat.stat.exists
-    - tempo_download is not skipped
-    - not ansible_check_mode
+    - tempo_archive_stat.stat.exists
 
 # ── nginx-prometheus-exporter – binary install (not in Homebrew) ─────────────
 
@@ -82,8 +85,12 @@
     url: "https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v{{ nginx_prometheus_exporter_version }}/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin_{{ 'arm64' if ansible_facts['machine'] == 'arm64' else 'amd64' }}.tar.gz"
     dest: "/tmp/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin.tar.gz"
     mode: '0644'
-  register: nginx_exporter_download
   when: not nginx_exporter_binary_stat.stat.exists
+
+- name: Check if nginx-prometheus-exporter archive was downloaded
+  ansible.builtin.stat:
+    path: "/tmp/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin.tar.gz"
+  register: nginx_exporter_archive_stat
 
 - name: Extract nginx-prometheus-exporter binary to homebrew bin
   ansible.builtin.unarchive:
@@ -95,8 +102,7 @@
     remote_src: true
   when:
     - not nginx_exporter_binary_stat.stat.exists
-    - nginx_exporter_download is not skipped
-    - not ansible_check_mode
+    - nginx_exporter_archive_stat.stat.exists
 
 # ── launchd plists pro binárně instalované služby ────────────────────────────
 
@@ -157,7 +163,7 @@
 
 - name: Add hipages Homebrew tap (php-fpm_exporter)
   community.general.homebrew_tap:
-    name: hipages/tap
+    name: hipages/php-fpm_exporter
     state: present
   when: alloy_scrape_phpfpm | default(true)
 
