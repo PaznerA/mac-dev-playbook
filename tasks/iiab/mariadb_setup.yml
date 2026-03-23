@@ -9,7 +9,7 @@
     port: "{{ mariadb_port | default(3306) }}"
     host: "127.0.0.1"
     timeout: 60
-  check_mode: false
+  when: not ansible_check_mode
 
 - name: "[MariaDB] Remove test database"
   community.mysql.mysql_db:
