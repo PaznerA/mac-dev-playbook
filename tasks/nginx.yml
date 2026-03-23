@@ -55,6 +55,11 @@
     - grafana.conf
     - n8n.conf
     - gitea.conf
+    - gitlab.conf
+    - jellyfin.conf
+    - openwebui.conf
+    - portainer.conf
+    - woodpecker.conf
   notify: Restart nginx
 
 - name: Enable configured nginx sites (symlink)

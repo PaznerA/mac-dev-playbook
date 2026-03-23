@@ -9,6 +9,6 @@
     state: directory
     mode: '0755'
   loop:
-    - "{{ ansible_env.HOME }}/uptime-kuma"
+    - "{{ uptime_kuma_data_dir }}"
     - "{{ ansible_env.HOME }}/agents/log"
 

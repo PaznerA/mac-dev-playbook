@@ -162,7 +162,7 @@ services:
     ports:
       - "127.0.0.1:{{ uptime_kuma_port | default(3001) }}:3001"
     volumes:
-      - {{ ansible_env.HOME }}/uptime-kuma:/app/data
+      - {{ uptime_kuma_data_dir }}:/app/data
     networks:
       - iiab_net
     logging:
