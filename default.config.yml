@@ -382,7 +382,7 @@ dotnet_global_tools:
 # ==============================================================================
 
 # Uživatel a domovský adresář pro agentické prostředí
-openclaw_user: "{{ ansible_user_id }}"
+openclaw_user: "{{ ansible_facts['user_id'] }}"
 openclaw_base_dir: "{{ ansible_facts['env']['HOME'] }}"
 
 # Adresáře agentického systému
@@ -507,7 +507,7 @@ samba_workgroup: "WORKGROUP"
 samba_shares:
   - name: "projects"
     path: "{{ ansible_facts['env']['HOME'] }}/projects"
-    comment: "{{ ansible_user_id }} projects"
+    comment: "{{ ansible_facts['user_id'] }} projects"
     browseable: true
     writable: true
 
@@ -757,7 +757,7 @@ gitea_domain: "git.dev.local"
 gitea_port: 3003         # 3000=Grafana, 3001=Uptime Kuma, 3002=rezerva → Gitea na 3003
 gitea_ssh_port: 2222
 gitea_data_dir: "{{ ansible_facts['env']['HOME'] }}/gitea"
-gitea_admin_user: "{{ ansible_user_id }}"
+gitea_admin_user: "{{ ansible_facts['user_id'] }}"
 gitea_admin_email: ""                          # VYPLŇ!
 gitea_secret_key: "changeme_random_32_chars"   # PŘEPIŠ! (openssl rand -hex 32)
 gitea_internal_token: "changeme_internal_tok"  # PŘEPIŠ! (openssl rand -hex 32)

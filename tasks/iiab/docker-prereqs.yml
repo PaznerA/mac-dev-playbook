@@ -28,7 +28,7 @@
   check_mode: false
 
 - name: "[Docker] Install Python docker SDK + dependencies"
-  ansible.builtin.shell: >-
+  ansible.builtin.command: >-
     {{ homebrew_prefix }}/bin/python3 -m pip install
     --break-system-packages
     PyMySQL

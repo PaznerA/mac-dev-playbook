@@ -116,14 +116,14 @@
   community.general.osx_defaults:
     domain: NSGlobalDomain
     key: KeyRepeat
-    type: int
+    type: float
     value: "{{ macos_keyboard_repeat_rate | default(2) }}"
 
 - name: "[Keyboard] Set key repeat delay (short)"
   community.general.osx_defaults:
     domain: NSGlobalDomain
     key: InitialKeyRepeat
-    type: int
+    type: float
     value: "{{ macos_keyboard_repeat_delay | default(15) }}"
 
 - name: "[Keyboard] Disable press-and-hold (enable key repeat)"
@@ -324,7 +324,7 @@
     domain: /Library/Preferences/SystemConfiguration/com.apple.smb.server
     key: NetBIOSName
     type: string
-    value: "{{ macos_computer_name | default(ansible_hostname) }}"
+    value: "{{ macos_computer_name | default(ansible_facts['hostname']) }}"
   become: true
 
 # ── POZNÁMKY – co nelze automatizovat ─────────────────────────────────────────

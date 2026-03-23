@@ -51,6 +51,7 @@
     url: "https://github.com/grafana/tempo/releases/download/v{{ tempo_version }}/tempo_{{ tempo_version }}_linux_{{ 'arm64' if ansible_facts['machine'] == 'arm64' else 'amd64' }}.tar.gz"
     dest: "/tmp/tempo_{{ tempo_version }}_linux.tar.gz"
     mode: '0644'
+  register: tempo_download
   when:
     - tempo_binary_supported
     - not tempo_binary_stat.stat.exists
@@ -66,6 +67,8 @@
   when:
     - tempo_binary_supported
     - not tempo_binary_stat.stat.exists
+    - tempo_download is not skipped
+    - not ansible_check_mode
 
 # ── nginx-prometheus-exporter – binary install (not in Homebrew) ─────────────
 
@@ -76,9 +79,10 @@
 
 - name: Download nginx-prometheus-exporter binary archive
   ansible.builtin.get_url:
-    url: "https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v{{ nginx_prometheus_exporter_version }}/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin_{{ 'arm64' if ansible_machine == 'arm64' else 'amd64' }}.tar.gz"
+    url: "https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v{{ nginx_prometheus_exporter_version }}/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin_{{ 'arm64' if ansible_facts['machine'] == 'arm64' else 'amd64' }}.tar.gz"
     dest: "/tmp/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin.tar.gz"
     mode: '0644'
+  register: nginx_exporter_download
   when: not nginx_exporter_binary_stat.stat.exists
 
 - name: Extract nginx-prometheus-exporter binary to homebrew bin
@@ -89,13 +93,16 @@
       - nginx-prometheus-exporter
     mode: '0755'
     remote_src: true
-  when: not nginx_exporter_binary_stat.stat.exists
+  when:
+    - not nginx_exporter_binary_stat.stat.exists
+    - nginx_exporter_download is not skipped
+    - not ansible_check_mode
 
 # ── launchd plists pro binárně instalované služby ────────────────────────────
 
 - name: Create Tempo launchd plist
   ansible.builtin.copy:
-    dest: "{{ ansible_env.HOME }}/Library/LaunchAgents/io.grafana.tempo.plist"
+    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/io.grafana.tempo.plist"
     mode: '0644'
     content: |
       <?xml version="1.0" encoding="UTF-8"?>
@@ -122,7 +129,7 @@
 
 - name: Create nginx-prometheus-exporter launchd plist
   ansible.builtin.copy:
-    dest: "{{ ansible_env.HOME }}/Library/LaunchAgents/com.nginx.nginx-prometheus-exporter.plist"
+    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.nginx.nginx-prometheus-exporter.plist"
     mode: '0644'
     content: |
       <?xml version="1.0" encoding="UTF-8"?>
@@ -301,13 +308,13 @@
   failed_when: svc_result.rc != 0 and 'already started' not in svc_result.stdout
 
 - name: Load Tempo launchd service
-  ansible.builtin.command: launchctl load -w {{ ansible_env.HOME }}/Library/LaunchAgents/io.grafana.tempo.plist
+  ansible.builtin.command: launchctl load -w {{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/io.grafana.tempo.plist
   register: tempo_launchctl
   changed_when: tempo_launchctl.rc == 0
   failed_when: false
 
 - name: Load nginx-prometheus-exporter launchd service
-  ansible.builtin.command: launchctl load -w {{ ansible_env.HOME }}/Library/LaunchAgents/com.nginx.nginx-prometheus-exporter.plist
+  ansible.builtin.command: launchctl load -w {{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.nginx.nginx-prometheus-exporter.plist
   register: nginx_exporter_launchctl
   changed_when: nginx_exporter_launchctl.rc == 0
   failed_when: false
@@ -348,7 +355,7 @@
     dest: "{{ ansible_facts['env']['HOME'] }}/observability/dashboards/dashboard-{{ item.id }}.json"
     mode: '0644'
   loop: "{{ grafana_dashboards | default([]) }}"
-  ignore_errors: true  # Pokud není internet, přeskočíme
+  failed_when: false  # Pokud není internet, přeskočíme
 
 - name: Import downloaded dashboards into Grafana via API
   ansible.builtin.uri:
@@ -364,7 +371,7 @@
       overwrite: true
     status_code: [200, 412]
   loop: "{{ grafana_dashboards | default([]) }}"
-  ignore_errors: true
+  failed_when: false
   when: >
     (ansible_facts['env']['HOME'] + '/observability/dashboards/dashboard-' + item.id | string + '.json') is file
 

@@ -23,7 +23,7 @@
     {% if item.version is defined %}"{{ item.name | default(item) }}=={{ item.version }}"{% else %}{{ item.name | default(item) }}{% endif %}
   loop: "{{ pip_packages }}"
   changed_when: false
-  ignore_errors: true
+  failed_when: false
 
 - name: Install global Ruby gems.
   community.general.gem:

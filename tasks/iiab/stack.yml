@@ -111,8 +111,11 @@
       </plist>
 
 - name: "[Stack] Check if com.iiab-stack is already loaded"
-  ansible.builtin.shell: |
-    launchctl list 2>/dev/null | grep -q com.iiab-stack && echo loaded || echo not_loaded
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      launchctl list 2>/dev/null | grep -q com.iiab-stack && echo loaded || echo not_loaded
+    executable: /bin/bash
   register: stack_launchd_status
   changed_when: false
   failed_when: false

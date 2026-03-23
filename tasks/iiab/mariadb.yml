@@ -15,4 +15,3 @@
   loop:
     - "{{ mariadb_data_dir | default(ansible_facts['env']['HOME'] + '/mariadb/data') }}"
     - "{{ ansible_facts['env']['HOME'] }}/agents/log"
-

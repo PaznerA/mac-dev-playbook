@@ -19,7 +19,7 @@
     login_password: "{{ mariadb_root_password }}"
     name: test
     state: absent
-  ignore_errors: true
+  failed_when: false
 
 - name: "[MariaDB] Create databases"
   community.mysql.mysql_db:

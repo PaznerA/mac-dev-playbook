@@ -11,4 +11,3 @@
   loop:
     - "{{ uptime_kuma_data_dir }}"
     - "{{ ansible_facts['env']['HOME'] }}/agents/log"
-
