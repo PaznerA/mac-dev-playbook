@@ -69,26 +69,24 @@
   register: pi_autoresearch_clone
 
 - name: "[PI] Install pi-autoresearch extension files"
-  ansible.builtin.copy:
-    src: "{{ ansible_env.HOME }}/.pi/pi-autoresearch-src/extensions/pi-autoresearch/"
-    dest: "{{ pi_config_dir }}/extensions/pi-autoresearch/"
-    mode: '0755'
-    remote_src: true
+  ansible.builtin.shell: >
+    cp -r "{{ ansible_env.HOME }}/.pi/pi-autoresearch-src/extensions/pi-autoresearch"
+    "{{ pi_config_dir }}/extensions/"
+  args:
+    creates: "{{ pi_config_dir }}/extensions/pi-autoresearch"
   when:
     - pi_install_autoresearch | default(true)
-    - pi_autoresearch_clone is defined
-    - pi_autoresearch_clone.changed
+    - not pi_autoresearch_stat.stat.exists
 
 - name: "[PI] Install pi-autoresearch skill files"
-  ansible.builtin.copy:
-    src: "{{ ansible_env.HOME }}/.pi/pi-autoresearch-src/skills/autoresearch-create/"
-    dest: "{{ pi_config_dir }}/skills/autoresearch-create/"
-    mode: '0755'
-    remote_src: true
+  ansible.builtin.shell: >
+    cp -r "{{ ansible_env.HOME }}/.pi/pi-autoresearch-src/skills/autoresearch-create"
+    "{{ pi_config_dir }}/skills/"
+  args:
+    creates: "{{ pi_config_dir }}/skills/autoresearch-create"
   when:
     - pi_install_autoresearch | default(true)
-    - pi_autoresearch_clone is defined
-    - pi_autoresearch_clone.changed
+    - not pi_autoresearch_stat.stat.exists
 
 # ── 4. Finální výpis ──────────────────────────────────────────────────────────
 
