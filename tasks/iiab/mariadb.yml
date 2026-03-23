@@ -16,7 +16,3 @@
     - "{{ mariadb_data_dir | default(ansible_env.HOME + '/mariadb/data') }}"
     - "{{ ansible_env.HOME }}/agents/log"
 
-- name: "[MariaDB] Pull MariaDB Docker image"
-  community.docker.docker_image:
-    name: "mariadb:{{ mariadb_version | default('lts') }}"
-    source: pull

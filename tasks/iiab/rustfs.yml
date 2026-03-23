@@ -14,11 +14,6 @@
     - "{{ rustfs_data_dir | default(ansible_env.HOME + '/rustfs/data') }}"
     - "{{ ansible_env.HOME }}/agents/log"
 
-- name: "[RustFS] Pull Docker image"
-  community.docker.docker_image:
-    name: "rustfs/rustfs:{{ rustfs_version | default('latest') }}"
-    source: pull
-
 - name: "[RustFS] Print info"
   ansible.builtin.debug:
     msg: |

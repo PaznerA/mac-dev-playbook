@@ -9,13 +9,8 @@
     state: directory
     mode: '0755'
   loop:
-    - "{{ ansible_env.HOME }}/n8n"
+    - "{{ n8n_data_dir }}"
     - "{{ ansible_env.HOME }}/agents/log"
-
-- name: Pull n8n Docker image
-  community.docker.docker_image:
-    name: "n8nio/n8n:{{ n8n_version | default('latest') }}"
-    source: pull
 
 - name: Enable n8n nginx vhost
   ansible.builtin.file:

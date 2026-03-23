@@ -22,16 +22,6 @@
     - "{{ woodpecker_data_dir }}"
     - "{{ ansible_env.HOME }}/agents/log"
 
-- name: "[Woodpecker] Pull server Docker image"
-  community.docker.docker_image:
-    name: "woodpeckerci/woodpecker-server:{{ woodpecker_version | default('latest') }}"
-    source: pull
-
-- name: "[Woodpecker] Pull agent Docker image"
-  community.docker.docker_image:
-    name: "woodpeckerci/woodpecker-agent:{{ woodpecker_version | default('latest') }}"
-    source: pull
-
 - name: "[Woodpecker] Enable nginx vhost"
   ansible.builtin.file:
     src: "{{ homebrew_prefix }}/etc/nginx/sites-available/woodpecker.conf"

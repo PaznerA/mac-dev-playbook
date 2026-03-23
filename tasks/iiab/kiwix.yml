@@ -23,11 +23,6 @@
     state: directory
     mode: '0755'
 
-- name: "[Kiwix] Pull kiwix-serve Docker image"
-  ansible.builtin.command: docker pull ghcr.io/kiwix/kiwix-serve:latest
-  register: kiwix_pull
-  changed_when: "'Status: Image is up to date' not in kiwix_pull.stdout"
-
 - name: "[Kiwix] Download configured ZIM files"
   ansible.builtin.get_url:
     url: "{{ item.url }}"

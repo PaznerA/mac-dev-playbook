@@ -88,13 +88,6 @@
       # ── Registrace ────────────────────────────────────────────────────────────
       gitlab_rails['gitlab_signup_enabled'] = {{ gitlab_signup_enabled | default(false) | string | lower }}
 
-- name: "[GitLab] Pull Docker image"
-  community.docker.docker_image:
-    name: "gitlab/gitlab-ce:{{ gitlab_version | default('latest') }}"
-    source: pull
-  async: 600
-  poll: 30
-
 - name: "[GitLab] Enable nginx vhost"
   ansible.builtin.file:
     src: "{{ homebrew_prefix }}/etc/nginx/sites-available/gitlab.conf"

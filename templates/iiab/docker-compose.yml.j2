@@ -99,12 +99,14 @@ services:
     ports:
       - "127.0.0.1:{{ n8n_port | default(5678) }}:5678"
     volumes:
-      - {{ ansible_env.HOME }}/n8n:/home/node/.n8n
+      - {{ n8n_data_dir }}:/home/node/.n8n
     environment:
       N8N_HOST: "{{ n8n_domain | default('n8n.dev.local') }}"
       N8N_PORT: "5678"
       N8N_PROTOCOL: https
       WEBHOOK_URL: "https://{{ n8n_domain | default('n8n.dev.local') }}/"
+      GENERIC_TIMEZONE: "{{ n8n_timezone | default('Europe/Prague') }}"
+      TZ: "{{ n8n_timezone | default('Europe/Prague') }}"
     networks:
       - iiab_net
     logging:
@@ -178,7 +180,7 @@ services:
       - "127.0.0.1:{{ calibreweb_port | default(8083) }}:8083"
     volumes:
       - {{ ansible_env.HOME }}/calibre-web/config:/config
-      - {{ ansible_env.HOME }}/calibre-web/books:/books
+      - {{ calibreweb_books_dir }}:/books
     environment:
       PUID: "{{ ansible_user_uid }}"
       PGID: "{{ ansible_user_gid }}"
@@ -198,7 +200,7 @@ services:
     image: portainer/portainer-ce:{{ portainer_version | default('latest') }}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:{{ portainer_port | default(9000) }}:9000"
+      - "127.0.0.1:{{ portainer_port | default(9002) }}:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - {{ portainer_data_dir }}:/data

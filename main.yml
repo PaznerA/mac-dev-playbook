@@ -39,21 +39,21 @@
 
     - name: Restart mariadb
       ansible.builtin.shell: >
-        /usr/local/bin/docker compose
+        {{ homebrew_prefix }}/bin/docker compose
         -f "{{ iiab_compose_dir }}/docker-compose.yml"
         up -d --no-deps mariadb
       failed_when: false
 
     - name: Restart traefik
       ansible.builtin.shell: >
-        /usr/local/bin/docker compose
+        {{ homebrew_prefix }}/bin/docker compose
         -f "{{ iiab_compose_dir }}/docker-compose.yml"
         up -d --no-deps traefik
       failed_when: false
 
     - name: Restart homeassistant
       ansible.builtin.shell: >
-        /usr/local/bin/docker compose
+        {{ homebrew_prefix }}/bin/docker compose
         -f "{{ iiab_compose_dir }}/docker-compose.yml"
         up -d --no-deps homeassistant
       failed_when: false

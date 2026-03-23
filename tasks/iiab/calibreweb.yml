@@ -10,10 +10,5 @@
     mode: '0755'
   loop:
     - "{{ ansible_env.HOME }}/calibre-web/config"
-    - "{{ ansible_env.HOME }}/calibre-web/books"
+    - "{{ calibreweb_books_dir }}"
     - "{{ ansible_env.HOME }}/agents/log"
-
-- name: Pull Calibre-Web Docker image
-  community.docker.docker_image:
-    name: "lscr.io/linuxserver/calibre-web:{{ calibreweb_version | default('latest') }}"
-    source: pull

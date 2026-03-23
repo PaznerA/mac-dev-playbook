@@ -15,11 +15,6 @@
     - "{{ portainer_data_dir }}"
     - "{{ ansible_env.HOME }}/agents/log"
 
-- name: "[Portainer] Pull Docker image"
-  community.docker.docker_image:
-    name: "portainer/portainer-ce:{{ portainer_version | default('latest') }}"
-    source: pull
-
 - name: "[Portainer] Enable nginx vhost"
   ansible.builtin.file:
     src: "{{ homebrew_prefix }}/etc/nginx/sites-available/portainer.conf"

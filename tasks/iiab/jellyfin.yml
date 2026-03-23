@@ -24,11 +24,6 @@
     - "{{ jellyfin_music_dir }}"
     - "{{ ansible_env.HOME }}/agents/log"
 
-- name: "[Jellyfin] Pull Docker image"
-  community.docker.docker_image:
-    name: "jellyfin/jellyfin:{{ jellyfin_version | default('latest') }}"
-    source: pull
-
 - name: "[Jellyfin] Enable nginx vhost"
   ansible.builtin.file:
     src: "{{ homebrew_prefix }}/etc/nginx/sites-available/jellyfin.conf"

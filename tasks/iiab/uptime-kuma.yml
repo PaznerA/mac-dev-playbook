@@ -12,7 +12,3 @@
     - "{{ ansible_env.HOME }}/uptime-kuma"
     - "{{ ansible_env.HOME }}/agents/log"
 
-- name: Pull Uptime Kuma Docker image
-  community.docker.docker_image:
-    name: "louislam/uptime-kuma:{{ uptime_kuma_version | default('1') }}"
-    source: pull

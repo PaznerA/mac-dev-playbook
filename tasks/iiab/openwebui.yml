@@ -15,11 +15,6 @@
     - "{{ openwebui_data_dir }}"
     - "{{ ansible_env.HOME }}/agents/log"
 
-- name: "[Open WebUI] Pull Docker image"
-  community.docker.docker_image:
-    name: "ghcr.io/open-webui/open-webui:{{ openwebui_version | default('main') }}"
-    source: pull
-
 - name: "[Open WebUI] Enable nginx vhost"
   ansible.builtin.file:
     src: "{{ homebrew_prefix }}/etc/nginx/sites-available/openwebui.conf"

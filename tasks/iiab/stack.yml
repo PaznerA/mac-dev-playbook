@@ -25,12 +25,13 @@
       #!/bin/bash
       # Čeká na Docker Engine (race condition při boot) a pak spouští stack
       set -euo pipefail
+      DOCKER="{{ homebrew_prefix }}/bin/docker"
       for i in $(seq 1 30); do
-        /usr/local/bin/docker info >/dev/null 2>&1 && break
+        "$DOCKER" info >/dev/null 2>&1 && break
         echo "Waiting for Docker... ($i/30)"
         sleep 3
       done
-      exec /usr/local/bin/docker compose \
+      exec "$DOCKER" compose \
         -f "{{ iiab_compose_dir }}/docker-compose.yml" \
         up -d --remove-orphans
 
@@ -130,7 +131,7 @@
 # Pokud stack už běží (reload při re-provisioning), aplikujeme změny bez restartu
 - name: "[Stack] Apply compose changes without full restart"
   ansible.builtin.shell: >
-    /usr/local/bin/docker compose
+    {{ homebrew_prefix }}/bin/docker compose
     -f "{{ iiab_compose_dir }}/docker-compose.yml"
     up -d --remove-orphans
   when: stack_launchd_status.stdout | trim == 'loaded'

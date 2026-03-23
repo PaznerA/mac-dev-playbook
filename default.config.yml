@@ -810,7 +810,7 @@ woodpecker_max_workflows: 4      # Max paralelních pipeline runů na agenta
 # ==============================================================================
 
 portainer_domain: "portainer.dev.local"
-portainer_port: 9000
+portainer_port: 9002                   # 9000/9001 rezervováno pro RustFS (S3 API + console)
 portainer_version: "latest"
 portainer_data_dir: "/Users/{{ ansible_user_id }}/portainer"
 

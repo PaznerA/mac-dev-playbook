@@ -11,11 +11,6 @@
     state: directory
     mode: '0755'
 
-- name: "[HomeAssistant] Pull Docker image"
-  community.docker.docker_image:
-    name: "homeassistant/home-assistant:{{ homeassistant_version | default('stable') }}"
-    source: pull
-
 - name: "[HomeAssistant] Print info"
   ansible.builtin.debug:
     msg: |
