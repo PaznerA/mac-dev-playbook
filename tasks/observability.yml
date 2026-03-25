@@ -57,14 +57,10 @@
     path: "/tmp/tempo_{{ tempo_version }}_linux.tar.gz"
   register: tempo_archive_stat
 
-- name: Extract Tempo binary to homebrew bin
-  ansible.builtin.unarchive:
-    src: "/tmp/tempo_{{ tempo_version }}_linux.tar.gz"
-    dest: "{{ homebrew_prefix }}/bin"
-    include:
-      - tempo
-    mode: '0755'
-    remote_src: true
+- name: Extract Tempo binary to homebrew bin  # noqa: command-instead-of-module
+  ansible.builtin.command: >-
+    tar -xzf /tmp/tempo_{{ tempo_version }}_linux.tar.gz
+    -C {{ homebrew_prefix }}/bin tempo
   when:
     - tempo_binary_supported
     - not tempo_binary_stat.stat.exists
@@ -89,14 +85,10 @@
     path: "/tmp/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin.tar.gz"
   register: nginx_exporter_archive_stat
 
-- name: Extract nginx-prometheus-exporter binary to homebrew bin
-  ansible.builtin.unarchive:
-    src: "/tmp/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin.tar.gz"
-    dest: "{{ homebrew_prefix }}/bin"
-    include:
-      - nginx-prometheus-exporter
-    mode: '0755'
-    remote_src: true
+- name: Extract nginx-prometheus-exporter binary to homebrew bin  # noqa: command-instead-of-module
+  ansible.builtin.command: >-
+    tar -xzf /tmp/nginx-prometheus-exporter_{{ nginx_prometheus_exporter_version }}_darwin.tar.gz
+    -C {{ homebrew_prefix }}/bin nginx-prometheus-exporter
   when:
     - not nginx_exporter_binary_stat.stat.exists
     - nginx_exporter_archive_stat.stat.exists
@@ -179,14 +171,10 @@
   register: phpfpm_exporter_archive_stat
   when: alloy_scrape_phpfpm | default(true)
 
-- name: Extract php-fpm_exporter binary to homebrew bin
-  ansible.builtin.unarchive:
-    src: "/tmp/php-fpm_exporter_{{ phpfpm_exporter_version }}_darwin.tar.gz"
-    dest: "{{ homebrew_prefix }}/bin"
-    include:
-      - php-fpm_exporter
-    mode: '0755'
-    remote_src: true
+- name: Extract php-fpm_exporter binary to homebrew bin  # noqa: command-instead-of-module
+  ansible.builtin.command: >-
+    tar -xzf /tmp/php-fpm_exporter_{{ phpfpm_exporter_version }}_darwin.tar.gz
+    -C {{ homebrew_prefix }}/bin php-fpm_exporter
   when:
     - alloy_scrape_phpfpm | default(true)
     - not (phpfpm_exporter_binary_stat.stat.exists | default(false))
