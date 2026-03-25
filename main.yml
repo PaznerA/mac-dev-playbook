@@ -19,6 +19,24 @@
         - "{{ playbook_dir }}/credentials.yml"
       tags: ['always']
 
+    # sudo askpass helper – Homebrew cask installer (a další) interně volá
+    # sudo, ale nezná Ansible become password. Tento skript ho předá přes
+    # SUDO_ASKPASS env var, aby cask install nepadal na "sudo: a password is required".
+    - name: Create sudo askpass helper script.
+      ansible.builtin.copy:
+        content: |
+          #!/bin/bash
+          echo "{{ ansible_become_password }}"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.ansible_askpass"
+        mode: '0700'
+      no_log: true
+      changed_when: false
+      tags: ['always']
+      when: ansible_become_password is defined and ansible_become_password | length > 0
+
+  environment:
+    SUDO_ASKPASS: "{{ ansible_facts['env']['HOME'] + '/.ansible_askpass' if (ansible_become_password | default('') | length > 0) else '' }}"
+
   # ============================================================================
   # HANDLERS – centralizované, volatelné přes notify: z libovolného task souboru
   # ============================================================================
@@ -345,3 +363,11 @@
           loop_control:
             loop_var: outer_item
           with_fileglob: "{{ post_provision_tasks | default(omit) }}"
+
+  post_tasks:
+    - name: Remove sudo askpass helper script.
+      ansible.builtin.file:
+        path: "{{ ansible_facts['env']['HOME'] }}/.ansible_askpass"
+        state: absent
+      changed_when: false
+      tags: ['always']
