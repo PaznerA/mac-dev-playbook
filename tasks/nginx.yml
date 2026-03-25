@@ -73,6 +73,9 @@
 
 - name: Install mkcert CA into system trust store
   ansible.builtin.command: mkcert -install
+  become: true
+  environment:
+    CAROOT: "{{ ansible_facts['env']['HOME'] }}/Library/Application Support/mkcert"
   changed_when: false
 
 - name: Ensure nginx SSL directory exists
