@@ -78,10 +78,13 @@
 - name: Start Gitea via brew services
   ansible.builtin.command: brew services start gitea
   register: gitea_svc
-  changed_when: "'already started' not in gitea_svc.stdout"
-  failed_when:
-    - gitea_svc.rc != 0
-    - "'already started' not in gitea_svc.stdout"
+  changed_when: >
+    'already started' not in (gitea_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (gitea_svc.stderr | default(''))
+  failed_when: >
+    gitea_svc.rc != 0 and
+    'already started' not in (gitea_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (gitea_svc.stderr | default(''))
 
 - name: Enable Gitea nginx vhost
   ansible.builtin.file:

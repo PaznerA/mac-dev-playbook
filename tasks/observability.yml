@@ -380,8 +380,13 @@
 - name: Start Redis service (scraped by Alloy)
   ansible.builtin.command: brew services start redis
   register: redis_svc
-  changed_when: "'already started' not in redis_svc.stdout"
-  failed_when: redis_svc.rc != 0 and 'already started' not in redis_svc.stdout
+  changed_when: >
+    'already started' not in (redis_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (redis_svc.stderr | default(''))
+  failed_when: >
+    redis_svc.rc != 0 and
+    'already started' not in (redis_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (redis_svc.stderr | default(''))
   when: alloy_scrape_redis | default(true)
 
 - name: Wait for Grafana port to open

@@ -14,10 +14,13 @@
 - name: "[Ollama] Start Ollama as homebrew service"
   ansible.builtin.command: brew services start ollama
   register: ollama_svc
-  changed_when: "'already started' not in ollama_svc.stdout"
-  failed_when:
-    - ollama_svc.rc != 0
-    - "'already started' not in ollama_svc.stdout"
+  changed_when: >
+    'already started' not in (ollama_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (ollama_svc.stderr | default(''))
+  failed_when: >
+    ollama_svc.rc != 0 and
+    'already started' not in (ollama_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (ollama_svc.stderr | default(''))
 
 - name: "[Ollama] Wait for Ollama API to be ready"
   ansible.builtin.uri:

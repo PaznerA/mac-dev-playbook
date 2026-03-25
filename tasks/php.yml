@@ -136,7 +136,10 @@
 - name: Start PHP-FPM service
   ansible.builtin.command: brew services start "php@{{ php_version }}"
   register: phpfpm_svc
-  changed_when: "'already started' not in phpfpm_svc.stdout"
-  failed_when:
-    - phpfpm_svc.rc != 0
-    - "'already started' not in phpfpm_svc.stdout"
+  changed_when: >
+    'already started' not in (phpfpm_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (phpfpm_svc.stderr | default(''))
+  failed_when: >
+    phpfpm_svc.rc != 0 and
+    'already started' not in (phpfpm_svc.stdout | default('')) and
+    'Bootstrap failed: 5' not in (phpfpm_svc.stderr | default(''))
