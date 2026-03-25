@@ -3,9 +3,14 @@
 # BUN – JavaScript runtime, bundler, package manager
 # ==============================================================================
 
+- name: Add Bun Homebrew tap
+  community.general.homebrew_tap:
+    name: oven-sh/bun
+    state: present
+
 - name: Install Bun via Homebrew
   community.general.homebrew:
-    name: bun
+    name: oven-sh/bun/bun
     state: present
 
 - name: Add Bun completions to .zshrc
