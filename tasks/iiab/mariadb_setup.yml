@@ -4,12 +4,28 @@
 # Vytváří databáze a uživatele definované v mariadb_databases / mariadb_users
 # ==============================================================================
 
+- name: "[MariaDB] Wait for MariaDB container to be running"
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      {{ homebrew_prefix }}/bin/docker compose -f {{ iiab_compose_dir }}/docker-compose.yml ps --format json mariadb 2>/dev/null | grep -q '"running"'
+    executable: /bin/bash
+  register: mariadb_container
+  until: mariadb_container.rc == 0
+  retries: 30
+  delay: 5
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
 - name: "[MariaDB] Wait for port to be ready"
   ansible.builtin.wait_for:
     port: "{{ mariadb_port | default(3306) }}"
     host: "127.0.0.1"
-    timeout: 60
-  when: not ansible_check_mode
+    timeout: 120
+  when:
+    - not ansible_check_mode
+    - mariadb_container.rc | default(1) == 0
 
 - name: "[MariaDB] Remove test database"
   community.mysql.mysql_db:
