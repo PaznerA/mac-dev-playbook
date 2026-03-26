@@ -2,30 +2,21 @@
 # ==============================================================================
 # MARIADB – post-start nastavení (spouštěno PO startu docker compose stacku)
 # Vytváří databáze a uživatele definované v mariadb_databases / mariadb_users
+# Compose --wait s healthcheckem zajistí, že MariaDB je ready před tímto taskem.
 # ==============================================================================
 
-- name: "[MariaDB] Wait for MariaDB container to be running"
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      {{ homebrew_prefix }}/bin/docker compose -f {{ iiab_compose_dir }}/docker-compose.yml ps --format json mariadb 2>/dev/null | grep -q '"running"'
-    executable: /bin/bash
-  register: mariadb_container
-  until: mariadb_container.rc == 0
-  retries: 30
-  delay: 5
-  changed_when: false
-  failed_when: false
+- name: "[MariaDB] Verify MariaDB is accepting connections"
+  community.mysql.mysql_info:
+    login_host: "127.0.0.1"
+    login_port: "{{ mariadb_port | default(3306) }}"
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+  register: mariadb_conn
+  retries: 5
+  delay: 10
+  until: mariadb_conn is not failed
+  ignore_errors: true  # noqa: ignore-errors – potřebujeme registrovat failed stav
   when: not ansible_check_mode
-
-- name: "[MariaDB] Wait for port to be ready"
-  ansible.builtin.wait_for:
-    port: "{{ mariadb_port | default(3306) }}"
-    host: "127.0.0.1"
-    timeout: 120
-  when:
-    - not ansible_check_mode
-    - mariadb_container.rc | default(1) == 0
 
 - name: "[MariaDB] Remove test database"
   community.mysql.mysql_db:
@@ -36,15 +27,7 @@
     name: test
     state: absent
   failed_when: false
-
-- name: "[MariaDB] Check connection to MariaDB"
-  community.mysql.mysql_info:
-    login_host: "127.0.0.1"
-    login_port: "{{ mariadb_port | default(3306) }}"
-    login_user: root
-    login_password: "{{ mariadb_root_password }}"
-  register: mariadb_conn
-  ignore_errors: true  # noqa: ignore-errors – potřebujeme registrovat failed stav
+  when: mariadb_conn is not failed
 
 - name: "[MariaDB] Create databases"
   community.mysql.mysql_db:
