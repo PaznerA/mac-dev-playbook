@@ -1,5 +1,5 @@
 # ==============================================================================
-# Loki konfigurace – lokální single-binary mode
+# Loki konfigurace – lokální single-binary mode (Docker stack)
 # ==============================================================================
 
 auth_enabled: false
@@ -11,11 +11,11 @@ server:
 
 common:
   instance_addr: 127.0.0.1
-  path_prefix: {{ homebrew_prefix }}/var/lib/loki
+  path_prefix: /loki
   storage:
     filesystem:
-      chunks_directory: {{ homebrew_prefix }}/var/lib/loki/chunks
-      rules_directory: {{ homebrew_prefix }}/var/lib/loki/rules
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -47,9 +47,10 @@ limits_config:
   ingestion_burst_size_mb: 32
   max_query_series: 10000
   max_query_lookback: 0    # 0 = unlimited
+  volume_enabled: true
 
 compactor:
-  working_directory: {{ homebrew_prefix }}/var/lib/loki/retention
+  working_directory: /loki/retention
   compaction_interval: 10m
   retention_enabled: true
   retention_delete_delay: 2h

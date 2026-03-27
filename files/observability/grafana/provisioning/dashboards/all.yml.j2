@@ -1,5 +1,5 @@
 # ==============================================================================
-# Grafana dashboard provisioning
+# Grafana dashboard provisioning (Docker stack)
 # Vygenerováno Ansible – ruční úpravy budou přepsány
 # ==============================================================================
 
@@ -11,8 +11,8 @@ providers:
     folder: 'Mac Studio'
     type: file
     disableDeletion: false
-    updateIntervalSeconds: 10
+    updateIntervalSeconds: 30
     allowUiUpdates: true
     options:
-      path: {{ ansible_facts['env']['HOME'] }}/observability/dashboards
+      path: /var/lib/grafana/dashboards
       foldersFromFilesStructure: false

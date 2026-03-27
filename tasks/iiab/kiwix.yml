@@ -1,22 +1,8 @@
 ---
 # ==============================================================================
 # KIWIX – offline Wikipedia, Gutenberg, ZIM soubory
-# Na macOS běží přes Docker (kiwix-serve nemá Homebrew formula)
-# Vyžaduje: Docker Desktop, Nginx
+# Docker kontejner v IIAB stacku. Vyžaduje alespoň jeden .zim soubor.
 # ==============================================================================
-
-- name: "[Kiwix] Verify Docker daemon is available"
-  ansible.builtin.command: docker info
-  register: kiwix_docker_check
-  changed_when: false
-  failed_when: false
-
-- name: "[Kiwix] Fail if Docker is not running"
-  ansible.builtin.fail:
-    msg: >
-      Docker není dostupný (docker info selhalo). Kiwix vyžaduje běžící Docker.
-      Spusť Docker Desktop nebo přidej 'docker' do homebrew_cask_apps.
-  when: kiwix_docker_check.rc != 0
 
 - name: "[Kiwix] Ensure Kiwix data directory exists"
   ansible.builtin.file:
@@ -24,12 +10,31 @@
     state: directory
     mode: '0755'
 
+# Init ZIM – malý soubor stažený automaticky aby Kiwix mohl nastartovat.
+# Bez alespoň jednoho .zim kontejner crashloopuje.
+- name: "[Kiwix] Check if any ZIM files exist"
+  ansible.builtin.find:
+    paths: "{{ kiwix_data_dir }}"
+    patterns: "*.zim"
+  register: _kiwix_zims
+
+- name: "[Kiwix] Download init ZIM ({{ kiwix_init_zim_dest }})"
+  ansible.builtin.get_url:
+    url: "{{ kiwix_init_zim_url }}"
+    dest: "{{ kiwix_data_dir }}/{{ kiwix_init_zim_dest }}"
+    mode: '0644'
+    timeout: 600
+  when:
+    - _kiwix_zims.matched == 0
+    - kiwix_init_zim_url | default('') | length > 0
+
+# Další ZIM soubory (volitelné, z config.yml)
 - name: "[Kiwix] Download configured ZIM files"
   ansible.builtin.get_url:
     url: "{{ item.url }}"
     dest: "{{ kiwix_data_dir }}/{{ item.dest }}"
     mode: '0644'
-    timeout: 3600   # ZIM soubory mohou být velké (GB)
+    timeout: 3600
   loop: "{{ kiwix_zim_files | default([]) }}"
   when: (kiwix_zim_files | default([])) | length > 0
 
@@ -60,51 +65,21 @@
       # Seznam ZIM souborů: https://download.kiwix.org/zim/
       #
       # Doporučené soubory:
+      #   Wikipedia EN (top):  https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-03.zim (~315MB)
       #   Wikipedia CS (mini): https://download.kiwix.org/zim/wikipedia/wikipedia_cs_all_mini_2024-11.zim (~500MB)
-      #   Wikipedia CS (full): https://download.kiwix.org/zim/wikipedia/wikipedia_cs_all_2024-11.zim (~2GB)
-      #   Wikipedia EN (mini): https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_mini_2024-11.zim (~8GB)
       #   Gutenberg CS:        https://download.kiwix.org/zim/gutenberg/gutenberg_cs_all_2023-06.zim (~300MB)
-      #   Stack Overflow CS:   https://download.kiwix.org/zim/stackoverflow.com/stackoverflow.com_cs_all_2024-05.zim (~600MB)
-      #   OpenStreetMap:       https://download.kiwix.org/zim/openstreetmap.zim (~1.5GB)
 
       set -euo pipefail
-
       DATA_DIR="{{ kiwix_data_dir }}"
 
       if [ $# -eq 0 ]; then
         echo "Použití: $0 <url-zim-souboru>"
-        echo "Příklad: $0 https://download.kiwix.org/zim/wikipedia/wikipedia_cs_all_mini_2024-11.zim"
         exit 1
       fi
 
       URL="$1"
       FILENAME=$(basename "$URL")
-      DEST="$DATA_DIR/$FILENAME"
-
-      echo "Stahuji: $URL"
-      echo "Cíl:     $DEST"
-      curl -L --progress-bar -o "$DEST" "$URL"
-      echo ""
-      echo "Hotovo! Restartuj Kiwix: launchctl kickstart -k gui/$(id -u)/com.kiwix.serve"
+      echo "Stahuji: $URL → $DATA_DIR/$FILENAME"
+      curl -L --progress-bar -o "$DATA_DIR/$FILENAME" "$URL"
+      echo "Hotovo! Restartuj Kiwix: docker compose -p iiab restart kiwix"
     mode: '0755'
-
-- name: "[Kiwix] Print installation info"
-  ansible.builtin.debug:
-    msg: |
-      ══════════════════════════════════════════════════════
-       🦉 Kiwix nainstalován
-      ══════════════════════════════════════════════════════
-       URL:       https://{{ kiwix_domain | default('kiwix.dev.local') }}
-       Port:      {{ kiwix_port | default(8888) }}
-       ZIM dir:   {{ kiwix_data_dir }}
-
-       Stahování ZIM souborů:
-         {{ kiwix_data_dir }}/download-zim.sh <url>
-
-       Nebo přidej do default.config.yml:
-         kiwix_zim_files:
-           - url: "https://download.kiwix.org/zim/wikipedia/..."
-             dest: "wikipedia_cs.zim"
-
-       Přidej do /etc/hosts:   127.0.0.1 {{ kiwix_domain | default('kiwix.dev.local') }}
-      ══════════════════════════════════════════════════════

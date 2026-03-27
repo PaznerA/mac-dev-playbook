@@ -1,5 +1,5 @@
 # ==============================================================================
-# Prometheus konfigurace
+# Prometheus konfigurace (Docker stack)
 # Vygenerováno Ansible – ruční úpravy budou přepsány
 # ==============================================================================
 
@@ -9,35 +9,39 @@ global:
   external_labels:
     host: {{ observability_hostname | default(ansible_facts['hostname']) }}
 
-# ── Pravidla alertů ───────────────────────────────────────────────────────────
-rule_files:
-  # - "rules/*.yml"
-
-# ── Scrape konfigurace ────────────────────────────────────────────────────────
-# Poznámka: Primární sběr dat probíhá přes Grafana Alloy (OTLP/scrape).
-# Prometheus přímo scrape-uje jen sebe a Alloy metrics endpoint.
+rule_files: []
 
 scrape_configs:
+  # ── Intra-stack (Docker service names) ─────────────────────────────────────
   - job_name: prometheus
     static_configs:
       - targets: ['localhost:{{ prometheus_port | default(9090) }}']
 
-  - job_name: grafana-alloy
-    static_configs:
-      - targets: ['localhost:{{ alloy_ui_port | default(12345) }}']
-
   - job_name: grafana
     static_configs:
-      - targets: ['localhost:{{ grafana_port | default(3000) }}']
+      - targets: ['grafana:{{ grafana_port | default(3000) }}']
 
   - job_name: loki
     static_configs:
-      - targets: ['localhost:{{ loki_port | default(3100) }}']
+      - targets: ['loki:{{ loki_port | default(3100) }}']
 
   - job_name: tempo
     static_configs:
-      - targets: ['localhost:{{ tempo_port | default(3200) }}']
+      - targets: ['tempo:{{ tempo_http_port | default(3200) }}']
 
-# ── Remote write receiver (pro Alloy → Prometheus pipeline) ──────────────────
-# Povoleno přes --enable-feature=remote-write-receiver při startu prometheuse
-# Viz task: "Configure Prometheus remote-write-receiver feature flag"
+  # ── Host-side služby (přes Docker VM gateway) ─────────────────────────────
+  - job_name: grafana-alloy
+    static_configs:
+      - targets: ['host.docker.internal:{{ alloy_ui_port | default(12345) }}']
+
+  - job_name: node-exporter
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+
+  - job_name: nginx-exporter
+    static_configs:
+      - targets: ['host.docker.internal:{{ nginx_exporter_port | default(9113) }}']
+
+  - job_name: phpfpm-exporter
+    static_configs:
+      - targets: ['host.docker.internal:{{ phpfpm_exporter_port | default(9253) }}']

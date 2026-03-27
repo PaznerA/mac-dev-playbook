@@ -1,0 +1,55 @@
+# =============================================================================
+# INFRA STACK – Portainer + Traefik
+# Generováno Ansiblem – NEUPRAVUJ ručně
+# =============================================================================
+
+services:
+
+{% if install_portainer | default(false) %}
+  portainer:
+    image: portainer/portainer-ce:{{ portainer_version | default('latest') }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ portainer_port | default(9002) }}:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ portainer_data_dir }}:/data
+    networks:
+      - infra_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+{% endif %}
+{% if install_traefik | default(false) %}
+  traefik:
+    image: traefik:{{ traefik_image_version | default('latest') }}
+    restart: unless-stopped
+    ports:
+{% if not (install_nginx | default(true)) %}
+      - "{{ traefik_http_port | default(80) }}:80"
+      - "{{ traefik_https_port | default(443) }}:443"
+{% endif %}
+      - "127.0.0.1:{{ traefik_dashboard_port | default(8080) }}:8080"
+    volumes:
+      - {{ traefik_config_dir | default(ansible_facts['env']['HOME'] + '/iiab/traefik') }}:/etc/traefik:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - infra_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+{% endif %}
+
+networks:
+  infra_net:
+    driver: bridge
+  {{ stacks_shared_network }}:
+    external: true

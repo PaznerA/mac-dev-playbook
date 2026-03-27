@@ -1,13 +1,6 @@
 # =============================================================================
-# IIAB Docker Compose Stack
+# IIAB STACK – self-hosted knowledge & media services
 # Generováno Ansiblem – NEUPRAVUJ ručně
-#
-# Restart celého stacku:
-#   launchctl kickstart -k gui/$(id -u)/com.iiab-stack
-# Restart jedné služby:
-#   docker compose -f {{ iiab_compose_dir }}/docker-compose.yml restart <name>
-# Logy:
-#   docker compose -f {{ iiab_compose_dir }}/docker-compose.yml logs -f <name>
 # =============================================================================
 
 services:
@@ -22,6 +15,7 @@ services:
       - {{ mariadb_data_dir | default(ansible_facts['env']['HOME'] + '/mariadb/data') }}:/var/lib/mysql
     environment:
       MARIADB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
+      MARIADB_ROOT_HOST: "%"
       MARIADB_CHARACTER_SET_SERVER: utf8mb4
       MARIADB_COLLATION_SERVER: utf8mb4_unicode_ci
     healthcheck:
@@ -32,6 +26,7 @@ services:
       start_period: 30s
     networks:
       - iiab_net
+      - {{ stacks_shared_network }}
     logging:
       driver: "json-file"
       options:
@@ -59,6 +54,7 @@ services:
 {% endif %}
     networks:
       - iiab_net
+      - {{ stacks_shared_network }}
     logging:
       driver: "json-file"
       options:
@@ -83,7 +79,7 @@ services:
       NEXTCLOUD_ADMIN_USER: "{{ nextcloud_admin_user }}"
       NEXTCLOUD_ADMIN_PASSWORD: "{{ nextcloud_admin_password }}"
       NEXTCLOUD_DATA_DIR: "/data"
-      NEXTCLOUD_TRUSTED_DOMAINS: "{{ nextcloud_domain | default('cloud.dev.local') }}"
+      NEXTCLOUD_TRUSTED_DOMAINS: "{{ nextcloud_domain | default('cloud.dev.local') }} localhost 127.0.0.1"
       OVERWRITEPROTOCOL: "https"
 {% if install_mariadb | default(false) %}
     depends_on:
@@ -91,6 +87,7 @@ services:
 {% endif %}
     networks:
       - iiab_net
+      - {{ stacks_shared_network }}
     logging:
       driver: "json-file"
       options:
@@ -115,6 +112,7 @@ services:
       TZ: "{{ n8n_timezone | default('Europe/Prague') }}"
     networks:
       - iiab_net
+      - {{ stacks_shared_network }}
     logging:
       driver: "json-file"
       options:
@@ -145,7 +143,11 @@ services:
     image: jellyfin/jellyfin:{{ jellyfin_version | default('latest') }}
     restart: unless-stopped
     ports:
+{% if jellyfin_lan_access | default(true) %}
+      - "{{ jellyfin_port | default(8096) }}:8096"
+{% else %}
       - "127.0.0.1:{{ jellyfin_port | default(8096) }}:8096"
+{% endif %}
     volumes:
       - {{ jellyfin_config_dir }}:/config
       - {{ jellyfin_cache_dir }}:/cache
@@ -201,97 +203,6 @@ services:
         max-file: "3"
 
 {% endif %}
-{% if install_portainer | default(false) %}
-  portainer:
-    image: portainer/portainer-ce:{{ portainer_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ portainer_port | default(9002) }}:9000"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - {{ portainer_data_dir }}:/data
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-{% endif %}
-{% if install_gitlab | default(false) %}
-  gitlab:
-    image: gitlab/gitlab-ce:{{ gitlab_version | default('latest') }}
-    restart: unless-stopped
-    hostname: "{{ gitlab_domain | default('gitlab.dev.local') }}"
-    shm_size: 256m
-    ports:
-      - "127.0.0.1:{{ gitlab_http_port | default(8929) }}:{{ gitlab_http_port | default(8929) }}"
-      - "127.0.0.1:{{ gitlab_ssh_port | default(2224) }}:22"
-    volumes:
-      - {{ gitlab_config_dir }}:/etc/gitlab
-      - {{ ansible_facts['env']['HOME'] }}/gitlab-logs:/var/log/gitlab
-      - {{ gitlab_data_dir }}:/var/opt/gitlab
-    environment:
-      GITLAB_OMNIBUS_CONFIG: |
-        external_url 'https://{{ gitlab_domain | default('gitlab.dev.local') }}'
-        gitlab_rails['gitlab_shell_ssh_port'] = {{ gitlab_ssh_port | default(2224) }}
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-
-{% endif %}
-{% if install_woodpecker | default(false) %}
-  woodpecker-server:
-    image: woodpeckerci/woodpecker-server:{{ woodpecker_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ woodpecker_port | default(8060) }}:8000"
-      - "127.0.0.1:{{ woodpecker_grpc_port | default(9060) }}:9000"
-    volumes:
-      - {{ woodpecker_data_dir }}:/var/lib/woodpecker
-    environment:
-      WOODPECKER_GITEA: "true"
-      WOODPECKER_GITEA_URL: "https://{{ gitea_domain | default('git.dev.local') }}"
-      WOODPECKER_GITEA_CLIENT: "{{ woodpecker_gitea_client | default('') }}"
-      WOODPECKER_GITEA_SECRET: "{{ woodpecker_gitea_secret | default('') }}"
-      WOODPECKER_AGENT_SECRET: "{{ woodpecker_agent_secret | default('changeme_woodpecker') }}"
-      WOODPECKER_HOST: "https://{{ woodpecker_domain | default('ci.dev.local') }}"
-      WOODPECKER_OPEN: "{{ woodpecker_open_registration | default(false) | string | lower }}"
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-  woodpecker-agent:
-    image: woodpeckerci/woodpecker-agent:{{ woodpecker_version | default('latest') }}
-    restart: unless-stopped
-    depends_on:
-      - woodpecker-server
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      # Interní gRPC přes iiab_net – nepotřebuje host.docker.internal
-      WOODPECKER_SERVER: "woodpecker-server:9000"
-      WOODPECKER_AGENT_SECRET: "{{ woodpecker_agent_secret | default('changeme_woodpecker') }}"
-      WOODPECKER_MAX_WORKFLOWS: "{{ woodpecker_max_workflows | default(4) }}"
-      WOODPECKER_BACKEND: docker
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-{% endif %}
 {% if install_openwebui | default(false) %}
   open-webui:
     image: ghcr.io/open-webui/open-webui:{{ openwebui_version | default('main') }}
@@ -302,6 +213,10 @@ services:
       - {{ openwebui_data_dir }}:/app/backend/data
     environment:
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+      WEBUI_AUTH: "true"
+      WEBUI_SECRET_KEY: "{{ openwebui_secret_key | default('changeme_openwebui_secret') }}"
+      ENABLE_SIGNUP: "{{ openwebui_enable_signup | default(true) | string | lower }}"
+      DEFAULT_USER_ROLE: "user"
       SCARF_NO_ANALYTICS: "true"
       DO_NOT_TRACK: "true"
       ANONYMIZED_TELEMETRY: "false"
@@ -309,6 +224,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - iiab_net
+      - {{ stacks_shared_network }}
     logging:
       driver: "json-file"
       options:
@@ -321,43 +237,21 @@ services:
     image: homeassistant/home-assistant:{{ homeassistant_version | default('stable') }}
     restart: unless-stopped
 {% if homeassistant_privileged | default(false) %}
-    # privileged + network_mode: host – nutné pro mDNS/Bonjour auto-discovery.
-    # Poznámka (macOS): Docker Desktop běží ve VM, takže host mode sahá do VM
-    # sítě. Pro USB dongly (Zigbee, Z-Wave) použij volumes: /dev/ttyUSB0:/dev/...
     privileged: true
     network_mode: host
-    # network_mode: host není kompatibilní s ports: ani networks: – HA naslouchá
-    # přímo na portu {{ homeassistant_port | default(8123) }} hostu (VM sítě).
 {% else %}
     ports:
       - "127.0.0.1:{{ homeassistant_port | default(8123) }}:8123"
     networks:
       - iiab_net
+      - {{ stacks_shared_network }}
 {% endif %}
     volumes:
       - {{ homeassistant_config_dir | default(ansible_facts['env']['HOME'] + '/homeassistant') }}:/config
+    tmpfs:
+      - /tmp
     environment:
       TZ: "{{ homeassistant_timezone | default('Europe/Prague') }}"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-{% endif %}
-{% if install_traefik | default(false) %}
-  traefik:
-    image: traefik:{{ traefik_image_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-      - "{{ traefik_http_port | default(80) }}:80"
-      - "{{ traefik_https_port | default(443) }}:443"
-      - "127.0.0.1:{{ traefik_dashboard_port | default(8080) }}:8080"
-    volumes:
-      - {{ traefik_config_dir | default(ansible_facts['env']['HOME'] + '/iiab/traefik') }}:/etc/traefik:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - iiab_net
     logging:
       driver: "json-file"
       options:
@@ -379,6 +273,24 @@ services:
       RUSTFS_SECRET_KEY: "{{ rustfs_secret_key }}"
     networks:
       - iiab_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+{% endif %}
+{% if install_offline_maps | default(false) %}
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ maps_port | default(8070) }}:8080"
+    volumes:
+      - {{ maps_data_dir }}:/data
+    networks:
+      - iiab_net
     logging:
       driver: "json-file"
       options:
@@ -387,29 +299,11 @@ services:
 
 {% endif %}
 
-{% if install_observability | default(true) %}
-  tempo:
-    image: grafana/tempo:{{ tempo_version | default('2.10.0') }}
-    restart: unless-stopped
-    command: ["-config.file=/etc/tempo.yaml"]
-    ports:
-      - "127.0.0.1:{{ tempo_http_port | default(3200) }}:{{ tempo_http_port | default(3200) }}"
-      - "127.0.0.1:{{ tempo_otlp_grpc_port | default(4327) }}:{{ tempo_otlp_grpc_port | default(4327) }}"
-      - "127.0.0.1:{{ tempo_otlp_http_port | default(4328) }}:{{ tempo_otlp_http_port | default(4328) }}"
-    volumes:
-      - {{ homebrew_prefix }}/etc/tempo.yaml:/etc/tempo.yaml:ro
-      - {{ tempo_storage_path | default(homebrew_prefix + '/var/lib/tempo') }}:/var/lib/tempo
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-{% endif %}
 networks:
   iiab_net:
     driver: bridge
     ipam:
       config:
-        # Explicitní subnet – vyhne se kolizi s Docker defaultem (172.17.x.x)
         - subnet: 172.20.0.0/16
+  {{ stacks_shared_network }}:
+    external: true

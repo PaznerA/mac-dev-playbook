@@ -1,0 +1,113 @@
+---
+# ==============================================================================
+# STACK VERIFY – verifikace služeb po docker compose up
+# Kontroluje HTTP/TCP health každé povolené služby.
+# Retry smyčka: check → pause pro manuální opravu → re-check (max 3x).
+# ==============================================================================
+
+# Ověř že Nginx poslouchá na 443 (SSL vhosty)
+- name: "[Verify] Check Nginx HTTPS port"
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 443
+    timeout: 5
+    state: started
+  register: _nginx_443
+  failed_when: false
+
+- name: "[Verify] Nginx not listening on 443 – restarting"
+  ansible.builtin.command: brew services restart nginx
+  when: _nginx_443.failed | default(false)
+
+# Dej kontejnerům čas nastartovat (healthcheck, init skripty)
+- name: "[Verify] Wait for containers to initialize"
+  ansible.builtin.pause:
+    seconds: 30
+    prompt: "Cekam 30s na inicializaci kontejneru..."
+
+- name: "[Verify] Build service check list"
+  ansible.builtin.set_fact:
+    _iiab_checks: >-
+      {{
+        (install_mariadb | default(false)) | ternary(
+          [{'name': 'MariaDB', 'port': mariadb_port | default(3306), 'proto': 'tcp',
+            'hint': 'docker compose -p iiab logs mariadb'}], [])
+        +
+        (install_wordpress | default(false)) | ternary(
+          [{'name': 'WordPress', 'port': wordpress_port | default(8084), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (wordpress_port | default(8084)) ~ '/',
+            'hint': 'Otevri https://' ~ (wordpress_domain | default('wp.dev.local')) ~ '/wp-admin/install.php'}], [])
+        +
+        (install_nextcloud | default(false)) | ternary(
+          [{'name': 'Nextcloud', 'port': nextcloud_port | default(8085), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (nextcloud_port | default(8085)) ~ '/status.php',
+            'hint': 'Otevri https://' ~ (nextcloud_domain | default('cloud.dev.local'))}], [])
+        +
+        (install_n8n | default(false)) | ternary(
+          [{'name': 'N8N', 'port': n8n_port | default(5678), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (n8n_port | default(5678)) ~ '/healthz',
+            'hint': 'Otevri https://' ~ (n8n_domain | default('n8n.dev.local')) ~ ' a vytvor ucet (prvni user = owner)'}], [])
+        +
+        (install_kiwix | default(false)) | ternary(
+          [{'name': 'Kiwix', 'port': kiwix_port | default(8888), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (kiwix_port | default(8888)) ~ '/',
+            'hint': 'Kiwix potrebuje ZIM soubory. Spust download-zim.sh a restartuj.'}], [])
+        +
+        (install_jellyfin | default(false)) | ternary(
+          [{'name': 'Jellyfin', 'port': jellyfin_port | default(8096), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (jellyfin_port | default(8096)) ~ '/health',
+            'hint': 'Otevri https://' ~ (jellyfin_domain | default('media.dev.local')) ~ ' a projdi pruvodce',
+            'onboarding': true}], [])
+        +
+        (install_portainer | default(false)) | ternary(
+          [{'name': 'Portainer', 'port': portainer_port | default(9002), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (portainer_port | default(9002)) ~ '/',
+            'hint': 'Otevri https://' ~ (portainer_domain | default('portainer.dev.local')) ~ ' a vytvor admin ucet (do 5 minut!)',
+            'onboarding': true}], [])
+        +
+        (install_gitea | default(false)) | ternary(
+          [{'name': 'Gitea', 'port': gitea_port | default(3003), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (gitea_port | default(3003)) ~ '/',
+            'hint': 'docker compose -p devops logs gitea'}], [])
+        +
+        (install_observability | default(true)) | ternary(
+          [{'name': 'Grafana', 'port': grafana_port | default(3000), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (grafana_port | default(3000)) ~ '/api/health',
+            'hint': 'docker compose -p observability logs grafana'},
+           {'name': 'Prometheus', 'port': prometheus_port | default(9090), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (prometheus_port | default(9090)) ~ '/-/ready',
+            'hint': 'docker compose -p observability logs prometheus'},
+           {'name': 'Loki', 'port': loki_port | default(3100), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (loki_port | default(3100)) ~ '/ready',
+            'hint': 'docker compose -p observability logs loki'},
+           {'name': 'Tempo', 'port': tempo_http_port | default(3200), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (tempo_http_port | default(3200)) ~ '/ready',
+            'hint': 'docker compose -p observability logs tempo'}], [])
+        +
+        (install_openwebui | default(false)) | ternary(
+          [{'name': 'Open WebUI', 'port': openwebui_port | default(3004), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (openwebui_port | default(3004)) ~ '/',
+            'hint': 'Otevri https://' ~ (openwebui_domain | default('ai.dev.local')) ~ ' a vytvor ucet (prvni user = admin)',
+            'onboarding': true}], [])
+        +
+        (install_homeassistant | default(false)) | ternary(
+          [{'name': 'Home Assistant', 'port': homeassistant_port | default(8123), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (homeassistant_port | default(8123)) ~ '/',
+            'hint': 'Otevri http://localhost:' ~ (homeassistant_port | default(8123)) ~ ' a projdi onboarding pruvodce',
+            'onboarding': true}], [])
+        +
+        (install_uptime_kuma | default(false)) | ternary(
+          [{'name': 'Uptime Kuma', 'port': uptime_kuma_port | default(3001), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (uptime_kuma_port | default(3001)) ~ '/',
+            'hint': 'Otevri https://' ~ (uptime_kuma_domain | default('uptime.dev.local')) ~ ' a vytvor admin ucet',
+            'onboarding': true}], [])
+      }}
+
+# ── Verify smyčka (max 3 pokusy) ─────────────────────────────────────────
+- name: "[Verify] Run health checks with retry"
+  ansible.builtin.include_tasks: tasks/iiab/stack_verify_loop.yml
+  loop: [1, 2, 3]
+  loop_control:
+    loop_var: _verify_attempt
+    label: "pokus {{ _verify_attempt }}/3"
+  when: _iiab_all_ok | default(false) != true

@@ -70,23 +70,20 @@
 
     - name: Restart mariadb
       ansible.builtin.shell: >
-        {{ homebrew_prefix }}/bin/docker compose
-        -f "{{ iiab_compose_dir }}/docker-compose.yml"
-        up -d --no-deps mariadb
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/iiab/docker-compose.yml" -p iiab
+        restart mariadb
       failed_when: false
 
     - name: Restart traefik
       ansible.builtin.shell: >
-        {{ homebrew_prefix }}/bin/docker compose
-        -f "{{ iiab_compose_dir }}/docker-compose.yml"
-        up -d --no-deps traefik
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/infra/docker-compose.yml" -p infra
+        restart traefik
       failed_when: false
 
     - name: Restart homeassistant
       ansible.builtin.shell: >
-        {{ homebrew_prefix }}/bin/docker compose
-        -f "{{ iiab_compose_dir }}/docker-compose.yml"
-        up -d --no-deps homeassistant
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/iiab/docker-compose.yml" -p iiab
+        restart homeassistant
       failed_when: false
 
     - name: Restart openclaw
@@ -95,7 +92,9 @@
       failed_when: false
 
     - name: Restart grafana
-      ansible.builtin.command: brew services restart grafana
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/observability/docker-compose.yml" -p observability
+        restart grafana
       failed_when: false
 
     - name: Restart alloy
@@ -103,7 +102,9 @@
       failed_when: false
 
     - name: Restart prometheus
-      ansible.builtin.command: brew services restart prometheus
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/observability/docker-compose.yml" -p observability
+        restart prometheus
       failed_when: false
 
     - name: Restart dnsmasq
@@ -156,6 +157,13 @@
     - import_tasks: tasks/macos-defaults.yml
       when: configure_macos_defaults | default(true)
       tags: ['macos-defaults', 'osx']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Power management – pmset (server-like provoz: displej spí, síť běží)
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/power-management.yml
+      when: configure_power_management | default(true)
+      tags: ['power', 'pmset', 'power-management']
 
     # ──────────────────────────────────────────────────────────────────────────
     # Systémové služby (SSH, Samba, VNC)
@@ -224,13 +232,21 @@
       tags: ['external-storage', 'storage']
 
     # ──────────────────────────────────────────────────────────────────────────
-    # IIAB – self-hosted knowledge services
+    # Docker stacks – sdílená síť a prerekvizity
     # ──────────────────────────────────────────────────────────────────────────
 
     # Python docker SDK + PyMySQL – prerekvizita pro všechny community.docker.*
     # a community.mysql.* moduly; rychlé no-op pokud jsou už nainstalovány
     - import_tasks: tasks/iiab/docker-prereqs.yml
-      tags: ['iiab', 'docker']
+      tags: ['iiab', 'docker', 'stacks']
+
+    # Shared Docker network + adresářová struktura pro všechny stacky
+    - import_tasks: tasks/stacks/shared-network.yml
+      tags: ['iiab', 'docker', 'stacks']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # IIAB – self-hosted knowledge services
+    # ──────────────────────────────────────────────────────────────────────────
 
     - include_tasks: tasks/iiab/mariadb.yml
       when: install_mariadb | default(false)
@@ -339,30 +355,36 @@
       when: install_rustfs | default(false)
       tags: ['iiab', 'rustfs', 's3', 'storage']
 
-    # Stack: spustí (nebo aktualizuje) celý docker compose po konfiguraci všech služeb
-    - import_tasks: tasks/iiab/stack.yml
-      when: >
-        install_mariadb | default(false) or
-        install_n8n | default(false) or
-        install_kiwix | default(false) or
-        install_jellyfin | default(false) or
-        install_uptime_kuma | default(false) or
-        install_calibreweb | default(false) or
-        install_portainer | default(false) or
-        install_gitlab | default(false) or
-        install_woodpecker | default(false) or
-        install_openwebui | default(false) or
-        install_homeassistant | default(false) or
-        install_traefik | default(false) or
-        install_rustfs | default(false) or
-        install_wordpress | default(false) or
-        install_nextcloud | default(false)
-      tags: ['iiab', 'stack', 'docker']
+    # ──────────────────────────────────────────────────────────────────────────
+    # Docker stacks – deploy compose souborů a spuštění všech stacků
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/stacks/stack-up.yml
+      tags: ['iiab', 'stack', 'docker', 'stacks']
+
+    # Verifikace: ověří že všechny služby odpovídají, při selhání čeká na manuální opravu
+    - import_tasks: tasks/iiab/stack_verify.yml
+      tags: ['iiab', 'stack', 'verify', 'stacks']
 
     # MariaDB post-start: vytvoří DB a uživatele (až MariaDB poběží)
     - import_tasks: tasks/iiab/mariadb_setup.yml
       when: install_mariadb | default(false)
       tags: ['iiab', 'mariadb', 'database']
+
+    # Nextcloud post-start: nastavení trusted_domains přes occ
+    - import_tasks: tasks/iiab/nextcloud_post.yml
+      when: install_nextcloud | default(false)
+      tags: ['iiab', 'nextcloud']
+
+    # Gitea post-start: vytvoření admin uživatele
+    - import_tasks: tasks/iiab/gitea_post.yml
+      when: install_gitea | default(false)
+      tags: ['iiab', 'gitea']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Service Registry – JSON katalog + Grafana dashboard
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/service-registry.yml
+      tags: ['service-registry', 'registry']
 
     # ──────────────────────────────────────────────────────────────────────────
     # Post-provision háky

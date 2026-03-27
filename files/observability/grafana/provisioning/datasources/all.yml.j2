@@ -1,5 +1,5 @@
 # ==============================================================================
-# Grafana datasources provisioning
+# Grafana datasources provisioning (Docker stack)
 # Vygenerováno Ansible – ruční úpravy budou přepsány
 # ==============================================================================
 
@@ -11,7 +11,7 @@ datasources:
     type: prometheus
     uid: prometheus
     access: proxy
-    url: http://localhost:{{ prometheus_port | default(9090) }}
+    url: http://prometheus:{{ prometheus_port | default(9090) }}
     isDefault: true
     jsonData:
       httpMethod: POST
@@ -26,7 +26,7 @@ datasources:
     type: loki
     uid: loki
     access: proxy
-    url: http://localhost:{{ loki_port | default(3100) }}
+    url: http://loki:{{ loki_port | default(3100) }}
     jsonData:
       derivedFields:
         - datasourceUid: tempo
@@ -41,7 +41,7 @@ datasources:
     type: tempo
     uid: tempo
     access: proxy
-    url: http://localhost:{{ tempo_http_port | default(3200) }}
+    url: http://tempo:{{ tempo_http_port | default(3200) }}
     jsonData:
       httpMethod: GET
       serviceMap:

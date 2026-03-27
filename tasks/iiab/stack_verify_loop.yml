@@ -1,0 +1,97 @@
+---
+# ==============================================================================
+# STACK VERIFY LOOP – jeden pokus verifikace (voláno ze stack_verify.yml)
+# ==============================================================================
+
+# ── HTTP health checks ──────────────────────────────────────────────────────
+- name: "[Verify {{ _verify_attempt }}/3] Check HTTP services"
+  ansible.builtin.uri:
+    url: "{{ item.url }}"
+    method: GET
+    timeout: 10
+    status_code: [200, 301, 302, 303, 401, 403]
+    validate_certs: false
+  register: _http_checks
+  loop: "{{ _iiab_checks | selectattr('proto', 'equalto', 'http') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  failed_when: false
+  check_mode: false
+
+# ── TCP checks (MariaDB) ────────────────────────────────────────────────────
+- name: "[Verify {{ _verify_attempt }}/3] Check TCP services"
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ item.port }}"
+    timeout: 5
+    state: started
+  register: _tcp_checks
+  loop: "{{ _iiab_checks | selectattr('proto', 'equalto', 'tcp') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  failed_when: false
+  check_mode: false
+
+# ── Vyhodnocení ──────────────────────────────────────────────────────────────
+- name: "[Verify {{ _verify_attempt }}/3] Build list of failing services"
+  ansible.builtin.set_fact:
+    _iiab_failed: >-
+      {{
+        (_http_checks.results | default([])
+          | rejectattr('status', 'in', [200, 301, 302, 303, 401, 403])
+          | map(attribute='item')
+          | list)
+        +
+        (_tcp_checks.results | default([])
+          | selectattr('failed', 'equalto', true)
+          | map(attribute='item')
+          | list)
+      }}
+
+- name: "[Verify {{ _verify_attempt }}/3] All services OK"
+  ansible.builtin.set_fact:
+    _iiab_all_ok: true
+  when: (_iiab_failed | length) == 0
+
+- name: "[Verify {{ _verify_attempt }}/3] All services OK – summary"
+  ansible.builtin.debug:
+    msg: "Vsechny sluzby odpovidaji ({{ _iiab_checks | length }} overeno)."
+  when: (_iiab_failed | length) == 0
+
+# ── Onboarding služby – rozdělit na ty co potřebují manuální krok ─────────
+- name: "[Verify {{ _verify_attempt }}/3] Identify onboarding services"
+  ansible.builtin.set_fact:
+    _needs_onboarding: "{{ _iiab_failed | selectattr('onboarding', 'defined') | selectattr('onboarding', 'equalto', true) | list }}"
+    _needs_fix: "{{ _iiab_failed | rejectattr('onboarding', 'defined') | list + _iiab_failed | selectattr('onboarding', 'defined') | rejectattr('onboarding', 'equalto', true) | list }}"
+  when: (_iiab_failed | length) > 0
+
+# ── Pause pro technické problémy ──────────────────────────────────────────
+- name: "[Verify {{ _verify_attempt }}/3] Technical failures – fix required"
+  ansible.builtin.debug:
+    msg: |
+      {% for svc in _needs_fix %}
+      SELHANI: {{ svc.name }} (port {{ svc.port }})
+        Diagnoza: {{ svc.hint }}
+      {% endfor %}
+  when:
+    - (_iiab_failed | length) > 0
+    - (_needs_fix | length) > 0
+
+# ── Pause pro onboarding ─────────────────────────────────────────────────
+- name: "[Verify {{ _verify_attempt }}/3] Manual onboarding required"
+  ansible.builtin.pause:
+    prompt: |-
+      {% for svc in _iiab_failed %}
+
+      ══════════════════════════════════════════════════════════════════════
+      {% if svc.onboarding | default(false) %}
+       {{ svc.name }} – VYZADUJE MANUALNI ONBOARDING (port {{ svc.port }})
+      {% else %}
+       {{ svc.name }} – NEODPOVIDA (port {{ svc.port }})
+      {% endif %}
+       {{ svc.hint }}
+      ══════════════════════════════════════════════════════════════════════
+      {% endfor %}
+
+       Proved manualni kroky a stiskni ENTER (pokus {{ _verify_attempt }}/3)
+  when: (_iiab_failed | length) > 0

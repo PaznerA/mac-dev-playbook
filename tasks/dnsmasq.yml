@@ -17,21 +17,33 @@
     name: dnsmasq
     state: present
 
+- name: "[dnsmasq] Detect LAN IP for DNS responses"
+  ansible.builtin.shell: ipconfig getifaddr en0 2>/dev/null || echo "127.0.0.1"
+  register: _lan_ip
+  changed_when: false
+  check_mode: false
+  when: dnsmasq_lan_access | default(true)
+
+- name: "[dnsmasq] Build listen addresses"
+  ansible.builtin.set_fact:
+    _dnsmasq_listen: "{{ '127.0.0.1,' ~ (_lan_ip.stdout | default('127.0.0.1')) if (dnsmasq_lan_access | default(true)) else '127.0.0.1' }}"
+    _dnsmasq_target: "{{ _lan_ip.stdout | default(dnsmasq_dev_address | default('127.0.0.1')) }}"
+
 - name: Deploy dnsmasq configuration
   ansible.builtin.blockinfile:
     path: "{{ homebrew_prefix }}/etc/dnsmasq.conf"
     marker: "# {mark} DEV.LOCAL (ansible managed)"
     block: |
-      # Přesměruj všechny *.dev.local dotazy na localhost
-      address=/.{{ dnsmasq_dev_domain | default('dev.local') }}/{{ dnsmasq_dev_address | default('127.0.0.1') }}
+      # *.dev.local → {{ _dnsmasq_target }} (LAN IP)
+      address=/.{{ dnsmasq_dev_domain | default('dev.local') }}/{{ _dnsmasq_target }}
 
       # Volitelné vlastní záznamy
       {% for entry in dnsmasq_additional_addresses | default([]) %}
       address=/{{ entry.domain }}/{{ entry.address }}
       {% endfor %}
 
-      # Omez dnsmasq na localhost (bezpečnost)
-      listen-address=127.0.0.1
+      # Rozhraní: {{ _dnsmasq_listen }}
+      listen-address={{ _dnsmasq_listen }}
       bind-interfaces
 
       # Nezasílat dotazy s .local na upstream DNS (mDNS/Bonjour doménou)

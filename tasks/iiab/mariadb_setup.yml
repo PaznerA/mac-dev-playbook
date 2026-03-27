@@ -18,6 +18,31 @@
   ignore_errors: true  # noqa: ignore-errors – potřebujeme registrovat failed stav
   when: not ansible_check_mode
 
+- name: "[MariaDB] Connection failed – diagnostics"
+  ansible.builtin.pause:
+    prompt: |-
+      ══════════════════════════════════════════════════════════════════════
+       MariaDB: root pristup odepren ({{ mariadb_conn.msg | default('neznama chyba') }})
+
+       Pravdepodobna pricina: DB byla inicializovana s jinym heslem nez je
+       v credentials.yml. Env var MARIADB_ROOT_PASSWORD se cte jen pri prvni
+       inicializaci.
+
+       Oprava (smazani dat a reinicializace):
+         docker compose -p iiab stop mariadb
+         rm -rf ~/mariadb/data/*
+         docker compose -p iiab up -d mariadb
+         sleep 15
+         # pak stiskni ENTER
+
+       Nebo rucni reset hesla:
+         docker compose -p iiab exec mariadb mariadbd-safe --skip-grant-tables &
+         docker compose -p iiab exec mariadb mariadb -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}';"
+      ══════════════════════════════════════════════════════════════════════
+  when:
+    - mariadb_conn is failed
+    - not ansible_check_mode
+
 - name: "[MariaDB] Remove test database"
   community.mysql.mysql_db:
     login_host: "127.0.0.1"

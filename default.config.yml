@@ -74,6 +74,9 @@ install_dnsmasq: true             # dnsmasq – auto *.dev.local DNS (bez /etc/h
 
 homebrew_prefix: "{{ '/opt/homebrew' if ansible_facts['machine'] == 'arm64' else '/usr/local' }}"
 
+# Docker Desktop instaluje binárky do /usr/local/bin bez ohledu na architekturu
+docker_bin: /usr/local/bin/docker
+
 homebrew_installed_packages:
   # Základní nástroje
   - autoconf
@@ -604,15 +607,17 @@ kiwix_data_dir: "{{ ansible_facts['env']['HOME'] }}/kiwix"       # Sem ukládej 
 # ZIM soubory ke stažení (prázdné = nestahovat automaticky)
 # Velikosti: Wikipedia CZ ~2GB, EN ~90GB, Gutenberg ~60GB
 # Viz: https://download.kiwix.org/zim/
+# Init ZIM – malý soubor stažený automaticky aby Kiwix nastartoval.
+# Větší ZIM soubory přidej do kiwix_zim_files nebo stáhni přes download-zim.sh.
+kiwix_init_zim_url: "https://download.kiwix.org/zim/zimit/based.cooking_en_all_2026-02.zim"
+kiwix_init_zim_dest: "based-cooking.zim"
+
 kiwix_zim_files: []
+# Příklady (přidej do config.yml):
+# - url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-03.zim"
+#   dest: "wikipedia_en_top_mini.zim"    # ~315 MB
 # - url: "https://download.kiwix.org/zim/wikipedia/wikipedia_cs_all_mini_2024-11.zim"
-#   dest: "wikipedia_cs_mini.zim"
-# - url: "https://download.kiwix.org/zim/gutenberg/gutenberg_cs_all_2023-06.zim"
-#   dest: "gutenberg_cs.zim"
-# - url: "https://download.kiwix.org/zim/openstreetmap.zim"
-#   dest: "openstreetmap.zim"
-# - url: "https://download.kiwix.org/zim/stackoverflow/stackoverflow.com_cs_all_2024-05.zim"
-#   dest: "stackoverflow_cs.zim"
+#   dest: "wikipedia_cs_mini.zim"        # ~500 MB
 
 # ==============================================================================
 # IIAB – OFFLINE MAPY (tileserver-gl + MBTiles)
@@ -688,6 +693,15 @@ grafana_domain: "grafana.dev.local"
 # Ostatní služby nejsou veřejně exponovány (localhost only), přes Grafana
 observability_hostname: "{{ ansible_facts['hostname'] }}"  # Hostname v Grafana labelech
 
+# ── Docker image verze (observability + devops) ──────────────────────────────
+grafana_version: "latest"
+prometheus_version: "latest"
+loki_version: "latest"
+grafana_data_dir: "{{ stacks_dir }}/observability/grafana/data"
+
+# Gitea Docker
+gitea_version: "latest"
+
 # ── Grafana ───────────────────────────────────────────────────────────────────
 grafana_admin_user: "admin"
 grafana_admin_password: "changeme_grafana"   # PŘEPIŠ!
@@ -723,22 +737,8 @@ alloy_receive_otlp: true           # OTLP přijímač pro app traces/metrics/log
 grafana_dashboards:
   - id: 1860    # Node Exporter Full (system metrics)
     revision: 37
-    name: "node-exporter-full.json"
-  - id: 12708   # macOS System Overview
-    revision: 3
-    name: "macos-system.json"
-  - id: 13639   # Nginx via Prometheus
-    revision: 2
-    name: "nginx.json"
-  - id: 12485   # PHP-FPM
+  - id: 12708   # NGINX exporter
     revision: 1
-    name: "phpfpm.json"
-  - id: 16098   # Loki Dashboard quick search
-    revision: 1
-    name: "loki-search.json"
-  - id: 15489   # Tempo / Traces
-    revision: 2
-    name: "tempo-traces.json"
 
 # ==============================================================================
 # IIAB – N8N (workflow automation)
@@ -749,6 +749,7 @@ n8n_port: 5678
 n8n_version: "latest"      # nebo konkrétní: "1.40.0"
 n8n_data_dir: "{{ ansible_facts['env']['HOME'] }}/n8n"
 n8n_timezone: "Europe/Prague"
+# n8n od v1.0 nemá env var pro admin heslo – první registrovaný uživatel = owner
 
 # ==============================================================================
 # IIAB – GITEA (self-hosted Git)
@@ -759,6 +760,7 @@ gitea_port: 3003         # 3000=Grafana, 3001=Uptime Kuma, 3002=rezerva → Gite
 gitea_ssh_port: 2222
 gitea_data_dir: "{{ ansible_facts['env']['HOME'] }}/gitea"
 gitea_admin_user: "{{ ansible_facts['user_id'] }}"
+gitea_admin_password: "changeme_gitea"         # PŘEPIŠ v credentials.yml
 gitea_admin_email: ""                          # VYPLŇ!
 gitea_secret_key: "changeme_random_32_chars"   # PŘEPIŠ! (openssl rand -hex 32)
 gitea_internal_token: "changeme_internal_tok"  # PŘEPIŠ! (openssl rand -hex 32)
@@ -791,6 +793,8 @@ openwebui_domain: "ai.dev.local"
 openwebui_port: 3004             # Interní port kontejneru 8080 → host 3004
 openwebui_version: "main"        # nebo konkrétní: "0.5.20"
 openwebui_data_dir: "{{ ansible_facts['env']['HOME'] }}/openwebui"
+openwebui_secret_key: "changeme_openwebui_secret"  # PŘEPIŠ v credentials.yml
+openwebui_enable_signup: true    # false = admin musí přidávat uživatele ručně
 
 # ==============================================================================
 # IIAB – WOODPECKER CI (CI/CD napojen na Gitea)
@@ -800,7 +804,7 @@ openwebui_data_dir: "{{ ansible_facts['env']['HOME'] }}/openwebui"
 woodpecker_domain: "ci.dev.local"
 woodpecker_port: 8060            # Web UI
 woodpecker_grpc_port: 9060       # gRPC pro agenty (interní)
-woodpecker_version: "latest"
+woodpecker_version: "v3"                # latest tag odstraněn, musí být semver (v3/v3.x/v3.x.y)
 woodpecker_data_dir: "{{ ansible_facts['env']['HOME'] }}/woodpecker"
 woodpecker_agent_secret: "changeme_woodpecker_agent"  # PŘEPIŠ! (openssl rand -hex 32)
 woodpecker_gitea_client: ""      # VYPLŇ po vytvoření OAuth2 app v Gitee
@@ -816,6 +820,7 @@ portainer_domain: "portainer.dev.local"
 portainer_port: 9002                   # 9000/9001 rezervováno pro RustFS (S3 API + console)
 portainer_version: "latest"
 portainer_data_dir: "{{ ansible_facts['env']['HOME'] }}/portainer"
+portainer_admin_password: "changeme_portainer"  # PŘEPIŠ v credentials.yml
 
 # ==============================================================================
 # IIAB – JELLYFIN (media server)
@@ -824,6 +829,7 @@ portainer_data_dir: "{{ ansible_facts['env']['HOME'] }}/portainer"
 jellyfin_domain: "media.dev.local"
 jellyfin_port: 8096
 jellyfin_version: "latest"
+jellyfin_lan_access: true              # true = port dostupný z LAN (pro TV, mobilní klienty)
 jellyfin_config_dir: "{{ ansible_facts['env']['HOME'] }}/jellyfin/config"
 jellyfin_cache_dir: "{{ ansible_facts['env']['HOME'] }}/jellyfin/cache"
 jellyfin_movies_dir: "{{ ansible_facts['env']['HOME'] }}/media/movies"   # Přepiš na svou knihovnu
@@ -858,6 +864,22 @@ calibreweb_timezone: "Europe/Prague"
 tailscale_accept_routes: false    # Přijímat subnet routes od jiných nodů
 tailscale_exit_node: false        # Používat tento Mac jako exit node
 # tailscale_auth_key: ""          # Pre-auth key pro neinteraktivní setup (z admin console)
+tailscale_hostname: ""            # Tailscale FQDN (např. mac-studio.tailnet-abc.ts.net) pro nginx server_name
+
+# ==============================================================================
+# POWER MANAGEMENT – pmset nastavení (pouze při napájení -c)
+# Cíl: displej spí, ale počítač zůstává dostupný na síti (Jellyfin, SSH, Grafana…)
+# ==============================================================================
+
+configure_power_management: true       # Nastavit pmset
+pmset_sleep: 0                         # Počítač nikdy nespí (0 = disabled)
+pmset_displaysleep: 20                 # Displej spí po 20 min
+pmset_disksleep: 0                     # Disk nikdy nespí
+pmset_womp: 1                          # Wake on LAN
+pmset_tcpkeepalive: 1                  # Udržovat TCP spojení při sleep
+pmset_powernap: 1                      # Power Nap (background updates)
+pmset_networkoversleep: 0              # Neuspávat síťovku při sleep displeje
+pmset_ttyskeepawake: 1                 # TTY session zabraňuje spánku
 
 # ==============================================================================
 # DNSMASQ – automatický *.dev.local DNS resolver
@@ -865,8 +887,9 @@ tailscale_exit_node: false        # Používat tento Mac jako exit node
 # ==============================================================================
 
 dnsmasq_dev_domain: "dev.local"           # Doména pro lokální vývoj
-dnsmasq_dev_address: "127.0.0.1"          # Cíl všech *.dev.local dotazů
+dnsmasq_dev_address: "127.0.0.1"          # Cíl *.dev.local z localhostu
 dnsmasq_port: 53                          # DNS port (53 = výchozí)
+dnsmasq_lan_access: true                  # true = dnsmasq poslouchá i na LAN (pro TV, mobily, hosty)
 dnsmasq_additional_addresses: []          # Další vlastní DNS záznamy
 # dnsmasq_additional_addresses:
 #   - domain: "api.external.test"
@@ -905,6 +928,7 @@ external_storage_root: "/Volumes/SSD1TB"
 
 # Volitelné přesuny (pouze pokud configure_external_storage: true)
 external_storage_docker: true           # Docker Desktop disk image (~20-100 GB)
+external_storage_docker_app: true      # Přesun Docker.app na SSD + symlink v /Applications
 external_storage_ollama: true           # Ollama modely (~10-150 GB)
 external_storage_caches: true           # npm, pip, Composer, Homebrew cache (~10-50 GB)
 
@@ -918,8 +942,14 @@ post_provision_tasks: []
 # TRAEFIK
 # ==============================================================================
 
-# ── IIAB Stack ────────────────────────────────────────────────────────────────
-iiab_compose_dir: "{{ ansible_facts['env']['HOME'] }}/iiab"   # umístění docker-compose.yml
+# ── Docker Stacks ────────────────────────────────────────────────────────────
+# Všechny Docker služby jsou organizovány do 4 stacků spravovaných přes Portainer.
+# Každý stack má vlastní docker-compose.yml v podadresáři stacks_dir.
+stacks_dir: "{{ ansible_facts['env']['HOME'] }}/stacks"
+stacks_shared_network: "shared_net"
+
+# Zpětná kompatibilita – starý monolitický compose dir (bude odstraněn po migraci)
+iiab_compose_dir: "{{ stacks_dir }}/iiab"
 
 # ── Traefik ────────────────────────────────────────────────────────────────────
 traefik_image_version: "latest"
@@ -945,7 +975,7 @@ homeassistant_privileged: false
 # ==============================================================================
 
 rustfs_version: "latest"
-rustfs_api_port: 9000               # S3 API (aws-cli, rclone, restic, SDK…)
+rustfs_api_port: 9010               # S3 API (aws-cli, rclone, restic, SDK…) – 9000 obsazeno PHP-FPM
 rustfs_console_port: 9001           # Web konzole
 rustfs_data_dir: "{{ ansible_facts['env']['HOME'] }}/rustfs/data"
 rustfs_access_key: "rustfsadmin"    # PŘEPIŠ před spuštěním!

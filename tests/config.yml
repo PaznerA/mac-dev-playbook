@@ -20,6 +20,7 @@ install_dotnet: true
 install_openclaw: false     # Ollama 27GB model – nepraktické v CI
 install_shell_extras: true
 configure_macos_defaults: true
+configure_power_management: false  # pmset vyžaduje sudo – CI runner ho nemá
 
 enable_ssh: false
 enable_samba: false

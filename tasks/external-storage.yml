@@ -80,6 +80,7 @@
     - "{{ external_storage_root }}/observability/prometheus"
     - "{{ external_storage_root }}/observability/loki"
     - "{{ external_storage_root }}/observability/tempo"
+    - "{{ external_storage_root }}/observability/grafana"
 
 # ── Ollama modely ────────────────────────────────────────────────────────────
 
@@ -125,6 +126,42 @@
       ║  Poté restartuj Docker Desktop.                                ║
       ╚═══════════════════════════════════════════════════════════════════╝
   when: external_storage_docker | default(true) | bool
+
+# ── Docker.app přesun na SSD ───────────────────────────────────────────────
+# Homebrew nainstaluje Docker.app do /Applications. Přesuneme na SSD a
+# vytvoříme symlink zpět, aby macOS i Launchpad stále viděly Docker.app.
+
+- name: "[External SSD] Check if Docker.app is real app in /Applications"
+  ansible.builtin.stat:
+    path: /Applications/Docker.app
+  register: _docker_app_local
+  when: external_storage_docker_app | default(true) | bool
+
+- name: "[External SSD] Check if Docker.app already on SSD"
+  ansible.builtin.stat:
+    path: "{{ external_storage_root }}/Docker.app"
+  register: _docker_app_ssd
+  when: external_storage_docker_app | default(true) | bool
+
+- name: "[External SSD] Move Docker.app to SSD"
+  ansible.builtin.command:
+    cmd: mv /Applications/Docker.app "{{ external_storage_root }}/Docker.app"
+  when:
+    - external_storage_docker_app | default(true) | bool
+    - _docker_app_local.stat.exists | default(false)
+    - not (_docker_app_local.stat.islnk | default(false))
+    - not (_docker_app_ssd.stat.exists | default(false))
+
+- name: "[External SSD] Symlink /Applications/Docker.app → SSD"
+  ansible.builtin.file:
+    src: "{{ external_storage_root }}/Docker.app"
+    dest: /Applications/Docker.app
+    state: link
+    force: true
+  when:
+    - external_storage_docker_app | default(true) | bool
+    - not (_docker_app_local.stat.islnk | default(false)) or
+      (_docker_app_local.stat.lnk_target | default('')) != external_storage_root + '/Docker.app'
 
 # ── Shell env vars (.zshrc) ─────────────────────────────────────────────────
 
@@ -188,7 +225,10 @@
       │  Caches:       → {{ external_storage_root }}/cache/{npm,pip,composer,homebrew}
       {% endif %}
       {% if external_storage_docker | default(true) | bool %}
-      │  Docker:       → {{ external_storage_root }}/docker (MANUAL!)
+      │  Docker data:  → {{ external_storage_root }}/docker (MANUAL!)
+      {% endif %}
+      {% if external_storage_docker_app | default(true) | bool %}
+      │  Docker.app:   → {{ external_storage_root }}/Docker.app (auto)
       {% endif %}
       │  INTERNÍ SSD:  macOS, Homebrew, MariaDB, Redis, zdrojový kód   │
       └─────────────────────────────────────────────────────────────────┘

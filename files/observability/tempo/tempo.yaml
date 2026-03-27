@@ -1,9 +1,9 @@
 # ==============================================================================
-# Tempo konfigurace – distribuované tracing
+# Tempo konfigurace (Docker stack)
 # ==============================================================================
 
 server:
-  http_listen_port: {{ tempo_port | default(3200) }}
+  http_listen_port: {{ tempo_http_port | default(3200) }}
   log_level: warn
 
 distributor:
@@ -11,15 +11,9 @@ distributor:
     otlp:
       protocols:
         http:
-          endpoint: 0.0.0.0:{{ tempo_otlp_http_port | default(4318) }}
+          endpoint: 0.0.0.0:{{ tempo_otlp_http_port | default(4328) }}
         grpc:
-          endpoint: 0.0.0.0:{{ tempo_otlp_grpc_port | default(4317) }}
-    jaeger:
-      protocols:
-        thrift_http:
-          endpoint: 0.0.0.0:14268
-        grpc:
-          endpoint: 0.0.0.0:14250
+          endpoint: 0.0.0.0:{{ tempo_otlp_grpc_port | default(4327) }}
 
 ingester:
   max_block_duration: 5m
@@ -34,18 +28,18 @@ metrics_generator:
       source: tempo
       host: {{ observability_hostname | default(ansible_facts['hostname']) }}
   storage:
-    path: {{ homebrew_prefix }}/var/lib/tempo/generator/wal
+    path: /var/lib/tempo/generator/wal
     remote_write:
-      - url: http://localhost:{{ prometheus_port | default(9090) }}/api/v1/write
+      - url: http://prometheus:{{ prometheus_port | default(9090) }}/api/v1/write
         send_exemplars: true
 
 storage:
   trace:
     backend: local
     wal:
-      path: {{ homebrew_prefix }}/var/lib/tempo/wal
+      path: /var/lib/tempo/wal
     local:
-      path: {{ homebrew_prefix }}/var/lib/tempo/blocks
+      path: /var/lib/tempo/blocks
 
 overrides:
   defaults:
