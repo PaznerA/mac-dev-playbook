@@ -140,6 +140,13 @@
 
   tasks:
     # ──────────────────────────────────────────────────────────────────────────
+    # Blank reset – čistá reinstalace (ansible-playbook main.yml -K -e blank=true)
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/blank-reset.yml
+      when: blank | default(false)
+      tags: ['blank', 'reset']
+
+    # ──────────────────────────────────────────────────────────────────────────
     # macOS systémová nastavení
     # ──────────────────────────────────────────────────────────────────────────
     - import_tasks: tasks/sudoers.yml
