@@ -876,6 +876,7 @@ services_lan_access: false        # true = Docker služby na 0.0.0.0 (přístup 
 # ==============================================================================
 
 configure_power_management: true       # Nastavit pmset
+blank_stop_timeout: 30                # Sekundy čekání po docker compose down (blank reset)
 pmset_sleep: 0                         # Počítač nikdy nespí (0 = disabled)
 pmset_displaysleep: 20                 # Displej spí po 20 min
 pmset_disksleep: 0                     # Disk nikdy nespí

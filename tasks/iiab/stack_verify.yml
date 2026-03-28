@@ -51,14 +51,13 @@
         (install_homeassistant | default(false)) | ternary(
           [{'name': 'Home Assistant', 'port': homeassistant_port | default(8123), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (homeassistant_port | default(8123)) ~ '/'}], [])
+        +
+        (install_nextcloud | default(false)) | ternary(
+          [{'name': 'Nextcloud', 'port': nextcloud_port | default(8085), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (nextcloud_port | default(8085)) ~ '/status.php'}], [])
       }}
     _svc_onboarding: >-
       {{
-        (install_nextcloud | default(false)) | ternary(
-          [{'name': 'Nextcloud', 'port': nextcloud_port | default(8085), 'proto': 'http',
-            'url': 'http://127.0.0.1:' ~ (nextcloud_port | default(8085)) ~ '/status.php',
-            'hint': 'Otevri https://' ~ (nextcloud_domain | default('cloud.dev.local')) ~ ' a dokonci setup'}], [])
-        +
         (install_jellyfin | default(false)) | ternary(
           [{'name': 'Jellyfin', 'port': jellyfin_port | default(8096), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (jellyfin_port | default(8096)) ~ '/health',

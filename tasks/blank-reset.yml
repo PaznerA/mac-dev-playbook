@@ -47,7 +47,7 @@
   ansible.builtin.shell: >
     {{ docker_bin }} compose
     -f "{{ stacks_dir }}/{{ item }}/docker-compose.yml"
-    -p {{ item }} down -v --remove-orphans 2>&1 || true
+    -p {{ item }} down -v --remove-orphans -t {{ blank_stop_timeout | default(30) }} 2>&1 || true
   loop:
     - iiab
     - observability
@@ -55,6 +55,11 @@
     - devops
   failed_when: false
   changed_when: true
+
+- name: "[BLANK] Wait for containers to fully stop"
+  ansible.builtin.pause:
+    seconds: "{{ blank_stop_timeout | default(30) }}"
+    prompt: "Cekam {{ blank_stop_timeout | default(30) }}s na zastaveni kontejneru..."
 
 - name: "[BLANK] Remove shared Docker network"
   ansible.builtin.shell: >
@@ -196,13 +201,14 @@
           [ansible_facts['env']['HOME'] + '/.openclaw'], [])
       }}
 
-- name: "[BLANK] Remove data directories"
+- name: "[BLANK] Remove data directories (sudo – Docker creates files as www-data)"
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop: "{{ _blank_dirs }}"
   loop_control:
     label: "{{ item }}"
+  become: true
 
 # ── 8. Generated files ──────────────────────────────────────────────────
 - name: "[BLANK] Remove service registry"
