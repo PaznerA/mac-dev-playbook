@@ -83,41 +83,75 @@
     - "{{ openclaw_log_dir }}"
     - "{{ openclaw_projects_dir }}"
     - "{{ ansible_facts['env']['HOME'] }}/.openclaw"
+    - "{{ ansible_facts['env']['HOME'] }}/.openclaw/workspace"
 
-- name: "[OpenClaw] Create openclaw workspace subdirs"
-  ansible.builtin.file:
-    path: "{{ ansible_facts['env']['HOME'] }}/.openclaw/{{ item }}"
-    state: directory
-    mode: '0755'
-  loop:
-    - memory
-    - agents
+# ── 4. Non-interactive onboarding (Ollama) ───────────────────────────────────
 
-# ── 4. Konfigurace OpenClaw ────────────────────────────────────────────────────
+- name: "[OpenClaw] Check if already onboarded"
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['env']['HOME'] }}/.openclaw/openclaw.json"
+  register: _oc_config
 
-- name: "[OpenClaw] Deploy main config (openclaw.json)"
-  ansible.builtin.template:
-    src: ../files/openclaw/openclaw.json.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/openclaw.json"
-    mode: '0600'
-    backup: true
+- name: "[OpenClaw] Run non-interactive onboarding"
+  ansible.builtin.shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "{{ homebrew_prefix }}/opt/nvm/nvm.sh" ] && source "{{ homebrew_prefix }}/opt/nvm/nvm.sh"
+    nvm use default
+    export OLLAMA_API_KEY="ollama-local"
+    openclaw onboard --non-interactive \
+      --mode local \
+      --auth-choice ollama \
+      --custom-base-url "http://127.0.0.1:11434" \
+      --custom-model-id "{{ openclaw_model }}" \
+      --accept-risk \
+      --workspace "{{ ansible_facts['env']['HOME'] }}/.openclaw/workspace" \
+      --gateway-port 18789 \
+      --gateway-bind loopback \
+      --install-daemon \
+      --skip-health \
+      --skip-skills
+  args:
+    executable: /bin/zsh
+  environment:
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
+    HOME: "{{ ansible_facts['env']['HOME'] }}"
+    OLLAMA_API_KEY: "ollama-local"
+  when: not _oc_config.stat.exists
+  register: _oc_onboard
+  failed_when: false
+  changed_when: _oc_onboard.rc == 0
+
+- name: "[OpenClaw] Set maxConcurrent in config"
+  ansible.builtin.shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "{{ homebrew_prefix }}/opt/nvm/nvm.sh" ] && source "{{ homebrew_prefix }}/opt/nvm/nvm.sh"
+    nvm use default
+    openclaw config set agents.defaults.maxConcurrent {{ openclaw_max_concurrent_agents | default(4) }} --strict-json
+  args:
+    executable: /bin/zsh
+  environment:
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
+  changed_when: false
+  failed_when: false
+
+# ── 5. Workspace bootstrap soubory ──────────────────────────────────────────
 
 - name: "[OpenClaw] Deploy SOUL.md (Inspektor Klepítko persona)"
   ansible.builtin.copy:
     src: openclaw/SOUL.md
-    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/SOUL.md"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/workspace/SOUL.md"
     mode: '0644'
 
 - name: "[OpenClaw] Deploy AGENTS.md (sub-agents config)"
   ansible.builtin.copy:
     src: openclaw/AGENTS.md
-    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/AGENTS.md"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/workspace/AGENTS.md"
     mode: '0644'
 
 - name: "[OpenClaw] Deploy TOOLS.md (allowed tools)"
   ansible.builtin.copy:
     src: openclaw/TOOLS.md
-    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/TOOLS.md"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/workspace/TOOLS.md"
     mode: '0644'
 
 - name: "[OpenClaw] Ensure OLLAMA_API_KEY in shell profile"
@@ -226,45 +260,23 @@
     mode: '0644'
     force: false
 
-# ── 7. launchd daemon (vždy-on OpenClaw) ──────────────────────────────────────
-
-- name: "[OpenClaw] Deploy launchd plist for daemon"
-  ansible.builtin.template:
-    src: ../files/openclaw/com.openclaw.agent.plist.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.openclaw.agent.plist"
-    mode: '0644'
-  when: openclaw_install_daemon | default(true)
-
-- name: "[OpenClaw] Load launchd daemon"
-  ansible.builtin.command: >
-    launchctl load -w
-    {{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/com.openclaw.agent.plist
-  register: launchd_load
-  changed_when: launchd_load.rc == 0
-  failed_when: false
-  when: openclaw_install_daemon | default(true)
-
-# ── 8. Finální výpis ──────────────────────────────────────────────────────────
+# ── 7. Finální výpis ─────────────────────────────────────────────────────────
 
 - name: "[OpenClaw] Print setup summary"
   ansible.builtin.debug:
     msg: |
       ══════════════════════════════════════════════════════
-       🦞 Inspektor Klepítko – OpenClaw připraven
+       Inspektor Klepitko – OpenClaw pripraven
       ══════════════════════════════════════════════════════
-       Model:     {{ openclaw_model }} (Ollama, 100% lokálně)
+       Model:     {{ openclaw_model }} (Ollama, 100% lokalne)
        Config:    ~/.openclaw/openclaw.json
-       Persona:   ~/.openclaw/SOUL.md
+       Workspace: ~/.openclaw/workspace/
+       Persona:   ~/.openclaw/workspace/SOUL.md
        Agenti:    {{ openclaw_agents_dir }}/
        Projekty:  {{ openclaw_projects_dir }}/
        Logy:      {{ openclaw_log_dir }}/
 
-       Spuštění agenta:
-         openclaw start
-
-       Onboarding script:
-         {{ openclaw_agents_dir }}/onboard.sh
-
-       Nginx vhosty:
-         {{ homebrew_prefix }}/etc/nginx/sites-available/
+       Gateway:   openclaw gateway run
+       TUI:       openclaw tui
+       Health:    openclaw health
       ══════════════════════════════════════════════════════
