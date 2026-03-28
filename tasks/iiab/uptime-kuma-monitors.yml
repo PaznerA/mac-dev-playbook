@@ -9,8 +9,8 @@
   ansible.builtin.pip:
     name: uptime-kuma-api
     state: present
-  failed_when: false
   register: _kuma_pip
+  ignore_errors: true
 
 - name: "[Uptime Kuma] Wait for API to be ready"
   ansible.builtin.uri:
@@ -105,11 +105,15 @@
   changed_when: "'Created' in (_kuma_result.stdout | default(''))"
   failed_when: false
   when:
-    - _kuma_pip is not failed
+    - not (_kuma_pip.failed | default(false))
     - _kuma_ready.status | default(0) | int in [200, 301, 302]
     - uptime_kuma_auto_monitors | default(true)
 
 - name: "[Uptime Kuma] Monitor setup result"
   ansible.builtin.debug:
-    msg: "{{ _kuma_result.stdout_lines | default(['Skipped – Uptime Kuma not ready or uptime-kuma-api not installed']) }}"
-  when: _kuma_result is defined
+    msg: "{{ _kuma_result.stdout_lines | default(_kuma_result.stderr_lines | default(['Skipped'])) }}"
+
+- name: "[Uptime Kuma] WARN: pip install failed"
+  ansible.builtin.debug:
+    msg: "uptime-kuma-api pip install selhalo: {{ _kuma_pip.msg | default('unknown') }}. Monitory nebyly vytvořeny."
+  when: _kuma_pip.failed | default(false)
