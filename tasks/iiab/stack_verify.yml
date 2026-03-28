@@ -94,7 +94,7 @@
 # FÁZE 1: Automatický retry infrastrukturních služeb (až 2 minuty)
 # ══════════════════════════════════════════════════════════════════════════
 
-- name: "[Verify] Auto-retry HTTP – {{ item.name }}"
+- name: "[Verify] Auto-retry HTTP services"
   ansible.builtin.uri:
     url: "{{ item.url }}"
     method: GET
@@ -110,7 +110,7 @@
     label: "{{ item.name }}"
   failed_when: false
 
-- name: "[Verify] Auto-retry TCP – {{ item.name }}"
+- name: "[Verify] Auto-retry TCP services"
   ansible.builtin.wait_for:
     host: 127.0.0.1
     port: "{{ item.port }}"
