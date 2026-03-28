@@ -34,9 +34,8 @@ scrape_configs:
     static_configs:
       - targets: ['host.docker.internal:{{ alloy_ui_port | default(12345) }}']
 
-  - job_name: node-exporter
-    static_configs:
-      - targets: ['host.docker.internal:9100']
+  # node-exporter odstraněn – metriky přicházejí z Alloy (prometheus.exporter.unix)
+  # ARM64-safe: cpu, diskstats, filesystem, loadavg, meminfo, netdev, netstat, vmstat
 
   - job_name: nginx-exporter
     static_configs:

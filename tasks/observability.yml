@@ -18,8 +18,9 @@
   community.general.homebrew:
     name:
       - grafana-alloy
-      - node_exporter
     state: present
+    # node_exporter odstraněn – Alloy's prometheus.exporter.unix ho nahrazuje
+    # (ARM64-safe collectory, bez thermal/powersupply/rapl chyb)
 
 # ── Host-side: Stop old Homebrew services (migrated to Docker) ───────────────
 
@@ -29,6 +30,7 @@
     - grafana
     - prometheus
     - loki
+    - node_exporter
   register: _brew_stop
   changed_when: "'Stopping' in (_brew_stop.stdout | default(''))"
   failed_when: false
@@ -202,7 +204,6 @@
   ansible.builtin.command: brew services start {{ item }}
   loop:
     - grafana-alloy
-    - node_exporter
   register: svc_result
   changed_when: >
     'already started' not in (svc_result.stdout | default('')) and

@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Ansible playbook for automated macOS development environment setup (Apple Silicon). Configures dev stacks, web server, CLI tools, self-hosted AI agent (OpenClaw + Ollama), observability (LGTM stack), and 25+ IIAB Docker services. Fork of geerlingguy/mac-dev-playbook.
+Ansible playbook for automated macOS development environment setup (Apple Silicon M1+). Builds a self-contained **Agentic Home Lab** — dev stacks, web server, self-hosted AI agent (OpenClaw + Ollama), observability (LGTM stack), 25+ Docker services, and Tailscale remote access. All services are FOSS, data stays local. Designed for replicability — `blank=true` wipes and reinstalls from scratch.
+
+Fork of geerlingguy/mac-dev-playbook.
+
+## Vision
+
+OS-agnostic "All-in-One PC" — entire logic and data layer runs on replicable self-hosted FOSS technologies. The Ansible playbook is the single source of truth. OpenClaw (Inspektor Klepítko) acts as the autonomous DevOps agent managing the system.
 
 ## Key Commands
 
@@ -12,14 +18,15 @@ Ansible playbook for automated macOS development environment setup (Apple Silico
 # Full playbook run (prompts for sudo password)
 ansible-playbook main.yml -K
 
+# Clean reinstall (wipes data, resets all services)
+ansible-playbook main.yml -K -e blank=true
+
 # Run specific component by tag
 ansible-playbook main.yml -K --tags "observability"
 ansible-playbook main.yml -K --tags "nginx,php"
 
-# Dry run
+# Dry run / Syntax validation
 ansible-playbook main.yml -K --check
-
-# Syntax validation
 ansible-playbook main.yml --syntax-check
 
 # Linting (must pass before merge)
@@ -40,36 +47,57 @@ The idempotence check runs the playbook twice — the second run must produce `c
 
 ### Configuration Layering (later overrides earlier)
 
-1. **`default.config.yml`** — all variables with defaults (read-only reference, ~50KB)
+1. **`default.config.yml`** — all variables with defaults (read-only reference)
 2. **`config.yml`** — feature toggles (gitignored, created from `config.example.yml`)
 3. **`credentials.yml`** — secrets only (gitignored, created from `credentials.example.yml`)
 
-Variables are loaded in `main.yml` via `vars_files` + `pre_tasks` `include_vars`.
+All default passwords follow pattern `changeme_pw_[service]`.
 
 ### Playbook Execution Flow (`main.yml`)
 
-1. Loads config layers and gathers facts
-2. Runs Galaxy **roles**: osx-command-line-tools → homebrew → dotfiles → mas → dock
-3. Runs **tasks** in order: macOS system → languages/runtimes (PHP → Nginx → Node → Bun → Python → Go → .NET) → external storage → IIAB Docker services → networking → shell extras → AI agent → observability → IIAB stack compose up → post-provision hooks
+1. **Blank reset** (if `-e blank=true`) — wipes Docker, data, configs
+2. Loads config layers and gathers facts
+3. Runs Galaxy **roles**: osx-command-line-tools → homebrew → dotfiles → mas → dock
+4. Runs **tasks**: macOS system → power management → languages/runtimes → nginx → external storage → Docker stacks → networking → shell extras → AI agent (OpenClaw) → observability → stack-up → mariadb_setup → nextcloud_post → gitea_post → uptime-kuma-monitors → stack_verify → service registry
 
-**Ordering matters**: PHP must run before Nginx (socket dependency), external-storage before IIAB/observability (data paths), IIAB stack compose up after individual service configs, mariadb_setup after stack is running.
+**Ordering matters**: PHP before Nginx (socket), external-storage before IIAB (data paths), mariadb_setup before stack_verify (DB must exist for Nextcloud onboarding).
 
-### Handlers
+### Docker Stacks (4 compose files in `~/stacks/`)
 
-15 centralized handlers in `main.yml` (nginx, php-fpm, mariadb, grafana, alloy, prometheus, dnsmasq, ssh, openclaw, etc.). Any task file can `notify:` these by name.
+| Stack | Services |
+|-------|----------|
+| **iiab** | MariaDB, Nextcloud, n8n, Kiwix, Jellyfin, Open WebUI, Uptime Kuma, Calibre-Web, Home Assistant, RustFS |
+| **observability** | Grafana, Prometheus, Loki, Tempo |
+| **infra** | Portainer, Traefik |
+| **devops** | Gitea, Woodpecker CI, GitLab |
+
+### Observability (Apple Silicon optimized)
+
+- **Metrics**: Grafana Alloy (`prometheus.exporter.unix` with ARM64-safe collectors) → Prometheus
+- **Logs**: Alloy tails nginx/php/agent logs → Loki
+- **Traces**: OTLP receiver (gRPC :4317, HTTP :4318) → Tempo
+- **No standalone node_exporter** — Alloy's in-process exporter replaces it (avoids thermal/rapl/hwmon errors on ARM64)
+
+### Nginx Auto-Enable
+
+Nginx vhosts activate automatically based on `install_*` flags. 24 vhost templates in `templates/nginx/sites-available/`. Override with `nginx_sites_enabled` or extend with `nginx_sites_extra`.
+
+### Tailscale Remote Access
+
+Services accessible via ports (`services_lan_access: true`). Homepage (`tailscale_hostname`) → Grafana. Dashboard tiles have clickable subdomain (local) + port (Tailscale) links.
 
 ### Feature Toggle Pattern
 
-Every component is gated by an `install_*` or `configure_*` boolean variable with a default. The `when:` condition on each `import_tasks` controls inclusion. Tags allow CLI-level filtering on top of this.
+Every component is gated by an `install_*` or `configure_*` boolean variable. The `when:` condition on each `import_tasks` controls inclusion. Tags allow CLI-level filtering.
+
+### Handlers
+
+15+ centralized handlers in `main.yml` (nginx, php-fpm, mariadb, grafana, alloy, prometheus, dnsmasq, ssh, openclaw, etc.).
 
 ### Static Files vs Templates
 
-- **`files/`** — static configs copied as-is (nginx.conf, observability configs, openclaw persona)
-- **`templates/`** — Jinja2 templates (`.j2`) rendered with variables (nginx vhosts, docker-compose, starship.toml)
-
-### IIAB Services
-
-Docker-based services managed via a single `docker-compose.yml.j2` template. Individual task files in `tasks/iiab/` configure each service, then `tasks/iiab/stack.yml` runs `docker compose up`. MariaDB setup (`mariadb_setup.yml`) runs last to create databases after the container is up.
+- **`files/`** — static configs (observability, openclaw persona SOUL.md/AGENTS.md/TOOLS.md)
+- **`templates/`** — Jinja2 templates (`.j2`) rendered with variables (nginx vhosts, docker-compose, dashboard)
 
 ## Linting Rules
 
@@ -79,6 +107,13 @@ Docker-based services managed via a single `docker-compose.yml.j2` template. Ind
 ## Documentation Language
 
 README.md, TLDR.md, inline comments, and task names are in **Czech**. Maintain this convention.
+
+## Apple Silicon Constraints
+
+- Target: ARM64 only (M1+). No x86 compatibility needed.
+- `homebrew_prefix: /opt/homebrew` (not `/usr/local`)
+- node_exporter collectors: only ARM64-safe set (cpu, diskstats, filesystem, loadavg, meminfo, netdev, netstat, vmstat)
+- Docker Desktop for Mac (not Colima/Lima)
 
 ## Known Tech Debt
 
