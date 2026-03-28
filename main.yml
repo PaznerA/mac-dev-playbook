@@ -143,7 +143,7 @@
     # Blank reset – čistá reinstalace (ansible-playbook main.yml -K -e blank=true)
     # ──────────────────────────────────────────────────────────────────────────
     - import_tasks: tasks/blank-reset.yml
-      when: blank | default(false)
+      when: blank | default(false) | bool
       tags: ['blank', 'reset']
 
     # ──────────────────────────────────────────────────────────────────────────
