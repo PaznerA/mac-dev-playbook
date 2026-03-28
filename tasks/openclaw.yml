@@ -11,6 +11,15 @@
     name: ollama
     state: present
 
+- name: "[Ollama] Set memory optimization env vars"
+  ansible.builtin.command: "launchctl setenv {{ item.key }} {{ item.value }}"
+  loop:
+    - { key: "OLLAMA_MAX_LOADED_MODELS", value: "{{ ollama_max_loaded_models | default(1) }}" }
+    - { key: "OLLAMA_NUM_PARALLEL", value: "{{ ollama_num_parallel | default(2) }}" }
+  loop_control:
+    label: "{{ item.key }}={{ item.value }}"
+  changed_when: false
+
 - name: "[Ollama] Start Ollama as homebrew service"
   ansible.builtin.command: brew services start ollama
   register: ollama_svc
@@ -110,6 +119,16 @@
     src: openclaw/TOOLS.md
     dest: "{{ ansible_facts['env']['HOME'] }}/.openclaw/TOOLS.md"
     mode: '0644'
+
+- name: "[OpenClaw] Ensure OLLAMA_API_KEY in shell profile"
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
+    marker: "# {mark} OPENCLAW – ANSIBLE MANAGED"
+    block: |
+      export OLLAMA_API_KEY="ollama-local"
+      export OLLAMA_MAX_LOADED_MODELS="{{ ollama_max_loaded_models | default(1) }}"
+      export OLLAMA_NUM_PARALLEL="{{ ollama_num_parallel | default(2) }}"
+    create: true
 
 - name: "[OpenClaw] Secure openclaw config directory permissions"
   ansible.builtin.file:

@@ -25,6 +25,10 @@
         <string>{{ openclaw_agents_dir }}</string>
         <key>OPENCLAW_MODEL</key>
         <string>{{ openclaw_model }}</string>
+        <key>OLLAMA_MAX_LOADED_MODELS</key>
+        <string>{{ ollama_max_loaded_models | default(1) }}</string>
+        <key>OLLAMA_NUM_PARALLEL</key>
+        <string>{{ ollama_num_parallel | default(2) }}</string>
     </dict>
 
     <key>RunAtLoad</key>
