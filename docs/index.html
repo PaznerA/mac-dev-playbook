@@ -1128,10 +1128,34 @@
       } catch (err) {
         const app = document.getElementById('app');
         app.replaceChildren();
+
+        const fileInput = el('input', { type: 'file', accept: '.json', id: 'json-upload', style: { display: 'none' } });
+        fileInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          try {
+            DATA = JSON.parse(await file.text());
+            buildDefaultsMap();
+            scaffoldApp();
+            renderAll();
+          } catch (parseErr) {
+            alert('Invalid JSON: ' + parseErr.message);
+          }
+        });
+
+        const uploadBtn = el('button', {
+          textContent: 'Upload systems.json',
+          className: 'btn btn-primary',
+          style: { marginTop: '16px', cursor: 'pointer' },
+        });
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
         const msg = el('div', { className: 'error-msg' }, [
-          el('h2', { textContent: 'Failed to load systems.json' }),
-          el('p', { textContent: err.message }),
-          el('p', { textContent: 'Make sure systems.json is in the same directory as index.html.', style: { marginTop: '12px', fontSize: '0.85rem' } }),
+          el('h2', { textContent: 'systems.json not found' }),
+          el('p', { textContent: 'Opening from local file? Upload the JSON manually:' }),
+          fileInput,
+          uploadBtn,
+          el('p', { textContent: 'On a web server, place systems.json next to index.html.', style: { marginTop: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)' } }),
         ]);
         app.appendChild(msg);
         return;
