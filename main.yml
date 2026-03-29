@@ -433,11 +433,6 @@
 
     # DB setup nyní běží UVNITŘ stack-up.yml (infra → DB setup → remaining stacks)
 
-    # Portainer post-start: auto-create admin přes API
-    - import_tasks: tasks/iiab/portainer_post.yml
-      when: install_portainer | default(false)
-      tags: ['iiab', 'portainer', 'stacks']
-
     # Nextcloud post-start: sync DB hesla a trusted_domains
     - import_tasks: tasks/iiab/nextcloud_post.yml
       when: install_nextcloud | default(false)
@@ -453,15 +448,8 @@
       when: install_wordpress | default(false)
       tags: ['iiab', 'wordpress', 'stacks']
 
-    # Open WebUI post-start: auto-registrace prvního admin uživatele
-    - import_tasks: tasks/iiab/openwebui_post.yml
-      when: install_openwebui | default(false)
-      tags: ['iiab', 'openwebui', 'stacks']
-
-    # Uptime Kuma post-start: automatická konfigurace monitorů
-    - import_tasks: tasks/iiab/uptime-kuma-monitors.yml
-      when: install_uptime_kuma | default(false)
-      tags: ['iiab', 'uptime-kuma', 'monitoring', 'stacks']
+    # Open WebUI, Uptime Kuma, Portainer — manuální onboarding
+    # (auto-admin přes API je nespolehlivý, uživatel vytvoří účet v browseru)
 
     # Verifikace: ověří že všechny služby odpovídají (po post-start úlohách)
     - import_tasks: tasks/iiab/stack_verify.yml
@@ -472,6 +460,12 @@
     # ──────────────────────────────────────────────────────────────────────────
     - import_tasks: tasks/service-registry.yml
       tags: ['service-registry', 'registry']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Finální přehled služeb (vždy na konci)
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/final-summary.yml
+      tags: ['always']
 
     # ──────────────────────────────────────────────────────────────────────────
     # Post-provision háky

@@ -15,19 +15,25 @@ services:
   erpnext-configurator:
     image: frappe/erpnext:{{ erpnext_version | default('v15') }}
     restart: "no"
-    entrypoint:
-      - bash
-      - -c
+    entrypoint: ["bash", "-c"]
     command:
       - >
-        ls -1 apps.txt 2>/dev/null || echo 'frappe' > apps.txt;
-        ls -1 currentsite.txt 2>/dev/null ||
-        bench new-site --no-mariadb-socket
-        --db-host=mariadb --db-port=3306
-        --db-root-username=root --db-root-password={{ mariadb_root_password }}
+        cd /home/frappe/frappe-bench/sites &&
+        [ -f common_site_config.json ] && echo "Already configured" && exit 0;
+        echo '{}' > common_site_config.json &&
+        echo 'frappe' > apps.txt &&
+        bench set-config -g db_host mariadb &&
+        bench set-config -g db_port 3306 &&
+        bench set-config -g redis_cache redis://redis:6379/0 &&
+        bench set-config -g redis_queue redis://redis:6379/1 &&
+        bench set-config -g redis_socketio redis://redis:6379/2 &&
+        bench new-site {{ erpnext_site_name | default('erp.dev.local') }}
+        --no-mariadb-socket
+        --db-root-username=root
+        --db-root-password={{ mariadb_root_password }}
         --admin-password={{ erpnext_admin_password | default(global_password_prefix + '_pw_erpnext') }}
         --install-app erpnext
-        --set-default {{ erpnext_site_name | default('erp.dev.local') }};
+        --set-default
     volumes:
       - {{ erpnext_data_dir | default(ansible_facts['env']['HOME'] + '/erpnext/sites') }}:/home/frappe/frappe-bench/sites
     environment:
