@@ -17,43 +17,52 @@
   when: not ansible_check_mode
 
 - name: "[PostgreSQL] Create databases"
-  ansible.builtin.shell: >
+  ansible.builtin.command: >
     {{ docker_bin }} compose -p infra
-    exec -T postgresql bash -c
-    'psql -U {{ postgresql_root_user | default("postgres") }} -tc
-    "SELECT 1 FROM pg_database WHERE datname = '"'"'{{ item }}'"'"'"
-    | grep -q 1 || psql -U {{ postgresql_root_user | default("postgres") }}
-    -c "CREATE DATABASE {{ item }}"'
+    exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
+    -c "CREATE DATABASE {{ item }};"
   loop:
     - outline
     - metabase
     - superset
   loop_control:
     label: "DB: {{ item }}"
+  register: _pg_db
+  changed_when: _pg_db.rc == 0
+  failed_when: false
+  when:
+    - _pg_ready.rc | default(1) == 0
+    - not ansible_check_mode
+
+- name: "[PostgreSQL] Create users"
+  ansible.builtin.command: >
+    {{ docker_bin }} compose -p infra
+    exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
+    -c "CREATE USER {{ item.user }} WITH PASSWORD '{{ item.pass }}';"
+  loop:
+    - { user: "{{ outline_db_user | default('outline') }}", pass: "{{ outline_db_password | default(global_password_prefix + '_pw_outline') }}" }
+    - { user: "{{ metabase_db_user | default('metabase') }}", pass: "{{ metabase_db_password | default(global_password_prefix + '_pw_metabase') }}" }
+    - { user: "{{ superset_db_user | default('superset') }}", pass: "{{ superset_db_password | default(global_password_prefix + '_pw_superset') }}" }
+  loop_control:
+    label: "USER: {{ item.user }}"
+  no_log: true
   changed_when: false
   failed_when: false
   when:
     - _pg_ready.rc | default(1) == 0
     - not ansible_check_mode
 
-- name: "[PostgreSQL] Create users and grant privileges"
-  ansible.builtin.shell: >
+- name: "[PostgreSQL] Grant privileges"
+  ansible.builtin.command: >
     {{ docker_bin }} compose -p infra
     exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
-    -c "{{ item }}"
+    -c "GRANT ALL PRIVILEGES ON DATABASE {{ item.db }} TO {{ item.user }}; ALTER DATABASE {{ item.db }} OWNER TO {{ item.user }};"
   loop:
-    - "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ outline_db_user | default('outline') }}') THEN CREATE USER {{ outline_db_user | default('outline') }} WITH PASSWORD '{{ outline_db_password | default(global_password_prefix + '_pw_outline') }}'; END IF; END $$;"
-    - "GRANT ALL PRIVILEGES ON DATABASE outline TO {{ outline_db_user | default('outline') }};"
-    - "ALTER DATABASE outline OWNER TO {{ outline_db_user | default('outline') }};"
-    - "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ metabase_db_user | default('metabase') }}') THEN CREATE USER {{ metabase_db_user | default('metabase') }} WITH PASSWORD '{{ metabase_db_password | default(global_password_prefix + '_pw_metabase') }}'; END IF; END $$;"
-    - "GRANT ALL PRIVILEGES ON DATABASE metabase TO {{ metabase_db_user | default('metabase') }};"
-    - "ALTER DATABASE metabase OWNER TO {{ metabase_db_user | default('metabase') }};"
-    - "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ superset_db_user | default('superset') }}') THEN CREATE USER {{ superset_db_user | default('superset') }} WITH PASSWORD '{{ superset_db_password | default(global_password_prefix + '_pw_superset') }}'; END IF; END $$;"
-    - "GRANT ALL PRIVILEGES ON DATABASE superset TO {{ superset_db_user | default('superset') }};"
-    - "ALTER DATABASE superset OWNER TO {{ superset_db_user | default('superset') }};"
+    - { db: "outline", user: "{{ outline_db_user | default('outline') }}" }
+    - { db: "metabase", user: "{{ metabase_db_user | default('metabase') }}" }
+    - { db: "superset", user: "{{ superset_db_user | default('superset') }}" }
   loop_control:
-    label: "SQL"
-  no_log: true
+    label: "GRANT: {{ item.db }}"
   changed_when: false
   failed_when: false
   when:
