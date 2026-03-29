@@ -16,7 +16,10 @@
     src: "stacks/infra/docker-compose.yml.j2"
     dest: "{{ stacks_dir }}/infra/docker-compose.yml"
     mode: '0644'
-  when: install_portainer | default(false) or install_traefik | default(false)
+  when: >
+    install_portainer | default(false) or install_traefik | default(false) or
+    install_mariadb | default(false) or install_postgresql | default(false) or
+    redis_docker | default(false)
 
 - name: "[Stacks] Deploy observability compose"
   ansible.builtin.template:
@@ -44,7 +47,7 @@
   ansible.builtin.set_fact:
     _active_stacks: >-
       {{
-        ((install_portainer | default(false) or install_traefik | default(false)) | ternary(['infra'], []))
+        ((install_portainer | default(false) or install_traefik | default(false) or install_mariadb | default(false) or install_postgresql | default(false) or redis_docker | default(false)) | ternary(['infra'], []))
         +
         ((install_observability | default(true)) | ternary(['observability'], []))
         +

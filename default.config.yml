@@ -557,6 +557,30 @@ mariadb_version: "lts"                  # lts / 11 / 10.11 – Docker image tag
 mariadb_port: 3306
 mariadb_data_dir: "{{ ansible_facts['env']['HOME'] }}/mariadb/data"   # persistence dat mimo kontejner
 
+# ==============================================================================
+# INFRA – POSTGRESQL (sdílená DB pro Mattermost, Outline, Metabase, Superset)
+# ==============================================================================
+
+install_postgresql: false
+postgresql_version: "16-alpine"
+postgresql_port: 5432
+postgresql_root_user: "postgres"
+postgresql_root_password: "changeme_pw_postgresql"
+postgresql_data_dir: "{{ ansible_facts['env']['HOME'] }}/postgresql/data"
+
+# ==============================================================================
+# INFRA – REDIS (Docker, alternativa k Homebrew Redis)
+# Pokud redis_docker: true, Homebrew Redis se nepoužívá
+# ==============================================================================
+
+redis_docker: false                    # true = Redis v Docker (pro cross-stack přístup)
+redis_version: "7-alpine"
+redis_data_dir: "{{ ansible_facts['env']['HOME'] }}/redis/data"
+
+# ==============================================================================
+# IIAB – MARIADB (pokračování)
+# ==============================================================================
+
 mariadb_databases:
   - name: "wordpress"
   - name: "nextcloud"

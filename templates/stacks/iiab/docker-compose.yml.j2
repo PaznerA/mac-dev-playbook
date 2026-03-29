@@ -5,35 +5,7 @@
 
 services:
 
-{% if install_mariadb | default(false) %}
-  mariadb:
-    image: mariadb:{{ mariadb_version | default('lts') }}
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ mariadb_port | default(3306) }}:3306"
-    volumes:
-      - {{ mariadb_data_dir | default(ansible_facts['env']['HOME'] + '/mariadb/data') }}:/var/lib/mysql
-    environment:
-      MARIADB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
-      MARIADB_ROOT_HOST: "%"
-      MARIADB_CHARACTER_SET_SERVER: utf8mb4
-      MARIADB_COLLATION_SERVER: utf8mb4_unicode_ci
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    networks:
-      - iiab_net
-      - {{ stacks_shared_network }}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-{% endif %}
+{# MariaDB přesunuta do infra stacku – služby se připojují přes shared_net #}
 {% if install_wordpress | default(false) %}
   wordpress:
     image: wordpress:{{ wordpress_version | default('latest') }}
@@ -48,10 +20,6 @@ services:
       WORDPRESS_DB_PASSWORD: "{{ wordpress_db_password }}"
       WORDPRESS_DB_NAME: "{{ wordpress_db_name }}"
       WORDPRESS_TABLE_PREFIX: "{{ wordpress_table_prefix | default('wp_') }}"
-{% if install_mariadb | default(false) %}
-    depends_on:
-      - mariadb
-{% endif %}
     networks:
       - iiab_net
       - {{ stacks_shared_network }}
@@ -85,10 +53,6 @@ services:
       NEXTCLOUD_DATA_DIR: "/data"
       NEXTCLOUD_TRUSTED_DOMAINS: "{{ nextcloud_domain | default('cloud.dev.local') }} localhost 127.0.0.1"
       OVERWRITEPROTOCOL: "https"
-{% if install_mariadb | default(false) %}
-    depends_on:
-      - mariadb
-{% endif %}
     networks:
       - iiab_net
       - {{ stacks_shared_network }}

@@ -1,10 +1,90 @@
 # =============================================================================
-# INFRA STACK – Portainer + Traefik
+# INFRA STACK – sdílené databáze, cache, Portainer, Traefik
 # Generováno Ansiblem – NEUPRAVUJ ručně
 # =============================================================================
 
 services:
 
+{% if install_mariadb | default(false) %}
+  mariadb:
+    image: mariadb:{{ mariadb_version | default('lts') }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ mariadb_port | default(3306) }}:3306"
+    volumes:
+      - {{ mariadb_data_dir | default(ansible_facts['env']['HOME'] + '/mariadb/data') }}:/var/lib/mysql
+    environment:
+      MARIADB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
+      MARIADB_ROOT_HOST: "%"
+      MARIADB_CHARACTER_SET_SERVER: utf8mb4
+      MARIADB_COLLATION_SERVER: utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - infra_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+{% endif %}
+{% if install_postgresql | default(false) %}
+  postgresql:
+    image: postgres:{{ postgresql_version | default('16-alpine') }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ postgresql_port | default(5432) }}:5432"
+    volumes:
+      - {{ postgresql_data_dir | default(ansible_facts['env']['HOME'] + '/postgresql/data') }}:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: "{{ postgresql_root_password | default('changeme_pw_postgresql') }}"
+      POSTGRES_USER: "{{ postgresql_root_user | default('postgres') }}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgresql_root_user | default('postgres') }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - infra_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+{% endif %}
+{% if redis_docker | default(false) %}
+  redis:
+    image: redis:{{ redis_version | default('7-alpine') }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ redis_port | default(6379) }}:6379"
+    volumes:
+      - {{ redis_data_dir | default(ansible_facts['env']['HOME'] + '/redis/data') }}:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - infra_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+{% endif %}
 {% if install_portainer | default(false) %}
   portainer:
     image: portainer/portainer-ce:{{ portainer_version | default('latest') }}
