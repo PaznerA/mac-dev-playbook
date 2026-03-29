@@ -106,13 +106,45 @@
 
 # ── Spuštění stacků ─────────────────────────────────────────────────────────
 
-- name: "[Stacks] Start all active stacks (docker compose up --wait)"
+- name: "[Stacks] Start INFRA stack first (DB must be ready before other stacks)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose
+    -f "{{ stacks_dir }}/infra/docker-compose.yml"
+    -p infra
+    up -d --remove-orphans --wait --wait-timeout 120 2>&1
+  register: _infra_result
+  failed_when: false
+  check_mode: false
+  when: "'infra' in _active_stacks"
+
+- name: "[Stacks] Infra stack result"
+  ansible.builtin.debug:
+    msg: "infra: rc={{ _infra_result.rc | default('?') }} {{ (_infra_result.stdout_lines | default([]))[-3:] | join(' | ') }}"
+  when: _infra_result is defined and _infra_result.rc is defined
+
+# ── DB setup – MUSÍ běžet PO infra a PŘED ostatními stacky ─────────────────
+
+- name: "[Stacks] MariaDB post-start: create databases and users"
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/iiab/mariadb_setup.yml"
+  when:
+    - install_mariadb | default(false)
+    - "'infra' in _active_stacks"
+
+- name: "[Stacks] PostgreSQL post-start: create databases and users"
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/postgresql_setup.yml"
+  when:
+    - install_postgresql | default(false)
+    - "'infra' in _active_stacks"
+
+# ── Start remaining stacks (DB ready) ─────────────────────────────────────
+
+- name: "[Stacks] Start remaining active stacks (docker compose up --wait)"
   ansible.builtin.shell: >
     {{ docker_bin }} compose
     -f "{{ stacks_dir }}/{{ item }}/docker-compose.yml"
     -p "{{ item }}"
     up -d --remove-orphans --wait --wait-timeout 120 2>&1
-  loop: "{{ _active_stacks }}"
+  loop: "{{ _active_stacks | reject('equalto', 'infra') | list }}"
   register: _stack_results
   changed_when: "'Started' in (item_result.stdout | default('')) or 'Created' in (item_result.stdout | default(''))"
   failed_when: false

@@ -431,15 +431,7 @@
     - import_tasks: tasks/stacks/stack-up.yml
       tags: ['iiab', 'stack', 'docker', 'stacks']
 
-    # MariaDB post-start: vytvoří DB a uživatele (MUSÍ běžet před verify/onboarding!)
-    - import_tasks: tasks/iiab/mariadb_setup.yml
-      when: install_mariadb | default(false)
-      tags: ['iiab', 'mariadb', 'database', 'stacks']
-
-    # PostgreSQL post-start: vytvoří DB a uživatele pro Mattermost, Outline, Metabase, Superset
-    - import_tasks: tasks/stacks/postgresql_setup.yml
-      when: install_postgresql | default(false)
-      tags: ['infra', 'postgresql', 'database', 'stacks']
+    # DB setup nyní běží UVNITŘ stack-up.yml (infra → DB setup → remaining stacks)
 
     # Portainer post-start: auto-create admin přes API
     - import_tasks: tasks/iiab/portainer_post.yml
