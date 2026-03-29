@@ -179,6 +179,14 @@
         (install_superset | default(false))
       tags: ['always']
 
+    - name: Auto-generate Bluesky PDS rotation key if empty
+      ansible.builtin.set_fact:
+        bluesky_pds_rotation_key: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+      when:
+        - install_bluesky_pds | default(false)
+        - (bluesky_pds_rotation_key | default('')) | length == 0
+      tags: ['always']
+
     - name: Stop Homebrew Redis if Docker Redis is enabled (port conflict)
       ansible.builtin.shell: |
         brew services stop redis 2>/dev/null || true

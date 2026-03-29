@@ -8,6 +8,7 @@ services:
 {% if install_mariadb | default(false) %}
   mariadb:
     image: mariadb:{{ mariadb_version | default('lts') }}
+    hostname: mariadb
     restart: unless-stopped
     ports:
       - "127.0.0.1:{{ mariadb_port | default(3306) }}:3306"
@@ -37,6 +38,7 @@ services:
 {% if install_postgresql | default(false) %}
   postgresql:
     image: postgres:{{ postgresql_version | default('16-alpine') }}
+    hostname: postgresql
     restart: unless-stopped
     ports:
       - "127.0.0.1:{{ postgresql_port | default(5432) }}:5432"
@@ -64,6 +66,7 @@ services:
 {% if redis_docker | default(false) %}
   redis:
     image: redis:{{ redis_version | default('7-alpine') }}
+    hostname: redis
     restart: unless-stopped
     ports:
       - "127.0.0.1:{{ redis_port | default(6379) }}:6379"
@@ -150,7 +153,7 @@ services:
       PDS_HOSTNAME: "{{ bluesky_pds_hostname | default('bsky.dev.local') }}"
       PDS_JWT_SECRET: "{{ bluesky_pds_jwt_secret | default('changeme_pw_bluesky_jwt') }}"
       PDS_ADMIN_PASSWORD: "{{ bluesky_pds_admin_password | default('changeme_pw_bluesky') }}"
-      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: "{{ bluesky_pds_rotation_key | default('') }}"
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: "{{ bluesky_pds_rotation_key }}"
       PDS_DATA_DIRECTORY: /pds
       PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
       PDS_DID_PLC_URL: "https://plc.directory"

@@ -19,6 +19,8 @@ services:
     environment:
       DB_HOST: mariadb
       DB_PORT: "3306"
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
       REDIS_CACHE: "redis://redis:6379/0"
       REDIS_QUEUE: "redis://redis:6379/1"
       REDIS_SOCKETIO: "redis://redis:6379/2"
@@ -69,6 +71,8 @@ services:
     environment:
       DB_HOST: mariadb
       DB_PORT: "3306"
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
       REDIS_CACHE: "redis://redis:6379/0"
       REDIS_QUEUE: "redis://redis:6379/1"
     networks:
@@ -89,6 +93,8 @@ services:
     environment:
       DB_HOST: mariadb
       DB_PORT: "3306"
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
       REDIS_CACHE: "redis://redis:6379/0"
       REDIS_QUEUE: "redis://redis:6379/1"
     networks:
@@ -109,6 +115,8 @@ services:
     environment:
       DB_HOST: mariadb
       DB_PORT: "3306"
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
       REDIS_CACHE: "redis://redis:6379/0"
       REDIS_QUEUE: "redis://redis:6379/1"
     networks:
