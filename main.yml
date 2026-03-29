@@ -432,6 +432,11 @@
       when: install_postgresql | default(false)
       tags: ['infra', 'postgresql', 'database']
 
+    # Portainer post-start: auto-create admin přes API
+    - import_tasks: tasks/iiab/portainer_post.yml
+      when: install_portainer | default(false)
+      tags: ['iiab', 'portainer']
+
     # Nextcloud post-start: sync DB hesla a trusted_domains
     - import_tasks: tasks/iiab/nextcloud_post.yml
       when: install_nextcloud | default(false)

@@ -1,0 +1,44 @@
+---
+# ==============================================================================
+# PORTAINER POST-START – auto-create admin přes API
+# Portainer API /api/users/admin/init vytvoří admin účet (pouze pokud neexistuje)
+# ==============================================================================
+
+- name: "[Portainer Post] Wait for API to be ready"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/status"
+    method: GET
+    timeout: 5
+    status_code: [200]
+  register: _portainer_ready
+  until: _portainer_ready.status | default(0) == 200
+  retries: 12
+  delay: 10
+  failed_when: false
+
+- name: "[Portainer Post] Check if admin already exists"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/users/admin/check"
+    method: GET
+    status_code: [204, 404]
+    timeout: 5
+  register: _portainer_admin_check
+  failed_when: false
+  when: _portainer_ready.status | default(0) == 200
+
+- name: "[Portainer Post] Create admin user via API"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/users/admin/init"
+    method: POST
+    body_format: json
+    body:
+      Username: "admin"
+      Password: "{{ portainer_admin_password | default(global_password_prefix + '_pw_portainer') }}"
+    status_code: [200]
+    timeout: 10
+  register: _portainer_admin_create
+  when:
+    - _portainer_ready.status | default(0) == 200
+    - _portainer_admin_check.status | default(0) == 404
+  changed_when: _portainer_admin_create.status | default(0) == 200
+  failed_when: false
