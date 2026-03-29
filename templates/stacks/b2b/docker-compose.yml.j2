@@ -11,6 +11,36 @@ services:
 {% if install_erpnext | default(false) %}
   # ── ERPNext (Frappe framework) ─────────────────────────────────────────────
   # ERPNext vyžaduje: MariaDB + Redis (oboje z infra stacku)
+
+  erpnext-configurator:
+    image: frappe/erpnext:{{ erpnext_version | default('v15') }}
+    restart: "no"
+    entrypoint:
+      - bash
+      - -c
+    command:
+      - >
+        ls -1 apps.txt 2>/dev/null || echo 'frappe' > apps.txt;
+        ls -1 currentsite.txt 2>/dev/null ||
+        bench new-site --no-mariadb-socket
+        --db-host=mariadb --db-port=3306
+        --db-root-username=root --db-root-password={{ mariadb_root_password }}
+        --admin-password={{ erpnext_admin_password | default(global_password_prefix + '_pw_erpnext') }}
+        --install-app erpnext
+        --set-default {{ erpnext_site_name | default('erp.dev.local') }};
+    volumes:
+      - {{ erpnext_data_dir | default(ansible_facts['env']['HOME'] + '/erpnext/sites') }}:/home/frappe/frappe-bench/sites
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: "{{ mariadb_root_password }}"
+      REDIS_CACHE: "redis://redis:6379/0"
+      REDIS_QUEUE: "redis://redis:6379/1"
+    networks:
+      - b2b_net
+      - {{ stacks_shared_network }}
+
   erpnext-backend:
     image: frappe/erpnext:{{ erpnext_version | default('v15') }}
     restart: unless-stopped
@@ -183,6 +213,7 @@ services:
       SECRET_KEY: "{{ outline_secret_key | default('changeme_pw_outline_secret') }}"
       UTILS_SECRET: "{{ outline_utils_secret | default('changeme_pw_outline_utils') }}"
       DATABASE_URL: "postgres://{{ outline_db_user | default('outline') }}:{{ outline_db_password | default('changeme_pw_outline') }}@postgresql:5432/{{ outline_db_name | default('outline') }}"
+      PGSSLMODE: "disable"
       REDIS_URL: "redis://redis:6379"
       URL: "https://{{ outline_domain | default('wiki.dev.local') }}"
       PORT: "3000"

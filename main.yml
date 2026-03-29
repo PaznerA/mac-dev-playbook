@@ -434,42 +434,42 @@
     # MariaDB post-start: vytvoří DB a uživatele (MUSÍ běžet před verify/onboarding!)
     - import_tasks: tasks/iiab/mariadb_setup.yml
       when: install_mariadb | default(false)
-      tags: ['iiab', 'mariadb', 'database']
+      tags: ['iiab', 'mariadb', 'database', 'stacks']
 
     # PostgreSQL post-start: vytvoří DB a uživatele pro Mattermost, Outline, Metabase, Superset
     - import_tasks: tasks/stacks/postgresql_setup.yml
       when: install_postgresql | default(false)
-      tags: ['infra', 'postgresql', 'database']
+      tags: ['infra', 'postgresql', 'database', 'stacks']
 
     # Portainer post-start: auto-create admin přes API
     - import_tasks: tasks/iiab/portainer_post.yml
       when: install_portainer | default(false)
-      tags: ['iiab', 'portainer']
+      tags: ['iiab', 'portainer', 'stacks']
 
     # Nextcloud post-start: sync DB hesla a trusted_domains
     - import_tasks: tasks/iiab/nextcloud_post.yml
       when: install_nextcloud | default(false)
-      tags: ['iiab', 'nextcloud']
+      tags: ['iiab', 'nextcloud', 'stacks']
 
     # Gitea post-start: vytvoření admin uživatele
     - import_tasks: tasks/iiab/gitea_post.yml
       when: install_gitea | default(false)
-      tags: ['iiab', 'gitea']
+      tags: ['iiab', 'gitea', 'stacks']
 
     # WordPress post-start: wp-cli auto-install (admin účet + site title)
     - import_tasks: tasks/iiab/wordpress_post.yml
       when: install_wordpress | default(false)
-      tags: ['iiab', 'wordpress']
+      tags: ['iiab', 'wordpress', 'stacks']
 
     # Open WebUI post-start: auto-registrace prvního admin uživatele
     - import_tasks: tasks/iiab/openwebui_post.yml
       when: install_openwebui | default(false)
-      tags: ['iiab', 'openwebui']
+      tags: ['iiab', 'openwebui', 'stacks']
 
     # Uptime Kuma post-start: automatická konfigurace monitorů
     - import_tasks: tasks/iiab/uptime-kuma-monitors.yml
       when: install_uptime_kuma | default(false)
-      tags: ['iiab', 'uptime-kuma', 'monitoring']
+      tags: ['iiab', 'uptime-kuma', 'monitoring', 'stacks']
 
     # Verifikace: ověří že všechny služby odpovídají (po post-start úlohách)
     - import_tasks: tasks/iiab/stack_verify.yml
