@@ -16,6 +16,7 @@
   loop:
     - { key: "OLLAMA_MAX_LOADED_MODELS", value: "{{ ollama_max_loaded_models | default(1) }}" }
     - { key: "OLLAMA_NUM_PARALLEL", value: "{{ ollama_num_parallel | default(2) }}" }
+    - { key: "OLLAMA_KEEP_ALIVE", value: "{{ ollama_keep_alive | default('5m') }}" }
   loop_control:
     label: "{{ item.key }}={{ item.value }}"
   changed_when: false
@@ -162,6 +163,7 @@
       export OLLAMA_API_KEY="ollama-local"
       export OLLAMA_MAX_LOADED_MODELS="{{ ollama_max_loaded_models | default(1) }}"
       export OLLAMA_NUM_PARALLEL="{{ ollama_num_parallel | default(2) }}"
+      export OLLAMA_KEEP_ALIVE="{{ ollama_keep_alive | default('5m') }}"
     create: true
 
 - name: "[OpenClaw] Secure openclaw config directory permissions"

@@ -400,6 +400,7 @@ openclaw_config_dir: "~/.openclaw"
 openclaw_model: "qwen3:14b"
 ollama_max_loaded_models: 1    # Max modelů v RAM (1 = šetří SWAP na 36GB)
 ollama_num_parallel: 2         # Max paralelních inference requestů
+ollama_keep_alive: "5m"        # Uvolnit model z RAM po nečinnosti (default 5m, 0 = ihned)
 
 # Spustit openclaw jako launchd daemon (vždy běžící, autorestart)
 openclaw_install_daemon: true

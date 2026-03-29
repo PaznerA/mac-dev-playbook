@@ -350,15 +350,15 @@
       when: install_calibreweb | default(false)
       tags: ['iiab', 'calibre', 'ebooks']
 
-    - include_tasks: tasks/iiab/traefik.yml
+    - import_tasks: tasks/iiab/traefik.yml
       when: install_traefik | default(false)
       tags: ['iiab', 'traefik', 'proxy']
 
-    - include_tasks: tasks/iiab/homeassistant.yml
+    - import_tasks: tasks/iiab/homeassistant.yml
       when: install_homeassistant | default(false)
       tags: ['iiab', 'homeassistant', 'iot']
 
-    - include_tasks: tasks/iiab/rustfs.yml
+    - import_tasks: tasks/iiab/rustfs.yml
       when: install_rustfs | default(false)
       tags: ['iiab', 'rustfs', 's3', 'storage']
 
