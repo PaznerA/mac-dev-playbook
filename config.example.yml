@@ -11,17 +11,18 @@
 #   ansible-playbook main.yml -K
 #
 # Pravidlo: zakomentovaný řádek = použij výchozí hodnotu z default.config.yml
+# Závislosti se řeší automaticky (install_erpnext → auto MariaDB + Redis)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Homebrew & Apps ───────────────────────────────────────────────────────────
-install_homebrew_packages: true   # CLI nástroje
-install_cask_apps: true           # GUI aplikace
-install_mas_apps: false           # Mac App Store (vyžaduje mas_password v credentials.yml)
+# ── Homebrew & Apps ──────────────────────────────────────────────────────────
+install_homebrew_packages: true
+install_cask_apps: true
+install_mas_apps: false            # Mac App Store – vyžaduje login
 
-# ── Web server ────────────────────────────────────────────────────────────────
+# ── Web server ───────────────────────────────────────────────────────────────
 install_nginx: true
 
-# ── Jazyky / runtime ──────────────────────────────────────────────────────────
+# ── Jazyky / runtime ─────────────────────────────────────────────────────────
 install_php: true
 install_node: true
 install_bun: true
@@ -29,49 +30,73 @@ install_python: true
 install_golang: true
 install_dotnet: true
 
-# ── AI Agent ──────────────────────────────────────────────────────────────────
-install_openclaw: true            # Ollama + OpenClaw daemon
-install_pi_agents: false          # PI coding agent (pi.dev) + pi-autoresearch extension
+# ── AI Agent ─────────────────────────────────────────────────────────────────
+install_openclaw: true             # Ollama + OpenClaw agent daemon
+install_pi_agents: false           # PI coding agent + pi-autoresearch
 
-# ── macOS systémová konfigurace ───────────────────────────────────────────────
-configure_dotfiles: false         # Vyžaduje vlastní dotfiles repo – nastav v credentials.yml
+# ── macOS konfigurace ────────────────────────────────────────────────────────
+configure_dotfiles: false          # Vyžaduje vlastní dotfiles repo v credentials.yml
 configure_terminal: true
-configure_osx: true               # .osx script (základní defaults)
-configure_macos_defaults: true    # Rozšířená nastavení (Finder, Dock, klávesnice…)
-configure_dock: false             # Dock layout (vyžaduje dockutil)
-configure_sudoers: false          # Vlastní sudoers pravidla
-configure_sublime: false          # Sublime Text (vyžaduje licenci)
-install_shell_extras: true        # Starship + bat, eza, fzf, zoxide, lazygit
+configure_osx: true
+configure_macos_defaults: true
+configure_dock: false              # Vyžaduje dockutil
+configure_sudoers: false
+configure_sublime: false
+install_shell_extras: true         # Starship + bat, eza, fzf, zoxide
 
-# ── Systémové služby ──────────────────────────────────────────────────────────
+# ── Systémové služby ─────────────────────────────────────────────────────────
 enable_ssh: false
 enable_samba: false
 enable_vnc: false
 enable_remote_management: false
 
-# ── Observability – Grafana LGTM stack ────────────────────────────────────────
-install_observability: true       # Grafana + Prometheus + Loki + Tempo + Alloy
+# ── Observability – Grafana LGTM stack ───────────────────────────────────────
+install_observability: true        # Grafana + Prometheus + Loki + Tempo + Alloy
 
-# ── Síť ───────────────────────────────────────────────────────────────────────
+# ── Síť ──────────────────────────────────────────────────────────────────────
 install_tailscale: true
-install_dnsmasq: true             # auto *.dev.local DNS
+install_dnsmasq: true
+# tailscale_hostname: "muj-mac.tailnet.ts.net"
+# services_lan_access: true        # Docker služby dostupné přes porty na LAN/Tailscale
 
-# ── IIAB – self-hosted services ───────────────────────────────────────────────
-# Vyžaduje: install_nginx: true, install_php: true (kde je uvedeno)
-install_mariadb: false
-install_wordpress: false          # [vyžaduje: mariadb, php, nginx]
-install_nextcloud: false          # [vyžaduje: mariadb, php, nginx]
-install_kiwix: false              # offline Wikipedia / ZIM soubory [Docker]
-install_offline_maps: false       # tileserver-gl [vyžaduje: node]
-install_n8n: false                # workflow automation [Docker]
-install_gitea: false              # self-hosted Git [Homebrew]
-install_gitlab: false             # GitLab CE [Docker, ~4 GB RAM]
-install_woodpecker: false         # CI/CD [vyžaduje: gitea]
-install_openwebui: false          # chat UI pro Ollama [Docker]
-install_portainer: false          # Docker management UI [Docker]
-install_jellyfin: false           # media server [Docker]
-install_uptime_kuma: false        # monitoring dashboard [Docker]
-install_calibreweb: false         # ebook server [Docker]
+# ── IIAB – self-hosted knowledge & media ─────────────────────────────────────
+# MariaDB/PostgreSQL/Redis se zapnou automaticky podle potřeby
+install_wordpress: false           # CMS + blog                    [→ auto: MariaDB]
+install_nextcloud: false           # Cloud úložiště                [→ auto: MariaDB]
+install_kiwix: false               # Offline Wikipedia / ZIM       [Docker]
+install_offline_maps: false        # Tileserver GL                 [vyžaduje MBTiles data]
+install_n8n: false                 # Workflow automatizace         [Docker]
+install_gitea: false               # Self-hosted Git               [Docker]
+install_gitlab: false              # GitLab CE (~4 GB RAM)         [Docker]
+install_woodpecker: false          # CI/CD pipeline                [vyžaduje: Gitea]
+install_openwebui: false           # Chat UI pro Ollama            [Docker]
+install_portainer: false           # Docker management UI          [Docker]
+install_jellyfin: false            # Media server                  [Docker]
+install_uptime_kuma: false         # Monitoring dashboard          [Docker]
+install_calibreweb: false          # eBook server                  [Docker]
+install_traefik: false             # Reverse proxy alternative     [Docker]
+install_homeassistant: false       # Home automation               [Docker]
+install_rustfs: false              # S3-compatible storage         [Docker]
 
-# ── Úložiště ──────────────────────────────────────────────────────────────────
-configure_external_storage: false  # true = přesunout data na externí SSD
+# ── B2B stack (CRM/ERP/helpdesk/chat/wiki) ──────────────────────────────────
+install_erpnext: false             # CRM + ERP + HR + Accounting   [→ auto: MariaDB + Redis]
+install_freescout: false           # Helpdesk / ticketing          [→ auto: MariaDB]
+install_mattermost: false          # Team chat                     [→ auto: PostgreSQL]
+install_outline: false             # Team wiki / knowledge base    [→ auto: PostgreSQL + Redis]
+
+# ── VoIP stack ───────────────────────────────────────────────────────────────
+install_freepbx: false             # PBX / call center (Asterisk)  [→ auto: MariaDB]
+
+# ── Engineering stack ────────────────────────────────────────────────────────
+install_qgis_server: false         # GIS mapový server             [Docker]
+install_engineering_apps: false    # KiCad, FreeCAD, Arduino       [Homebrew Cask]
+
+# ── Data / BI stack ──────────────────────────────────────────────────────────
+install_metabase: false            # BI dashboardy                 [→ auto: PostgreSQL]
+install_superset: false            # Data vizualizace              [→ auto: PostgreSQL + Redis]
+
+# ── Identita / federace ──────────────────────────────────────────────────────
+install_bluesky_pds: false         # AT Protocol PDS (SSO @user.dev.local)
+
+# ── Úložiště ─────────────────────────────────────────────────────────────────
+configure_external_storage: false  # true = přesunout data na externí SSD (/Volumes/SSD1TB)
