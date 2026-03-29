@@ -28,7 +28,7 @@
       {{
         (install_mariadb | default(false)) | ternary(
           [{'name': 'MariaDB', 'port': mariadb_port | default(3306), 'proto': 'tcp',
-            'hint': 'docker compose -p iiab logs mariadb'}], [])
+            'hint': 'docker compose -p infra logs mariadb'}], [])
         +
         (install_gitea | default(false)) | ternary(
           [{'name': 'Gitea', 'port': gitea_port | default(3003), 'proto': 'http',
@@ -78,6 +78,26 @@
         (install_bluesky_pds | default(false)) | ternary(
           [{'name': 'Bluesky PDS', 'port': bluesky_pds_port | default(2583), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (bluesky_pds_port | default(2583)) ~ '/xrpc/_health'}], [])
+        +
+        (install_calibreweb | default(false)) | ternary(
+          [{'name': 'Calibre-Web', 'port': calibreweb_port | default(8083), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (calibreweb_port | default(8083)) ~ '/'}], [])
+        +
+        (install_rustfs | default(false)) | ternary(
+          [{'name': 'RustFS', 'port': rustfs_console_port | default(9001), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (rustfs_console_port | default(9001)) ~ '/'}], [])
+        +
+        (install_qgis_server | default(false)) | ternary(
+          [{'name': 'QGIS Server', 'port': qgis_port | default(8071), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (qgis_port | default(8071)) ~ '/'}], [])
+        +
+        (install_woodpecker | default(false)) | ternary(
+          [{'name': 'Woodpecker CI', 'port': woodpecker_port | default(8060), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (woodpecker_port | default(8060)) ~ '/'}], [])
+        +
+        (install_gitlab | default(false)) | ternary(
+          [{'name': 'GitLab', 'port': gitlab_http_port | default(8929), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (gitlab_http_port | default(8929)) ~ '/'}], [])
       }}
     _svc_onboarding: >-
       {{
@@ -105,6 +125,21 @@
           [{'name': 'Kiwix', 'port': kiwix_port | default(8888), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (kiwix_port | default(8888)) ~ '/',
             'hint': 'Kiwix potrebuje ZIM soubory. Spust download-zim.sh a restartuj.'}], [])
+        +
+        (install_portainer | default(false)) | ternary(
+          [{'name': 'Portainer', 'port': portainer_port | default(9002), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (portainer_port | default(9002)) ~ '/',
+            'hint': 'Otevri https://' ~ (portainer_domain | default('portainer.dev.local')) ~ ' a vytvor admin ucet do 5 minut!'}], [])
+        +
+        (install_outline | default(false)) | ternary(
+          [{'name': 'Outline', 'port': outline_port | default(3005), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (outline_port | default(3005)) ~ '/',
+            'hint': 'Outline vyzaduje SSO provider (Gitea OAuth). Nastav v Settings → Authentication.'}], [])
+        +
+        (install_freepbx | default(false)) | ternary(
+          [{'name': 'FreePBX', 'port': freepbx_port | default(8088), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (freepbx_port | default(8088)) ~ '/',
+            'hint': 'Otevri https://' ~ (freepbx_domain | default('pbx.dev.local')) ~ ' a projdi setup wizard.'}], [])
       }}
 
 # ══════════════════════════════════════════════════════════════════════════

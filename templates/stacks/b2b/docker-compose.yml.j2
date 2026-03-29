@@ -76,9 +76,9 @@ services:
     command: nginx-entrypoint.sh
     ports:
 {% if services_lan_access | default(false) %}
-      - "{{ erpnext_port | default(8080) }}:8080"
+      - "{{ erpnext_port | default(8082) }}:8080"
 {% else %}
-      - "127.0.0.1:{{ erpnext_port | default(8080) }}:8080"
+      - "127.0.0.1:{{ erpnext_port | default(8082) }}:8080"
 {% endif %}
     volumes:
       - {{ erpnext_data_dir | default(ansible_facts['env']['HOME'] + '/erpnext/sites') }}:/home/frappe/frappe-bench/sites

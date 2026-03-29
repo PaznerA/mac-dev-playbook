@@ -145,7 +145,30 @@
   become: true
   failed_when: false
 
-# ── 7. Data directories – smazat (jen pro povolené služby) ──────────────
+# ── 7. Auto-dependency resolution (duplicace z main.yml) ───────────────
+# Služby jako ERPNext automaticky zapínají MariaDB/Redis, ale main.yml
+# auto-deps ještě neběžely. Musíme je vyřešit i zde, jinak se DB data nesmaže.
+- name: "[BLANK] Resolve auto-dependencies for cleanup"
+  ansible.builtin.set_fact:
+    install_mariadb: >-
+      {{ install_mariadb | default(false) or
+         install_wordpress | default(false) or
+         install_nextcloud | default(false) or
+         install_erpnext | default(false) or
+         install_freescout | default(false) or
+         install_freepbx | default(false) }}
+    install_postgresql: >-
+      {{ install_postgresql | default(false) or
+         install_outline | default(false) or
+         install_metabase | default(false) or
+         install_superset | default(false) }}
+    redis_docker: >-
+      {{ redis_docker | default(false) or
+         install_erpnext | default(false) or
+         install_outline | default(false) or
+         install_superset | default(false) }}
+
+# ── 8. Data directories – smazat (jen pro povolené služby) ──────────────
 - name: "[BLANK] Build list of data directories to remove"
   ansible.builtin.set_fact:
     _blank_dirs: >-
@@ -247,7 +270,7 @@
     label: "{{ item }}"
   become: true
 
-# ── 8. Generated files ──────────────────────────────────────────────────
+# ── 9. Generated files ──────────────────────────────────────────────────
 - name: "[BLANK] Remove service registry"
   ansible.builtin.file:
     path: "{{ ansible_facts['env']['HOME'] }}/projects/default/service-registry.json"

@@ -148,12 +148,33 @@
     state: directory
     mode: '0700'
 
+- name: Check if SSL cert covers *.dev.lan
+  ansible.builtin.shell: >
+    openssl x509 -in {{ homebrew_prefix }}/etc/nginx/ssl/local-dev.crt -noout -text 2>/dev/null
+    | grep -q '\.dev\.lan'
+  register: _cert_has_devlan
+  changed_when: false
+  failed_when: false
+  when: install_bluesky_pds | default(false)
+
+- name: Remove old SSL cert if missing *.dev.lan SAN
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ homebrew_prefix }}/etc/nginx/ssl/local-dev.crt"
+    - "{{ homebrew_prefix }}/etc/nginx/ssl/local-dev.key"
+  when:
+    - install_bluesky_pds | default(false)
+    - _cert_has_devlan.rc | default(0) != 0
+
 - name: Generate local dev wildcard certificate
   ansible.builtin.command: >
     mkcert
     -cert-file {{ homebrew_prefix }}/etc/nginx/ssl/local-dev.crt
     -key-file  {{ homebrew_prefix }}/etc/nginx/ssl/local-dev.key
     "localhost" "127.0.0.1" "::1" "*.localhost" "*.dev.local"
+    {{ '"*.dev.lan"' if (install_bluesky_pds | default(false)) else '' }}
   args:
     creates: "{{ homebrew_prefix }}/etc/nginx/ssl/local-dev.crt"
 

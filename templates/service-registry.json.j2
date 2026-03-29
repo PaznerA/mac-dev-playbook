@@ -174,6 +174,126 @@
   "description": "Docker management UI"
 }) %}
 {% endif %}
+{% if install_erpnext | default(false) %}
+{% set _ = _services.append({
+  "name": "ERPNext",
+  "category": "b2b",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_erpnext",
+  "domain": erpnext_domain | default('erp.dev.local'),
+  "port": erpnext_port | default(8082),
+  "url": "https://" ~ (erpnext_domain | default('erp.dev.local')),
+  "type": "docker",
+  "stack": "b2b",
+  "description": "CRM/ERP system (Frappe framework)"
+}) %}
+{% endif %}
+{% if install_freescout | default(false) %}
+{% set _ = _services.append({
+  "name": "FreeScout",
+  "category": "b2b",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_freescout",
+  "domain": freescout_domain | default('helpdesk.dev.local'),
+  "port": freescout_port | default(8090),
+  "url": "https://" ~ (freescout_domain | default('helpdesk.dev.local')),
+  "type": "docker",
+  "stack": "b2b",
+  "description": "Helpdesk a ticketing"
+}) %}
+{% endif %}
+{% if install_outline | default(false) %}
+{% set _ = _services.append({
+  "name": "Outline",
+  "category": "b2b",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_outline",
+  "domain": outline_domain | default('wiki.dev.local'),
+  "port": outline_port | default(3005),
+  "url": "https://" ~ (outline_domain | default('wiki.dev.local')),
+  "type": "docker",
+  "stack": "b2b",
+  "description": "Tymova wiki a knowledge base"
+}) %}
+{% endif %}
+{% if install_metabase | default(false) %}
+{% set _ = _services.append({
+  "name": "Metabase",
+  "category": "data",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_metabase",
+  "domain": metabase_domain | default('bi.dev.local'),
+  "port": metabase_port | default(3002),
+  "url": "https://" ~ (metabase_domain | default('bi.dev.local')),
+  "type": "docker",
+  "stack": "data",
+  "description": "Business Intelligence dashboardy"
+}) %}
+{% endif %}
+{% if install_superset | default(false) %}
+{% set _ = _services.append({
+  "name": "Apache Superset",
+  "category": "data",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_superset",
+  "domain": superset_domain | default('superset.dev.local'),
+  "port": superset_port | default(8089),
+  "url": "https://" ~ (superset_domain | default('superset.dev.local')),
+  "type": "docker",
+  "stack": "data",
+  "description": "Data exploration a vizualizace"
+}) %}
+{% endif %}
+{% if install_freepbx | default(false) %}
+{% set _ = _services.append({
+  "name": "FreePBX",
+  "category": "voip",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_freepbx",
+  "domain": freepbx_domain | default('pbx.dev.local'),
+  "port": freepbx_port | default(8088),
+  "url": "https://" ~ (freepbx_domain | default('pbx.dev.local')),
+  "type": "docker",
+  "stack": "voip",
+  "description": "VoIP telefonni ustredna (Asterisk)"
+}) %}
+{% endif %}
+{% if install_qgis_server | default(false) %}
+{% set _ = _services.append({
+  "name": "QGIS Server",
+  "category": "engineering",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_qgis_server",
+  "domain": qgis_domain | default('gis.dev.local'),
+  "port": qgis_port | default(8071),
+  "url": "https://" ~ (qgis_domain | default('gis.dev.local')),
+  "type": "docker",
+  "stack": "engineering",
+  "description": "GIS mapovy server"
+}) %}
+{% endif %}
+{% if install_bluesky_pds | default(false) %}
+{% set _ = _services.append({
+  "name": "Bluesky PDS",
+  "category": "identity",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_bluesky_pds",
+  "domain": bluesky_pds_hostname | default('bsky.dev.lan'),
+  "port": bluesky_pds_port | default(2583),
+  "url": "https://" ~ (bluesky_pds_hostname | default('bsky.dev.lan')),
+  "type": "docker",
+  "stack": "infra",
+  "description": "AT Protocol Personal Data Server"
+}) %}
+{% endif %}
 {% if install_offline_maps | default(false) %}
 {% set _ = _services.append({
   "name": "Tileserver GL",
@@ -233,8 +353,34 @@
   "toggle_var": "install_mariadb",
   "port": mariadb_port | default(3306),
   "type": "docker",
-  "stack": "iiab",
+  "stack": "infra",
   "description": "Relacni databaze"
+}) %}
+{% endif %}
+{% if install_postgresql | default(false) %}
+{% set _ = _services.append({
+  "name": "PostgreSQL",
+  "category": "database",
+  "tier": 2,
+  "enabled": true,
+  "toggle_var": "install_postgresql",
+  "port": postgresql_port | default(5432),
+  "type": "docker",
+  "stack": "infra",
+  "description": "Relacni databaze (Outline, Metabase, Superset)"
+}) %}
+{% endif %}
+{% if redis_docker | default(false) %}
+{% set _ = _services.append({
+  "name": "Redis (Docker)",
+  "category": "cache",
+  "tier": 2,
+  "enabled": true,
+  "toggle_var": "redis_docker",
+  "port": redis_port | default(6379),
+  "type": "docker",
+  "stack": "infra",
+  "description": "In-memory cache (sdileny mezi stacky)"
 }) %}
 {% endif %}
 {% if install_observability | default(true) %}
