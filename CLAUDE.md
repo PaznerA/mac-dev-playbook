@@ -12,6 +12,12 @@ Fork of geerlingguy/mac-dev-playbook.
 
 **Veškerý vývoj probíhá ve větvi `dev`.** Branch `master` je release branch — merge do masteru provádí výhradně uživatel ručně, až bude repo a CI stabilní. NIKDY necommituj, nepushuj, nevytvářej PR ani worktree z `master`. Všechny operace (commity, worktrees, feature branches) MUSÍ vycházet z `dev`.
 
+## Commit Convention
+
+- Formát: **Conventional Commits** (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:` atd.)
+- **Žádný Co-Authored-By, žádný --author flag, žádné jméno autora.** Git autor se vyplní automaticky z uživatelova git configu.
+- Commit message: stručný, anglicky, imperativ. Tělo (body) je volitelné — jen pokud přidává kontext k "proč".
+
 ## Vision
 
 OS-agnostic "All-in-One PC" — entire logic and data layer runs on replicable self-hosted FOSS technologies. The Ansible playbook is the single source of truth. OpenClaw (Inspektor Klepítko) acts as the autonomous DevOps agent managing the system.
