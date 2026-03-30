@@ -1,7 +1,8 @@
 ---
 # ==============================================================================
-# ERPNext post-start: retry configurator pokud selhal při prvním spuštění
-# Configurator (bench new-site) může selhat pokud MariaDB nebyla ready
+# ERPNext post-start: retry configurator / run migrations
+# Configurator (bench new-site) může selhat pokud MariaDB nebyla ready,
+# nebo se site vytvořil ale migrace nedokončila (I/O error, timeout)
 # ==============================================================================
 
 - name: "[ERPNext] Check configurator exit code"
@@ -17,7 +18,8 @@
     path: "{{ erpnext_data_dir | default(ansible_facts['env']['HOME'] + '/erpnext/sites') }}/{{ erpnext_site_name | default('erp.dev.local') }}/site_config.json"
   register: _erpnext_site_config
 
-- name: "[ERPNext] Retry configurator (MariaDB race condition fix)"
+# ── Případ 1: site neexistuje → full retry ────────────────────────────────────
+- name: "[ERPNext] Full retry – site not created"
   when:
     - _erpnext_cfg_exit.stdout | default('0') | int != 0
     - not _erpnext_site_config.stat.exists
@@ -51,22 +53,42 @@
       ansible.builtin.debug:
         msg: "rc={{ _erpnext_cfg_retry.rc | default('?') }} {{ (_erpnext_cfg_retry.stdout_lines | default([]))[-5:] | join(' | ') }}"
 
-    - name: "[ERPNext] Restart frontend + backend after site creation"
-      ansible.builtin.shell: >
-        {{ docker_bin }} compose
-        -f "{{ stacks_dir }}/b2b/docker-compose.yml"
-        -p b2b
-        restart erpnext-frontend erpnext-backend 2>&1
-      when: _erpnext_cfg_retry.rc | default(1) == 0
-      failed_when: false
+# ── Případ 2: site existuje ale migrace nedokončila → bench migrate ───────────
+- name: "[ERPNext] Run migrations (partial setup recovery)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} exec b2b-erpnext-backend-1
+    bench --site {{ erpnext_site_name | default('erp.dev.local') }} migrate 2>&1
+  register: _erpnext_migrate
+  when:
+    - _erpnext_site_config.stat.exists
+    - _erpnext_cfg_exit.stdout | default('0') | int != 0
+  failed_when: false
 
+- name: "[ERPNext] Migration result"
+  ansible.builtin.debug:
+    msg: "{{ (_erpnext_migrate.stdout_lines | default([]))[-5:] | join(' | ') }}"
+  when: _erpnext_migrate is defined and _erpnext_migrate.changed | default(false)
+
+# ── Restart po opravách ────────────────────────────────────────────────────────
+- name: "[ERPNext] Restart frontend + backend"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose
+    -f "{{ stacks_dir }}/b2b/docker-compose.yml"
+    -p b2b
+    restart erpnext-frontend erpnext-backend 2>&1
+  when: >
+    (_erpnext_cfg_retry is defined and _erpnext_cfg_retry.rc | default(1) == 0) or
+    (_erpnext_migrate is defined and _erpnext_migrate.rc | default(1) == 0)
+  failed_when: false
+
+# ── Health check ──────────────────────────────────────────────────────────────
 - name: "[ERPNext] Verify site is accessible"
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ erpnext_port | default(8082) }}"
-    status_code: [200, 302, 303]
+    status_code: [200, 302, 303, 404]
     timeout: 10
   register: _erpnext_health
-  retries: 10
+  retries: 12
   delay: 5
   until: _erpnext_health.status | default(0) in [200, 302, 303]
   failed_when: false
@@ -75,4 +97,4 @@
   ansible.builtin.debug:
     msg: >-
       ERPNext {{ 'OK (' ~ _erpnext_health.status ~ ')' if _erpnext_health.status | default(0) in [200, 302, 303]
-      else 'NEDOSTUPNY – zkontroluj: ' ~ docker_bin ~ ' compose -f ' ~ stacks_dir ~ '/b2b/docker-compose.yml -p b2b logs erpnext-configurator' }}
+      else 'NEDOSTUPNY – zkontroluj: ' ~ docker_bin ~ ' compose -f ' ~ stacks_dir ~ '/b2b/docker-compose.yml -p b2b logs' }}
