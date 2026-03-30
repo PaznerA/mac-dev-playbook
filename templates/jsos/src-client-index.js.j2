@@ -1,0 +1,158 @@
+/**
+ * jsOS client-side entry point — rendered by Ansible with Jinja2.
+ *
+ * Variables injected at template time:
+ *   - jsos_api_base       (e.g. "http://localhost:3000")
+ *   - jsos_portal_title   (e.g. "HomeLab Portal")
+ *   - services_lan_access  (boolean)
+ *   - tailscale_hostname   (e.g. "devbox")
+ */
+
+/* global document, fetch, console */
+
+'use strict';
+
+// ---------------------------------------------------------------------------
+// Configuration (Ansible-rendered)
+// ---------------------------------------------------------------------------
+
+var CONFIG = {
+  apiBase: '{{ jsos_api_base | default("") }}',
+  portalTitle: '{{ jsos_portal_title | default("HomeLab Portal") }}',
+  lanAccess: {{ 'true' if services_lan_access | default(false) else 'false' }},
+  tailscaleHost: '{{ tailscale_hostname | default("devbox") }}'
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function clearNode(node) {
+  while (node.firstChild) {
+    node.removeChild(node.firstChild);
+  }
+}
+
+function createEl(tag, attrs) {
+  var node = document.createElement(tag);
+  if (attrs) {
+    Object.keys(attrs).forEach(function (k) {
+      if (k === 'className') {
+        node.className = attrs[k];
+      } else if (k === 'textContent') {
+        node.textContent = attrs[k];
+      } else {
+        node.setAttribute(k, attrs[k]);
+      }
+    });
+  }
+  return node;
+}
+
+// ---------------------------------------------------------------------------
+// Service grid
+// ---------------------------------------------------------------------------
+
+function renderServiceCard(svc, container) {
+  var card = createEl('div', { className: 'svc-card' });
+  var title = createEl('h3', { textContent: svc.name });
+  var desc = createEl('p', { className: 'svc-desc', textContent: svc.description || '' });
+
+  card.appendChild(title);
+  card.appendChild(desc);
+
+  if (svc.port) {
+    var portEl = createEl('span', {
+      className: 'svc-port',
+      textContent: ':' + svc.port
+    });
+    card.appendChild(portEl);
+  }
+
+  card.addEventListener('click', function () {
+    openServiceViewer(svc);
+  });
+
+  container.appendChild(card);
+}
+
+function renderServices(services, container) {
+  clearNode(container);
+  services.forEach(function (svc) {
+    renderServiceCard(svc, container);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Iframe viewer
+// ---------------------------------------------------------------------------
+
+function openServiceViewer(svc) {
+  var overlay = document.getElementById('jsos-overlay');
+  if (!overlay) return;
+
+  clearNode(overlay);
+
+  var closeBtn = createEl('button', { className: 'overlay-close', textContent: 'Close' });
+  closeBtn.addEventListener('click', function () {
+    clearNode(overlay);
+    overlay.style.display = 'none';
+  });
+
+  var iframe = document.createElement('iframe');
+  iframe.src = svc.url || (CONFIG.apiBase + '/proxy/' + svc.name);
+  iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals');
+  iframe.className = 'jsos-iframe';
+
+  overlay.appendChild(closeBtn);
+  overlay.appendChild(iframe);
+  overlay.style.display = 'flex';
+}
+
+// ---------------------------------------------------------------------------
+// Main bootstrap
+// ---------------------------------------------------------------------------
+
+function bootstrap() {
+  var container = document.getElementById('jsos-services');
+  var statusEl = document.getElementById('jsos-status');
+
+  if (!container) {
+    console.warn('[jsOS] #jsos-services element not found');
+    return;
+  }
+
+  if (statusEl) {
+    statusEl.textContent = 'Loading services...';
+  }
+
+  fetch('/api/homelab/services')
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (services) {
+      renderServices(services, container);
+      if (statusEl) {
+        statusEl.textContent = services.length + ' services loaded';
+      }
+    })
+    .catch(function (err) {
+      console.error('[jsOS] Failed to load services:', err);
+      if (statusEl) {
+        statusEl.textContent = 'Error: ' + err.message;
+      }
+      clearNode(container);
+      var errEl = createEl('div', {
+        className: 'jsos-error',
+        textContent: 'Failed to load services: ' + err.message
+      });
+      container.appendChild(errEl);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Auto-init
+// ---------------------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', bootstrap);
