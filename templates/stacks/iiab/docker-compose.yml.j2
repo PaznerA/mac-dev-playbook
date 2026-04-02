@@ -82,6 +82,14 @@ services:
       WEBHOOK_URL: "https://{{ n8n_domain | default('n8n.dev.local') }}/"
       GENERIC_TIMEZONE: "{{ n8n_timezone | default('Europe/Prague') }}"
       TZ: "{{ n8n_timezone | default('Europe/Prague') }}"
+{% if install_authentik | default(false) %}
+      # ── Authentik SSO (OIDC) ───────────────────────────────────────────────
+      N8N_AUTH_OIDC_ENABLED: "true"
+      N8N_AUTH_OIDC_CLIENT_ID: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'n8n') | first).client_id }}"
+      N8N_AUTH_OIDC_CLIENT_SECRET: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'n8n') | first).client_secret }}"
+      N8N_AUTH_OIDC_ISSUER: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/n8n/"
+      N8N_AUTH_OIDC_ALLOWED_GROUPS: ""
+{% endif %}
     networks:
       - iiab_net
       - {{ stacks_shared_network }}

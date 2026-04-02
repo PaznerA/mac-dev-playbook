@@ -34,6 +34,17 @@
     mode: '0644'
   notify: Restart nginx
 
+- name: Deploy Authentik proxy auth snippets
+  ansible.builtin.template:
+    src: "nginx/{{ item }}"
+    dest: "{{ homebrew_prefix }}/etc/nginx/{{ item }}"
+    mode: '0644'
+  loop:
+    - authentik-proxy-auth.conf
+    - authentik-proxy-locations.conf
+  when: install_authentik | default(false)
+  notify: Reload nginx
+
 - name: Deploy nginx virtual host templates
   ansible.builtin.template:
     src: "nginx/sites-available/{{ item }}"
