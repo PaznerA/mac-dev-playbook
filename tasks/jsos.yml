@@ -21,6 +21,11 @@
 
 # ── 2. Clone OS.js v3 boilerplate ────────────────────────────────────────────
 
+- name: "[jsOS] Check if repo already cloned"
+  ansible.builtin.stat:
+    path: "{{ jsos_dir }}/.git"
+  register: _jsos_git_dir
+
 - name: "[jsOS] Clone OS.js v3 boilerplate"
   ansible.builtin.git:
     repo: "https://github.com/os-js/OS.js.git"
@@ -30,6 +35,7 @@
     force: false
     update: false
   register: jsos_clone
+  when: not _jsos_git_dir.stat.exists
 
 # ── 3. Install npm dependencies ──────────────────────────────────────────────
 

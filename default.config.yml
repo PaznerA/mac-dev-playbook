@@ -544,7 +544,7 @@ macos_disable_gatekeeper: false       # NEDOPORUČENO – nechej false pro bezpe
 # SSH
 ssh_port: 22
 ssh_allow_groups: "admin staff"   # Skupiny s SSH přístupem
-ssh_password_auth: false          # false = pouze klíče (bezpečnější)
+ssh_password_auth: true           # true = heslo i klíče; false = pouze klíče (po ssh-copy-id)
 
 # Samba / SMB
 samba_workgroup: "WORKGROUP"
