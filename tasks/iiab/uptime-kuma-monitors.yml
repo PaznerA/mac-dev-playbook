@@ -95,6 +95,18 @@
         (install_puter | default(false)) | ternary(
           [{'name': 'Puter', 'type': 'http',
             'url': 'http://127.0.0.1:' ~ (puter_port | default(5050)) ~ '/test'}], [])
+        +
+        (install_authentik | default(false)) | ternary(
+          [{'name': 'Authentik', 'type': 'http',
+            'url': 'http://127.0.0.1:' ~ (authentik_port | default(9000)) ~ '/-/health/ready/'}], [])
+        +
+        (install_infisical | default(false)) | ternary(
+          [{'name': 'Infisical', 'type': 'http',
+            'url': 'http://127.0.0.1:' ~ (infisical_port | default(8075)) ~ '/api/status'}], [])
+        +
+        (install_vaultwarden | default(false)) | ternary(
+          [{'name': 'Vaultwarden', 'type': 'http',
+            'url': 'http://127.0.0.1:' ~ (vaultwarden_port | default(8062)) ~ '/alive'}], [])
       }}
 
 - name: "[Uptime Kuma] Deploy monitor setup script"

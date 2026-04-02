@@ -76,6 +76,10 @@
     - qgis.conf
     - metabase.conf
     - superset.conf
+    # ── IAM & Secrets
+    - authentik.conf
+    - infisical.conf
+    - vaultwarden.conf
     # ── Identita
     - bluesky-pds.conf
     # ── Webový desktop
@@ -115,6 +119,9 @@
          + ((install_qgis_server | default(false)) | ternary(['qgis.conf'], []))
          + ((install_metabase | default(false)) | ternary(['metabase.conf'], []))
          + ((install_superset | default(false)) | ternary(['superset.conf'], []))
+         + ((install_authentik | default(false)) | ternary(['authentik.conf'], []))
+         + ((install_infisical | default(false)) | ternary(['infisical.conf'], []))
+         + ((install_vaultwarden | default(false)) | ternary(['vaultwarden.conf'], []))
          + ((install_bluesky_pds | default(false)) | ternary(['bluesky-pds.conf'], []))
          + ((install_puter | default(false)) | ternary(['puter.conf'], []))
          + ((install_jsos | default(false)) | ternary(['jsos.conf'], []))

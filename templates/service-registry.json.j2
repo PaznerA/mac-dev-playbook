@@ -294,6 +294,51 @@
   "description": "AT Protocol Personal Data Server"
 }) %}
 {% endif %}
+{% if install_authentik | default(false) %}
+{% set _ = _services.append({
+  "name": "Authentik",
+  "category": "iam",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_authentik",
+  "domain": authentik_domain | default('auth.dev.local'),
+  "port": authentik_port | default(9000),
+  "url": "https://" ~ (authentik_domain | default('auth.dev.local')),
+  "type": "docker",
+  "stack": "infra",
+  "description": "SSO / Identity Provider (OIDC, SAML, LDAP)"
+}) %}
+{% endif %}
+{% if install_infisical | default(false) %}
+{% set _ = _services.append({
+  "name": "Infisical",
+  "category": "iam",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_infisical",
+  "domain": infisical_domain | default('vault.dev.local'),
+  "port": infisical_port | default(8075),
+  "url": "https://" ~ (infisical_domain | default('vault.dev.local')),
+  "type": "docker",
+  "stack": "infra",
+  "description": "Secrets vault (REST API, CLI, SDK)"
+}) %}
+{% endif %}
+{% if install_vaultwarden | default(false) %}
+{% set _ = _services.append({
+  "name": "Vaultwarden",
+  "category": "iam",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_vaultwarden",
+  "domain": vaultwarden_domain | default('pass.dev.local'),
+  "port": vaultwarden_port | default(8062),
+  "url": "https://" ~ (vaultwarden_domain | default('pass.dev.local')),
+  "type": "docker",
+  "stack": "iiab",
+  "description": "Bitwarden-kompatibilni password vault"
+}) %}
+{% endif %}
 {% if install_puter | default(false) %}
 {% set _ = _services.append({
   "name": "Puter",

@@ -99,6 +99,11 @@ install_jsos: false               # jsOS – starší alternativa (OS.js v3) [vy
 # ── AI orchestrace ────────────────────────────────────────────────────────────
 install_paperclip: false          # Paperclip – multi-agent orchestration platform [vyžaduje: PostgreSQL]
 
+# ── IAM & Secrets ─────────────────────────────────────────────────────────────
+install_authentik: false          # Authentik – SSO/IdP (OIDC/SAML/LDAP) pro všechny služby [vyžaduje: PostgreSQL, Redis]
+install_infisical: false          # Infisical CE – centrální secrets vault s REST API + CLI [vyžaduje: PostgreSQL, Redis]
+install_vaultwarden: false        # Vaultwarden – Bitwarden-kompatibilní personal password vault [Docker]
+
 # ── Identita / federace ───────────────────────────────────────────────────────
 install_bluesky_pds: false        # Bluesky PDS – AT Protocol identity server (SSO @user.dev.local)
 
@@ -1263,3 +1268,47 @@ iiab_terminal_password: ""                         # Prázdné = auto-generovan�
 iiab_terminal_password_auth: true                  # true = login heslem povolený
 iiab_terminal_config_dir: "{{ homebrew_prefix }}/etc/iiab-terminal"
 iiab_terminal_bin_path: "{{ homebrew_prefix }}/bin/iiab-terminal"
+
+# ==============================================================================
+# AUTHENTIK – SSO / Identity Provider (OIDC, SAML, LDAP, SCIM)
+# Centrální login pro všechny služby. PostgreSQL + Redis z infra stacku.
+# ==============================================================================
+
+authentik_version: "2025.2"                        # Pinovat! Authentik má časté breaking changes
+authentik_domain: "auth.dev.local"
+authentik_port: 9000
+authentik_data_dir: "{{ ansible_facts['env']['HOME'] }}/authentik"
+authentik_secret_key: "{{ global_password_prefix }}_pw_authentik_secret"
+authentik_db_name: "authentik"
+authentik_db_user: "authentik"
+authentik_db_password: "{{ global_password_prefix }}_pw_authentik_db"
+authentik_bootstrap_password: "{{ global_password_prefix }}_pw_authentik_admin"
+authentik_bootstrap_email: "admin@dev.local"
+
+# ==============================================================================
+# INFISICAL CE – Secrets Management (REST API, CLI, SDK)
+# Centrální vault pro DB hesla, API klíče, certifikáty. E2EE.
+# ==============================================================================
+
+infisical_version: "latest"
+infisical_domain: "vault.dev.local"
+infisical_port: 8075
+infisical_data_dir: "{{ ansible_facts['env']['HOME'] }}/infisical"
+infisical_encryption_key: "{{ global_password_prefix }}_pw_infisical_enc"
+infisical_auth_secret: "{{ global_password_prefix }}_pw_infisical_auth"
+infisical_db_name: "infisical"
+infisical_db_user: "infisical"
+infisical_db_password: "{{ global_password_prefix }}_pw_infisical_db"
+infisical_disable_signup: true                     # Admin creates all users
+
+# ==============================================================================
+# VAULTWARDEN – Personal Password Vault (Bitwarden-kompatibilní)
+# Každý tenant devBoxNOS má svůj vault pro osobní hesla.
+# ==============================================================================
+
+vaultwarden_version: "latest"
+vaultwarden_domain: "pass.dev.local"
+vaultwarden_port: 8062
+vaultwarden_data_dir: "{{ ansible_facts['env']['HOME'] }}/vaultwarden"
+vaultwarden_signups_allowed: false                 # Admin creates accounts
+vaultwarden_admin_token: "{{ global_password_prefix }}_pw_vaultwarden_admin"

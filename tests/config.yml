@@ -63,6 +63,10 @@ install_superset: false
 install_bluesky_pds: false
 install_jsos: false              # Vyžaduje PostgreSQL + Redis Docker
 install_paperclip: false         # Vyžaduje PostgreSQL Docker
+install_authentik: false         # Vyžaduje PostgreSQL + Redis Docker
+install_infisical: false         # Vyžaduje PostgreSQL + Redis Docker
+install_vaultwarden: false       # Docker
+install_puter: false             # Docker
 
 configure_dotfiles: false   # Geerlingguy dotfiles – zbytečné v CI
 configure_sublime: false

@@ -19,7 +19,8 @@
   when: >
     install_portainer | default(false) or install_traefik | default(false) or
     install_mariadb | default(false) or install_postgresql | default(false) or
-    redis_docker | default(false) or install_bluesky_pds | default(false)
+    redis_docker | default(false) or install_bluesky_pds | default(false) or
+    install_authentik | default(false) or install_infisical | default(false)
 
 - name: "[Stacks] Deploy observability compose"
   ansible.builtin.template:
@@ -75,7 +76,7 @@
   ansible.builtin.set_fact:
     _active_stacks: >-
       {{
-        ((install_portainer | default(false) or install_traefik | default(false) or install_mariadb | default(false) or install_postgresql | default(false) or redis_docker | default(false) or install_bluesky_pds | default(false)) | ternary(['infra'], []))
+        ((install_portainer | default(false) or install_traefik | default(false) or install_mariadb | default(false) or install_postgresql | default(false) or redis_docker | default(false) or install_bluesky_pds | default(false) or install_authentik | default(false) or install_infisical | default(false)) | ternary(['infra'], []))
         +
         ((install_observability | default(true)) | ternary(['observability'], []))
         +
@@ -156,6 +157,18 @@
     item_result: "{{ _stack_results.results | default([{}]) | last }}"
 
 # ── App-level setup – MUSÍ běžet PO startu stacků ────────────────────────────
+
+- name: "[Stacks] Authentik post-start: wait for ready"
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/authentik_post.yml"
+  when:
+    - install_authentik | default(false)
+    - "'infra' in _active_stacks"
+
+- name: "[Stacks] Infisical post-start: wait for ready"
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/infisical_post.yml"
+  when:
+    - install_infisical | default(false)
+    - "'infra' in _active_stacks"
 
 - name: "[Stacks] ERPNext post-start: retry configurator if failed"
   ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/erpnext_post.yml"
