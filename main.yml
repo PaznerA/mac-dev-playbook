@@ -17,15 +17,16 @@
 
   vars_files:
     - default.config.yml
+    - default.credentials.yml
 
   pre_tasks:
-    - name: Include playbook configuration.
+    - name: Include playbook configuration overrides.
       include_vars: "{{ item }}"
       with_fileglob:
         - "{{ playbook_dir }}/config.yml"
       tags: ['always']
 
-    - name: Include credentials.
+    - name: Include credentials overrides.
       include_vars: "{{ item }}"
       with_fileglob:
         - "{{ playbook_dir }}/credentials.yml"
@@ -152,6 +153,21 @@
     # ──────────────────────────────────────────────────────────────────────────
     # Blank reset – čistá reinstalace (ansible-playbook main.yml -K -e blank=true)
     # ──────────────────────────────────────────────────────────────────────────
+    - name: "[Blank] Prompt for password prefix"
+      ansible.builtin.pause:
+        prompt: "Prefix pro všechna hesla (formát: PREFIX_pw_SLUŽBA, Enter = changeme)"
+      register: _prefix_prompt
+      when: blank | default(false) | bool
+      tags: ['blank', 'reset']
+
+    - name: "[Blank] Set password prefix from prompt"
+      ansible.builtin.set_fact:
+        global_password_prefix: "{{ _prefix_prompt.user_input | default('changeme', true) }}"
+      when:
+        - blank | default(false) | bool
+        - _prefix_prompt.user_input | default('') | length > 0
+      tags: ['blank', 'reset']
+
     - import_tasks: tasks/blank-reset.yml
       when: blank | default(false) | bool
       tags: ['blank', 'reset']
@@ -385,6 +401,13 @@
     - import_tasks: tasks/shell-extras.yml
       when: install_shell_extras | default(true)
       tags: ['shell', 'shell-extras', 'starship']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Git globální konfigurace (user.name, user.email)
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/git-config.yml
+      when: git_user_name | default('') | length > 0
+      tags: ['git']
 
     # ──────────────────────────────────────────────────────────────────────────
     # OpenClaw – self-hosted AI agent (Ollama, žádný API klíč)
