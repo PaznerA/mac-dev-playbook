@@ -1,0 +1,107 @@
+---
+# ==============================================================================
+# Authentik Service-Side OIDC Post-Setup
+# Konfigurace služeb, které nepodporují OIDC přes env vars
+# Spouští se po stack-up + authentik_oidc_setup
+# ==============================================================================
+
+# ── Gitea: registrace OAuth2 source přes Admin API ──────────────────────────
+
+- name: "[Authentik→Gitea] Check if OAuth2 source exists"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port | default(3003) }}/api/v1/admin/identity-providers"
+    method: GET
+    headers:
+      Authorization: "Basic {{ (gitea_admin_user ~ ':' ~ gitea_admin_password) | b64encode }}"
+    status_code: [200]
+  register: _gitea_oauth_sources
+  when: install_gitea | default(false)
+  failed_when: false
+
+- name: "[Authentik→Gitea] Create OAuth2 authentication source"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port | default(3003) }}/api/v1/admin/identity-providers"
+    method: POST
+    headers:
+      Authorization: "Basic {{ (gitea_admin_user ~ ':' ~ gitea_admin_password) | b64encode }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      type: "oauth2"
+      name: "authentik"
+      oauth2_config:
+        provider: "openidConnect"
+        client_id: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'gitea') | first).client_id }}"
+        client_secret: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'gitea') | first).client_secret }}"
+        open_id_connect_auto_discovery_url: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/gitea/.well-known/openid-configuration"
+        scopes: ["openid", "profile", "email"]
+    status_code: [200, 201]
+  when:
+    - install_gitea | default(false)
+    - _gitea_oauth_sources.status | default(0) == 200
+    - "'authentik' not in (_gitea_oauth_sources.json | default([]) | map(attribute='name') | list)"
+  failed_when: false
+
+# ── Portainer: OAuth2 konfigurace přes Settings API ─────────────────────────
+
+- name: "[Authentik→Portainer] Get current auth settings"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/settings"
+    method: GET
+    headers:
+      X-API-Key: "{{ portainer_admin_password | default('') }}"
+    status_code: [200]
+  register: _portainer_settings
+  when: install_portainer | default(false)
+  failed_when: false
+
+# Portainer OAuth vyžaduje inicializovaný admin účet — přeskočit pokud nepřihlášen
+- name: "[Authentik→Portainer] Info"
+  ansible.builtin.debug:
+    msg: >-
+      Portainer OIDC: Manuální konfigurace v Settings → Authentication → OAuth.
+      Client ID: {{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'portainer') | first).client_id }}
+      Auth URL: https://{{ authentik_domain | default('auth.dev.local') }}/application/o/authorize/
+  when: install_portainer | default(false)
+
+# ── Nextcloud: occ příkazy pro user_oidc app ────────────────────────────────
+
+- name: "[Authentik→Nextcloud] Check if Nextcloud container is running"
+  ansible.builtin.command: >
+    {{ docker_bin }} inspect iiab-nextcloud-1 --format '{{ '{{' }}.State.Running{{ '}}' }}'
+  register: _nc_running
+  changed_when: false
+  failed_when: false
+  when: install_nextcloud | default(false)
+
+- name: "[Authentik→Nextcloud] Install and configure user_oidc"
+  ansible.builtin.shell: |
+    # Install user_oidc app
+    {{ docker_bin }} exec -u www-data iiab-nextcloud-1 \
+      php occ app:install user_oidc 2>/dev/null || true
+    {{ docker_bin }} exec -u www-data iiab-nextcloud-1 \
+      php occ app:enable user_oidc 2>/dev/null || true
+
+    # Check if provider already registered
+    EXISTING=$({{ docker_bin }} exec -u www-data iiab-nextcloud-1 \
+      php occ user_oidc:provider 2>/dev/null | grep -c 'authentik' || true)
+
+    if [ "$EXISTING" = "0" ]; then
+      {{ docker_bin }} exec -u www-data iiab-nextcloud-1 \
+        php occ user_oidc:provider authentik \
+        --clientid="{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'nextcloud') | first).client_id }}" \
+        --clientsecret="{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'nextcloud') | first).client_secret }}" \
+        --discoveryuri="https://{{ authentik_domain | default('auth.dev.local') }}/application/o/nextcloud/.well-known/openid-configuration" \
+        --mapping-uid="preferred_username" \
+        --mapping-email="email" \
+        --mapping-displayname="name" 2>/dev/null
+      echo "CREATED"
+    else
+      echo "EXISTS"
+    fi
+  register: _nc_oidc_result
+  when:
+    - install_nextcloud | default(false)
+    - _nc_running.stdout | default('') | trim == 'true'
+  changed_when: "'CREATED' in _nc_oidc_result.stdout | default('')"
+  failed_when: false

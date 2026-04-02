@@ -188,6 +188,13 @@
     - install_superset | default(false)
     - "'data' in _active_stacks"
 
+# ── Authentik OIDC: service-side konfigurace (Gitea API, Nextcloud occ) ──────
+- name: "[Stacks] Authentik service-side OIDC post-setup"
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/authentik_service_post.yml"
+  when:
+    - install_authentik | default(false)
+    - "'infra' in _active_stacks"
+
 # ── Výsledky ─────────────────────────────────────────────────────────────────
 
 - name: "[Stacks] Show stack results"
