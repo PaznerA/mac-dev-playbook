@@ -130,21 +130,21 @@
   roles:
     - role: elliotweiser.osx-command-line-tools
 
-    - role: geerlingguy.mac.homebrew
+    - role: pazny.mac.homebrew
       when: install_homebrew_packages | default(true)
       tags: ['homebrew']
 
-    - role: geerlingguy.dotfiles
+    - role: pazny.dotfiles
       when: configure_dotfiles | default(true)
       tags: ['dotfiles']
 
-    - role: geerlingguy.mac.mas
+    - role: pazny.mac.mas
       when: |
         (install_mas_apps | default(false)) and
         ((mas_installed_apps | length > 0) or (mas_installed_app_ids | default([]) | length > 0))
       tags: ['mas']
 
-    - role: geerlingguy.mac.dock
+    - role: pazny.mac.dock
       when: configure_dock | default(false)
       tags: ['dock']
 

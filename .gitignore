@@ -2,7 +2,8 @@
 .DS_Store
 .ansible
 *.retry
-roles*
+roles/*
+!roles/pazny.*
 config.yml
 credentials.yml
 .credentials.yml
