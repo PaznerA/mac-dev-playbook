@@ -9,3 +9,5 @@ credentials.yml
 .credentials.yml
 .venv
 .remember/*
+vision.md
+_credentials.yml
