@@ -1277,7 +1277,7 @@ iiab_terminal_bin_path: "{{ homebrew_prefix }}/bin/iiab-terminal"
 
 authentik_version: "2025.2"                        # Pinovat! Authentik má časté breaking changes
 authentik_domain: "auth.dev.local"
-authentik_port: 9000
+authentik_port: 9003                               # 9000 = PHP-FPM, 9001 = RustFS, 9002 = Portainer
 authentik_data_dir: "{{ ansible_facts['env']['HOME'] }}/authentik"
 authentik_secret_key: "{{ global_password_prefix }}_pw_authentik_secret"
 authentik_db_name: "authentik"
