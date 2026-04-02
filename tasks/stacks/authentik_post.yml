@@ -1,12 +1,12 @@
 ---
 # ==============================================================================
-# Authentik post-start: počkat na ready + info
+# Authentik post-start: health check + OIDC provider setup
 # Bootstrap admin se vytvoří automaticky přes AUTHENTIK_BOOTSTRAP_* env vars
 # ==============================================================================
 
 - name: "[Authentik] Wait for server to be ready"
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ authentik_port | default(9000) }}/-/health/ready/"
+    url: "http://127.0.0.1:{{ authentik_port | default(9003) }}/-/health/ready/"
     status_code: [200, 204]
     timeout: 10
   register: _authentik_health
@@ -15,10 +15,15 @@
   until: _authentik_health.status | default(0) in [200, 204]
   failed_when: false
 
-- name: "[Authentik] Status"
+- name: "[Authentik] Server status"
   ansible.builtin.debug:
     msg: >-
       Authentik {{ 'OK' if _authentik_health.status | default(0) in [200, 204]
-      else 'NEDOSTUPNY – docker logs infra-authentik-server-1' }}
+      else 'NEDOSTUPNY' }}
       | Admin: https://{{ authentik_domain | default('auth.dev.local') }}/if/admin/
       | Login: akadmin / {{ authentik_bootstrap_password }}
+
+- name: "[Authentik] Run OIDC provider setup"
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/authentik_oidc_setup.yml"
+  when:
+    - _authentik_health.status | default(0) in [200, 204]

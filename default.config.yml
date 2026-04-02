@@ -1286,6 +1286,21 @@ authentik_db_password: "{{ global_password_prefix }}_pw_authentik_db"
 authentik_bootstrap_password: "{{ global_password_prefix }}_pw_authentik_admin"
 authentik_bootstrap_email: "admin@dev.local"
 
+# OIDC integrace — client_id/secret pro každou službu
+# Authentik post-start automaticky vytvoří OIDC providery a aplikace
+authentik_oidc_grafana_client_id: "devboxnos-grafana"
+authentik_oidc_grafana_client_secret: "{{ global_password_prefix }}_pw_oidc_grafana"
+authentik_oidc_gitea_client_id: "devboxnos-gitea"
+authentik_oidc_gitea_client_secret: "{{ global_password_prefix }}_pw_oidc_gitea"
+authentik_oidc_portainer_client_id: "devboxnos-portainer"
+authentik_oidc_portainer_client_secret: "{{ global_password_prefix }}_pw_oidc_portainer"
+authentik_oidc_outline_client_id: "devboxnos-outline"
+authentik_oidc_outline_client_secret: "{{ global_password_prefix }}_pw_oidc_outline"
+authentik_oidc_openwebui_client_id: "devboxnos-openwebui"
+authentik_oidc_openwebui_client_secret: "{{ global_password_prefix }}_pw_oidc_openwebui"
+authentik_oidc_nextcloud_client_id: "devboxnos-nextcloud"
+authentik_oidc_nextcloud_client_secret: "{{ global_password_prefix }}_pw_oidc_nextcloud"
+
 # ==============================================================================
 # INFISICAL CE – Secrets Management (REST API, CLI, SDK)
 # Centrální vault pro DB hesla, API klíče, certifikáty. E2EE.

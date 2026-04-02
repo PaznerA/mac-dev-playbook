@@ -1,0 +1,179 @@
+---
+# ==============================================================================
+# Authentik OIDC Setup — automatické vytvoření providerů a aplikací
+# Spouští se po startu Authentik serveru (z authentik_post.yml)
+# Idempotentní — přeskočí existující providery
+# ==============================================================================
+
+# ── 1. Získat API token ──────────────────────────────────────────────────────
+
+- name: "[Authentik OIDC] Create API token via ak CLI"
+  ansible.builtin.shell: >
+    {{ docker_bin }} exec infra-authentik-server-1
+    ak create_token devboxnos-api --intent api 2>/dev/null
+    | tail -1
+  register: _ak_token_result
+  changed_when: false
+  failed_when: false
+
+- name: "[Authentik OIDC] Retrieve existing token if creation returned empty"
+  ansible.builtin.shell: >
+    {{ docker_bin }} exec infra-authentik-server-1
+    python3 -c "
+    import django; django.setup()
+    from authentik.core.models import Token
+    t = Token.objects.filter(identifier='devboxnos-api').first()
+    print(t.key if t else '')
+    " 2>/dev/null | tail -1
+  register: _ak_token_existing
+  when: _ak_token_result.stdout | default('') | length < 10
+  changed_when: false
+  failed_when: false
+
+- name: "[Authentik OIDC] Set API token fact"
+  ansible.builtin.set_fact:
+    _ak_api_token: "{{ _ak_token_result.stdout if (_ak_token_result.stdout | default('') | length >= 10) else (_ak_token_existing.stdout | default('')) }}"
+
+- name: "[Authentik OIDC] Skip if no token"
+  ansible.builtin.debug:
+    msg: "WARN: Nelze získat API token — OIDC setup přeskočen"
+  when: _ak_api_token | default('') | length < 10
+
+# ── 2. Získat authorization flow ─────────────────────────────────────────────
+
+- name: "[Authentik OIDC] Get default authorization flow"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ authentik_port | default(9003) }}/api/v3/flows/instances/?designation=authorization&ordering=slug"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ _ak_api_token }}"
+    status_code: 200
+  register: _ak_flows
+  when: _ak_api_token | default('') | length >= 10
+  failed_when: false
+
+- name: "[Authentik OIDC] Set authorization flow slug"
+  ansible.builtin.set_fact:
+    _ak_auth_flow: "{{ (_ak_flows.json.results | default([{}]))[0].pk | default('') }}"
+  when: _ak_flows is defined and _ak_flows.status | default(0) == 200
+
+# ── 3. Vytvořit OIDC providery + aplikace pro každou službu ──────────────────
+
+- name: "[Authentik OIDC] Create OAuth2 providers and applications"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ authentik_port | default(9003) }}/api/v3/providers/oauth2/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _ak_api_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      authorization_flow: "{{ _ak_auth_flow }}"
+      client_type: "confidential"
+      client_id: "{{ item.client_id }}"
+      client_secret: "{{ item.client_secret }}"
+      redirect_uris: "{{ item.redirect_uri }}"
+      property_mappings: []
+      sub_mode: "hashed_user_id"
+    status_code: [200, 201]
+  register: _ak_provider_results
+  loop:
+    - name: "Grafana"
+      client_id: "{{ authentik_oidc_grafana_client_id }}"
+      client_secret: "{{ authentik_oidc_grafana_client_secret }}"
+      redirect_uri: "https://{{ grafana_domain | default('grafana.dev.local') }}/login/generic_oauth"
+      slug: "grafana"
+      install_var: "{{ install_observability | default(false) }}"
+    - name: "Gitea"
+      client_id: "{{ authentik_oidc_gitea_client_id }}"
+      client_secret: "{{ authentik_oidc_gitea_client_secret }}"
+      redirect_uri: "https://{{ gitea_domain | default('git.dev.local') }}/user/oauth2/authentik/callback"
+      slug: "gitea"
+      install_var: "{{ install_gitea | default(false) }}"
+    - name: "Portainer"
+      client_id: "{{ authentik_oidc_portainer_client_id }}"
+      client_secret: "{{ authentik_oidc_portainer_client_secret }}"
+      redirect_uri: "https://{{ portainer_domain | default('portainer.dev.local') }}"
+      slug: "portainer"
+      install_var: "{{ install_portainer | default(false) }}"
+    - name: "Outline"
+      client_id: "{{ authentik_oidc_outline_client_id }}"
+      client_secret: "{{ authentik_oidc_outline_client_secret }}"
+      redirect_uri: "https://{{ outline_domain | default('wiki.dev.local') }}/auth/oidc.callback"
+      slug: "outline"
+      install_var: "{{ install_outline | default(false) }}"
+    - name: "Open WebUI"
+      client_id: "{{ authentik_oidc_openwebui_client_id }}"
+      client_secret: "{{ authentik_oidc_openwebui_client_secret }}"
+      redirect_uri: "https://{{ openwebui_domain | default('ai.dev.local') }}/oauth/oidc/callback"
+      slug: "open-webui"
+      install_var: "{{ install_openwebui | default(false) }}"
+    - name: "Nextcloud"
+      client_id: "{{ authentik_oidc_nextcloud_client_id }}"
+      client_secret: "{{ authentik_oidc_nextcloud_client_secret }}"
+      redirect_uri: "https://{{ nextcloud_domain | default('cloud.dev.local') }}/apps/user_oidc/code"
+      slug: "nextcloud"
+      install_var: "{{ install_nextcloud | default(false) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - _ak_api_token | default('') | length >= 10
+    - _ak_auth_flow | default('') | length > 0
+    - item.install_var | bool
+  failed_when: false
+
+- name: "[Authentik OIDC] Create applications for providers"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ authentik_port | default(9003) }}/api/v3/core/applications/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _ak_api_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      slug: "{{ item.slug }}"
+      provider: "{{ (_ak_provider_results.results | default([]) | selectattr('item.slug', 'equalto', item.slug) | list | first).json.pk | default(omit) }}"
+      meta_launch_url: "https://{{ item.domain }}"
+    status_code: [200, 201]
+  loop:
+    - name: "Grafana"
+      slug: "grafana"
+      domain: "{{ grafana_domain | default('grafana.dev.local') }}"
+      install_var: "{{ install_observability | default(false) }}"
+    - name: "Gitea"
+      slug: "gitea"
+      domain: "{{ gitea_domain | default('git.dev.local') }}"
+      install_var: "{{ install_gitea | default(false) }}"
+    - name: "Portainer"
+      slug: "portainer"
+      domain: "{{ portainer_domain | default('portainer.dev.local') }}"
+      install_var: "{{ install_portainer | default(false) }}"
+    - name: "Outline"
+      slug: "outline"
+      domain: "{{ outline_domain | default('wiki.dev.local') }}"
+      install_var: "{{ install_outline | default(false) }}"
+    - name: "Open WebUI"
+      slug: "open-webui"
+      domain: "{{ openwebui_domain | default('ai.dev.local') }}"
+      install_var: "{{ install_openwebui | default(false) }}"
+    - name: "Nextcloud"
+      slug: "nextcloud"
+      domain: "{{ nextcloud_domain | default('cloud.dev.local') }}"
+      install_var: "{{ install_nextcloud | default(false) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - _ak_api_token | default('') | length >= 10
+    - item.install_var | bool
+  failed_when: false
+
+- name: "[Authentik OIDC] Setup complete"
+  ansible.builtin.debug:
+    msg: >-
+      OIDC providers created for:
+      {{ _ak_provider_results.results | default([])
+         | selectattr('status', 'defined')
+         | selectattr('status', 'in', [200, 201])
+         | map(attribute='item.name') | list | join(', ') | default('none') }}
