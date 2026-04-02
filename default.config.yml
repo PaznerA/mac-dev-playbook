@@ -1255,6 +1255,7 @@ paperclip_db_name: "paperclip"
 paperclip_db_user: "paperclip"
 paperclip_db_password: "{{ global_password_prefix }}_pw_paperclip"
 paperclip_deployment_mode: "authenticated"         # Docker vyžaduje 0.0.0.0 → local_trusted nefunguje
+paperclip_auth_secret: "{{ global_password_prefix }}_pw_paperclip_auth"
 paperclip_openclaw_url: "http://host.docker.internal:{{ openclaw_gateway_port | default(18789) }}"
 
 # ==============================================================================

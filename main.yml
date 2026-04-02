@@ -254,6 +254,14 @@
         - (vaultwarden_admin_token | default('')) is match('^.*changeme.*$')
       tags: ['always']
 
+    - name: Auto-generate Paperclip auth secret if weak
+      ansible.builtin.set_fact:
+        paperclip_auth_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+      when:
+        - install_paperclip | default(false)
+        - (paperclip_auth_secret | default('')) is match('^.*changeme.*$')
+      tags: ['always']
+
     - name: Auto-generate jsOS session secret if weak
       ansible.builtin.set_fact:
         jsos_session_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"

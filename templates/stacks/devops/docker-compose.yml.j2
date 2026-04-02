@@ -134,6 +134,7 @@ services:
       DATABASE_URL: "postgresql://{{ paperclip_db_user | default('paperclip') }}:{{ paperclip_db_password | default('changeme_pw_paperclip') }}@postgresql:5432/{{ paperclip_db_name | default('paperclip') }}"
       PAPERCLIP_HOME: "/paperclip"
       PAPERCLIP_DEPLOYMENT_MODE: "authenticated"
+      BETTER_AUTH_SECRET: "{{ paperclip_auth_secret | default(lookup('pipe', 'openssl rand -hex 32')) }}"
     networks:
       - devops_net
       - {{ stacks_shared_network }}
