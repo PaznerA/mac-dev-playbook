@@ -682,6 +682,7 @@ nextcloud_port: 8085                    # Lokální port kontejneru (nginx proxy
 
 kiwix_domain: "kiwix.dev.local"
 kiwix_port: 8888                           # Lokální port kiwix-serve
+kiwix_version: "latest"                            # Docker image tag
 kiwix_data_dir: "{{ ansible_facts['env']['HOME'] }}/kiwix"       # Sem ukládej .zim soubory
 
 # ZIM soubory ke stažení (prázdné = nestahovat automaticky)
@@ -705,6 +706,7 @@ kiwix_zim_files: []
 
 maps_domain: "maps.dev.local"
 maps_port: 8080
+maps_tileserver_version: "latest"                  # Docker image tag (maptiler/tileserver-gl)
 maps_data_dir: "{{ ansible_facts['env']['HOME'] }}/maps"        # Sem ukládej .mbtiles soubory
 
 # MBTiles soubory ke stažení (prázdné = nestahovat automaticky)

@@ -68,7 +68,7 @@ All default passwords follow pattern `changeme_pw_[service]`.
 1. **Blank reset** (if `-e blank=true`) — wipes Docker, data, configs
 2. Loads config layers and gathers facts
 3. Runs Galaxy **roles**: osx-command-line-tools → homebrew → dotfiles → mas → dock
-4. Runs **tasks**: macOS system → power management → languages/runtimes → nginx → external storage → Docker stacks → networking → shell extras → AI agent (OpenClaw) → observability → stack-up → mariadb_setup → nextcloud_post → gitea_post → uptime-kuma-monitors → stack_verify → service registry
+4. Runs **tasks**: macOS system → power management → languages/runtimes → nginx → external storage → Docker stacks → networking → shell extras → AI agent (OpenClaw) → observability → stack-up (infra → mariadb_setup → postgresql_setup → remaining stacks → erpnext_post → bluesky_pds_post → superset_setup) → nextcloud_post → gitea_post → wordpress_post → stack_verify → jsOS → service registry
 
 **Ordering matters**: PHP before Nginx (socket), external-storage before IIAB (data paths), mariadb_setup before stack_verify (DB must exist for Nextcloud onboarding).
 
@@ -79,11 +79,16 @@ All default passwords follow pattern `changeme_pw_[service]`.
 | **infra** | MariaDB, PostgreSQL, Redis, Portainer, Traefik, Bluesky PDS |
 | **observability** | Grafana, Prometheus, Loki, Tempo |
 | **iiab** | Nextcloud, n8n, Kiwix, Jellyfin, Open WebUI, Uptime Kuma, Calibre-Web, Home Assistant, RustFS |
-| **devops** | Gitea, Woodpecker CI, GitLab |
+| **devops** | Gitea, Woodpecker CI, GitLab, Paperclip |
 | **b2b** | ERPNext, FreeScout, Mattermost, Outline |
 | **voip** | FreePBX (Asterisk) |
 | **engineering** | QGIS Server |
 | **data** | Metabase, Apache Superset |
+
+### Non-Docker Applications
+
+- **jsOS** — webový desktop (OS.js v3), Node.js via PM2 (port 8070). Vyžaduje PostgreSQL + Redis Docker.
+- **OpenClaw** — AI agent daemon via launchd. Ollama 0.19+ s MLX backendem.
 
 ### Observability (Apple Silicon optimized)
 

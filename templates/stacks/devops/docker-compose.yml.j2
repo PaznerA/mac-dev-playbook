@@ -95,7 +95,7 @@ services:
     hostname: "{{ gitlab_domain | default('gitlab.dev.local') }}"
     shm_size: 256m
     ports:
-      - "127.0.0.1:{{ gitlab_http_port | default(8929) }}:{{ gitlab_http_port | default(8929) }}"
+      - "127.0.0.1:{{ gitlab_http_port | default(8929) }}:80"
       - "127.0.0.1:{{ gitlab_ssh_port | default(2224) }}:22"
     volumes:
       - {{ gitlab_config_dir }}:/etc/gitlab

@@ -94,7 +94,7 @@ services:
 {% endif %}
 {% if install_kiwix | default(false) %}
   kiwix:
-    image: ghcr.io/kiwix/kiwix-serve:latest
+    image: ghcr.io/kiwix/kiwix-serve:{{ kiwix_version | default('latest') }}
     restart: unless-stopped
     ports:
 {% if services_lan_access | default(false) %}
@@ -244,7 +244,7 @@ services:
     image: rustfs/rustfs:{{ rustfs_version | default('latest') }}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:{{ rustfs_api_port | default(9000) }}:9000"
+      - "127.0.0.1:{{ rustfs_api_port | default(9010) }}:9000"
       - "127.0.0.1:{{ rustfs_console_port | default(9001) }}:9001"
     volumes:
       - {{ rustfs_data_dir | default(ansible_facts['env']['HOME'] + '/rustfs/data') }}:/data
@@ -263,7 +263,7 @@ services:
 {% endif %}
 {% if install_offline_maps | default(false) %}
   tileserver:
-    image: maptiler/tileserver-gl:latest
+    image: maptiler/tileserver-gl:{{ maps_tileserver_version | default('latest') }}
     restart: unless-stopped
     ports:
       - "127.0.0.1:{{ maps_port | default(8070) }}:8080"

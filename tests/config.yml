@@ -61,6 +61,8 @@ install_engineering_apps: false
 install_metabase: false
 install_superset: false
 install_bluesky_pds: false
+install_jsos: false              # Vyžaduje PostgreSQL + Redis Docker
+install_paperclip: false         # Vyžaduje PostgreSQL Docker
 
 configure_dotfiles: false   # Geerlingguy dotfiles – zbytečné v CI
 configure_sublime: false
