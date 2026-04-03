@@ -57,6 +57,23 @@
     _ak_inv_flow_pk: "{{ (_ak_inv_flow_resp.json.results | default([]))[0].pk | default('') }}"
   when: _ak_token | length >= 10
 
+# ── 2b. Scope mappings (email, profile, openid) ─────────────────────────────
+
+- name: "[Authentik OIDC] Get OIDC scope mappings"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/propertymappings/all/?managed__icontains=oauth2/scope&page_size=50"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_scope_mappings_resp
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik OIDC] Set scope mapping PKs"
+  ansible.builtin.set_fact:
+    _ak_scope_pks: "{{ _ak_scope_mappings_resp.json.results | default([]) | map(attribute='pk') | list }}"
+  when: _ak_scope_mappings_resp is defined and _ak_scope_mappings_resp.status | default(0) == 200
+
 # ── 3. Existing providers (idempotence) ──────────────────────────────────────
 
 - name: "[Authentik OIDC] List existing OAuth2 providers"
@@ -123,6 +140,7 @@
       redirect_uris:
         - matching_mode: "strict"
           url: "{{ item.redirect_uris }}"
+      property_mappings: "{{ _ak_scope_pks | default([]) }}"
       sub_mode: "hashed_user_id"
     status_code: [200, 201]
   loop: "{{ _ak_oauth_apps }}"
