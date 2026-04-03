@@ -5,33 +5,20 @@
 # Idempotentní — kontroluje existenci před vytvořením
 # ==============================================================================
 
-# ── 1. API Token ─────────────────────────────────────────────────────────────
-# ak create_token je idempotentní — vrátí existující nebo vytvoří nový
+# ── 1. API Token (via Django shell — ak create_token neexistuje v 2025.2) ────
 
-- name: "[Authentik OIDC] Create API token via ak CLI"
-  ansible.builtin.shell: >
-    {{ docker_bin }} exec infra-authentik-server-1
-    ak create_token devboxnos-api --intent api 2>/dev/null
-    | tail -1
-  register: _ak_token_create
-  changed_when: false
-  failed_when: false
-
-- name: "[Authentik OIDC] Read existing token from DB (fallback)"
+- name: "[Authentik OIDC] Create API token via Django shell"
   ansible.builtin.shell: >
     {{ docker_bin }} exec infra-authentik-server-1
     ak shell -c
-    "from authentik.core.models import Token; t=Token.objects.filter(identifier='devboxnos-api',intent='api').first(); print(t.key if t else '')"
+    "from authentik.core.models import Token,User;
+    u=User.objects.filter(username='akadmin').first();
+    t,_=Token.objects.get_or_create(identifier='devboxnos-api',defaults={'user':u,'intent':'api','expiring':False});
+    print(t.key)"
     2>/dev/null | tail -1
-  register: _ak_token_read
-  when: (_ak_token_create.stdout | default('') | trim | length) < 10
+  register: _ak_token_raw
   changed_when: false
   failed_when: false
-
-- name: "[Authentik OIDC] Set token fact"
-  ansible.builtin.set_fact:
-    _ak_token_raw:
-      stdout: "{{ _ak_token_create.stdout if (_ak_token_create.stdout | default('') | trim | length) >= 10 else (_ak_token_read.stdout | default('')) }}"
 
 - name: "[Authentik OIDC] Validate token"
   ansible.builtin.set_fact:
@@ -40,9 +27,9 @@
 
 - name: "[Authentik OIDC] Token status"
   ansible.builtin.debug:
-    msg: "{{ 'OK — token získán (' ~ _ak_token[:8] ~ '...)' if (_ak_token | length >= 10) else 'CHYBA — token nenalezen, OIDC setup přeskočen' }}"
+    msg: "{{ 'OK — token získán' if (_ak_token | length >= 10) else 'CHYBA — token nenalezen, OIDC setup přeskočen' }}"
 
-# ── 2. Authorization Flow ────────────────────────────────────────────────────
+# ── 2. Flows ─────────────────────────────────────────────────────────────────
 
 - name: "[Authentik OIDC] Get authorization flow"
   ansible.builtin.uri:
@@ -50,16 +37,27 @@
     headers:
       Authorization: "Bearer {{ _ak_token }}"
     status_code: 200
-  register: _ak_flow_resp
+  register: _ak_auth_flow_resp
   when: _ak_token | length >= 10
   failed_when: false
 
-- name: "[Authentik OIDC] Set flow PK"
-  ansible.builtin.set_fact:
-    _ak_auth_flow_pk: "{{ (_ak_flow_resp.json.results | default([]))[0].pk | default('') }}"
-  when: _ak_flow_resp is defined and _ak_flow_resp.status | default(0) == 200
+- name: "[Authentik OIDC] Get invalidation flow"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/flows/instances/?designation=invalidation&ordering=slug"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_inv_flow_resp
+  when: _ak_token | length >= 10
+  failed_when: false
 
-# ── 3. Načíst existující providery (pro idempotenci) ────────────────────────
+- name: "[Authentik OIDC] Set flow PKs"
+  ansible.builtin.set_fact:
+    _ak_auth_flow_pk: "{{ (_ak_auth_flow_resp.json.results | default([]))[0].pk | default('') }}"
+    _ak_inv_flow_pk: "{{ (_ak_inv_flow_resp.json.results | default([]))[0].pk | default('') }}"
+  when: _ak_token | length >= 10
+
+# ── 3. Existing providers (idempotence) ──────────────────────────────────────
 
 - name: "[Authentik OIDC] List existing OAuth2 providers"
   ansible.builtin.uri:
@@ -71,13 +69,6 @@
   when: _ak_token | length >= 10
   failed_when: false
 
-- name: "[Authentik OIDC] Build existing provider map"
-  ansible.builtin.set_fact:
-    _ak_existing_slugs: "{{ _ak_existing_providers.json.results | default([]) | map(attribute='name') | list }}"
-  when: _ak_existing_providers is defined and _ak_existing_providers.status | default(0) == 200
-
-# ── 3b. List existing proxy providers ────────────────────────────────────────
-
 - name: "[Authentik OIDC] List existing proxy providers"
   ansible.builtin.uri:
     url: "{{ _ak_base }}/api/v3/providers/proxy/?page_size=100"
@@ -88,19 +79,31 @@
   when: _ak_token | length >= 10
   failed_when: false
 
-- name: "[Authentik OIDC] Build existing proxy provider map"
-  ansible.builtin.set_fact:
-    _ak_existing_proxy_names: "{{ _ak_existing_proxy.json.results | default([]) | map(attribute='name') | list }}"
-  when: _ak_existing_proxy is defined and _ak_existing_proxy.status | default(0) == 200
+- name: "[Authentik OIDC] List existing applications"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/applications/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_existing_apps
+  when: _ak_token | length >= 10
+  failed_when: false
 
-# ── 4. Filter enabled apps (split OAuth2 vs Proxy) ─────────────────────────
+- name: "[Authentik OIDC] Build existing name/slug lists"
+  ansible.builtin.set_fact:
+    _ak_existing_provider_names: "{{ _ak_existing_providers.json.results | default([]) | map(attribute='name') | list }}"
+    _ak_existing_proxy_names: "{{ _ak_existing_proxy.json.results | default([]) | map(attribute='name') | list }}"
+    _ak_existing_app_slugs: "{{ _ak_existing_apps.json.results | default([]) | map(attribute='slug') | list }}"
+  when: _ak_token | length >= 10
+
+# ── 4. Split apps: OAuth2 vs Proxy ──────────────────────────────────────────
 
 - name: "[Authentik OIDC] Build active app lists"
   ansible.builtin.set_fact:
-    _ak_active_apps: "{{ authentik_oidc_apps | default([]) | selectattr('enabled', 'equalto', true) | rejectattr('type', 'defined') | list + authentik_oidc_apps | default([]) | selectattr('enabled', 'equalto', true) | selectattr('type', 'defined') | rejectattr('type', 'equalto', 'proxy') | list }}"
+    _ak_oauth_apps: "{{ authentik_oidc_apps | default([]) | selectattr('enabled', 'equalto', true) | rejectattr('type', 'defined') | list + authentik_oidc_apps | default([]) | selectattr('enabled', 'equalto', true) | selectattr('type', 'defined') | rejectattr('type', 'equalto', 'proxy') | list }}"
     _ak_proxy_apps: "{{ authentik_oidc_apps | default([]) | selectattr('enabled', 'equalto', true) | selectattr('type', 'defined') | selectattr('type', 'equalto', 'proxy') | list }}"
 
-# ── 5. Create providers (skip existing) ─────────────────────────────────────
+# ── 5. Create OAuth2 providers ───────────────────────────────────────────────
 
 - name: "[Authentik OIDC] Create OAuth2 providers"
   ansible.builtin.uri:
@@ -113,77 +116,26 @@
     body:
       name: "{{ item.name }}"
       authorization_flow: "{{ _ak_auth_flow_pk }}"
+      invalidation_flow: "{{ _ak_inv_flow_pk }}"
       client_type: "confidential"
       client_id: "{{ item.client_id }}"
       client_secret: "{{ item.client_secret }}"
-      redirect_uris: "{{ item.redirect_uris }}"
+      redirect_uris:
+        - matching_mode: "strict"
+          url: "{{ item.redirect_uris }}"
       sub_mode: "hashed_user_id"
     status_code: [200, 201]
-  loop: "{{ _ak_active_apps }}"
+  loop: "{{ _ak_oauth_apps }}"
   loop_control:
     label: "{{ item.name }}"
   when:
     - _ak_token | length >= 10
     - _ak_auth_flow_pk | default('') | length > 0
-    - item.name not in (_ak_existing_slugs | default([]))
+    - item.name not in (_ak_existing_provider_names | default([]))
   register: _ak_created_providers
   failed_when: false
 
-# ── 6. Get all providers (including newly created) ──────────────────────────
-
-- name: "[Authentik OIDC] Refresh provider list"
-  ansible.builtin.uri:
-    url: "{{ _ak_base }}/api/v3/providers/oauth2/?page_size=100"
-    headers:
-      Authorization: "Bearer {{ _ak_token }}"
-    status_code: 200
-  register: _ak_all_providers
-  when: _ak_token | length >= 10
-  failed_when: false
-
-# ── 7. List existing applications (idempotence) ─────────────────────────────
-
-- name: "[Authentik OIDC] List existing applications"
-  ansible.builtin.uri:
-    url: "{{ _ak_base }}/api/v3/core/applications/?page_size=100"
-    headers:
-      Authorization: "Bearer {{ _ak_token }}"
-    status_code: 200
-  register: _ak_existing_apps
-  when: _ak_token | length >= 10
-  failed_when: false
-
-- name: "[Authentik OIDC] Build existing app slug list"
-  ansible.builtin.set_fact:
-    _ak_existing_app_slugs: "{{ _ak_existing_apps.json.results | default([]) | map(attribute='slug') | list }}"
-  when: _ak_existing_apps is defined and _ak_existing_apps.status | default(0) == 200
-
-# ── 8. Create applications (skip existing) ──────────────────────────────────
-
-- name: "[Authentik OIDC] Create applications"
-  ansible.builtin.uri:
-    url: "{{ _ak_base }}/api/v3/core/applications/"
-    method: POST
-    headers:
-      Authorization: "Bearer {{ _ak_token }}"
-      Content-Type: "application/json"
-    body_format: json
-    body:
-      name: "{{ item.name }}"
-      slug: "{{ item.slug }}"
-      provider: "{{ (_ak_all_providers.json.results | default([]) | selectattr('name', 'equalto', item.name) | first).pk | default(omit) }}"
-      meta_launch_url: "{{ item.launch_url }}"
-    status_code: [200, 201]
-  loop: "{{ _ak_active_apps }}"
-  loop_control:
-    label: "{{ item.name }}"
-  when:
-    - _ak_token | length >= 10
-    - item.slug not in (_ak_existing_app_slugs | default([]))
-  register: _ak_created_apps
-  failed_when: false
-
-# ── 9. Create proxy providers (for services without native OIDC) ─────────────
+# ── 6. Create proxy providers ────────────────────────────────────────────────
 
 - name: "[Authentik OIDC] Create proxy providers"
   ansible.builtin.uri:
@@ -196,6 +148,7 @@
     body:
       name: "{{ item.name }}"
       authorization_flow: "{{ _ak_auth_flow_pk }}"
+      invalidation_flow: "{{ _ak_inv_flow_pk }}"
       external_host: "{{ item.external_host }}"
       mode: "forward_single"
     status_code: [200, 201]
@@ -209,9 +162,19 @@
   register: _ak_created_proxy
   failed_when: false
 
-# ── 10. Refresh all providers for app linking ────────────────────────────────
+# ── 7. Refresh all providers for app linking ─────────────────────────────────
 
-- name: "[Authentik OIDC] Refresh all proxy providers"
+- name: "[Authentik OIDC] Refresh OAuth2 provider list"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/providers/oauth2/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_all_oauth
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik OIDC] Refresh proxy provider list"
   ansible.builtin.uri:
     url: "{{ _ak_base }}/api/v3/providers/proxy/?page_size=100"
     headers:
@@ -221,7 +184,30 @@
   when: _ak_token | length >= 10
   failed_when: false
 
-# ── 11. Create applications for proxy providers ─────────────────────────────
+# ── 8. Create applications ───────────────────────────────────────────────────
+
+- name: "[Authentik OIDC] Create OAuth2 applications"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/applications/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      slug: "{{ item.slug }}"
+      provider: "{{ (_ak_all_oauth.json.results | default([]) | selectattr('name', 'equalto', item.name) | first).pk | default(omit) }}"
+      meta_launch_url: "{{ item.launch_url }}"
+    status_code: [200, 201]
+  loop: "{{ _ak_oauth_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - _ak_token | length >= 10
+    - item.slug not in (_ak_existing_app_slugs | default([]))
+  register: _ak_created_oauth_apps
+  failed_when: false
 
 - name: "[Authentik OIDC] Create proxy applications"
   ansible.builtin.uri:
@@ -246,14 +232,11 @@
   register: _ak_created_proxy_apps
   failed_when: false
 
-# ── 12. Summary ──────────────────────────────────────────────────────────────
+# ── 9. Summary ───────────────────────────────────────────────────────────────
 
 - name: "[Authentik OIDC] Summary"
   ansible.builtin.debug:
-    msg: |
-      OIDC Setup Complete:
-        OAuth2 apps: {{ _ak_active_apps | map(attribute='name') | list | join(', ') }}
-        Proxy apps: {{ _ak_proxy_apps | default([]) | map(attribute='name') | list | join(', ') | default('none') }}
-        New OAuth2 providers: {{ _ak_created_providers.results | default([]) | selectattr('status', 'defined') | selectattr('status', 'in', [200, 201]) | map(attribute='item.name') | list | join(', ') | default('(all existed)') }}
-        New proxy providers: {{ _ak_created_proxy.results | default([]) | selectattr('status', 'defined') | selectattr('status', 'in', [200, 201]) | map(attribute='item.name') | list | join(', ') | default('(all existed)') }}
+    msg: >-
+      OIDC: {{ (_ak_oauth_apps | default([])) | length }} OAuth2 +
+      {{ (_ak_proxy_apps | default([])) | length }} proxy apps configured
   when: _ak_token | length >= 10
