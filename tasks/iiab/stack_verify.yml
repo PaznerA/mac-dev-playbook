@@ -151,10 +151,10 @@
     url: "{{ item.url }}"
     method: GET
     timeout: 5
-    status_code: [200, 301, 302, 303, 401, 403]
+    status_code: [200, 301, 302, 303, 401, 403, 404]
     validate_certs: false
   register: _auto_http
-  until: _auto_http.status | default(0) | int in [200, 301, 302, 303, 401, 403]
+  until: _auto_http.status | default(0) | int in [200, 301, 302, 303, 401, 403, 404]
   retries: 12
   delay: 10
   loop: "{{ _svc_auto | selectattr('proto', 'equalto', 'http') | list }}"
