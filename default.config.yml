@@ -963,6 +963,14 @@ tailscale_exit_node: false        # Používat tento Mac jako exit node
 tailscale_hostname: ""            # Tailscale FQDN (např. mac-studio.tailnet-abc.ts.net) – homepage → Grafana
 services_lan_access: false        # true = Docker služby na 0.0.0.0 (přístup přes Tailscale/LAN po portech)
 
+# Alternativní hosty pro přístup ke službám (LAN IP, Tailscale hostname/IP)
+# Automaticky se přidají do nginx server_name + Nextcloud trusted_domains
+service_extra_hosts: []
+# service_extra_hosts:
+#   - "192.168.1.64"
+#   - "studio.tail9f5625.ts.net"
+#   - "100.106.211.106"
+
 # ==============================================================================
 # POWER MANAGEMENT – pmset nastavení (pouze při napájení -c)
 # Cíl: displej spí, ale počítač zůstává dostupný na síti (Jellyfin, SSH, Grafana…)

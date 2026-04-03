@@ -75,3 +75,20 @@
   changed_when: true
   failed_when: false
   check_mode: false
+
+- name: "[Nextcloud Post] Add extra trusted domains (LAN/Tailscale)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose -p iiab
+    exec -T -u www-data nextcloud
+    php occ config:system:set trusted_domains {{ idx + 3 }}
+    --value={{ item | quote }}
+  loop: "{{ service_extra_hosts | default([]) }}"
+  loop_control:
+    index_var: idx
+    label: "trusted_domains[{{ idx + 3 }}] = {{ item }}"
+  when:
+    - _nc_container.stdout | default('') | length > 0
+    - service_extra_hosts | default([]) | length > 0
+  changed_when: true
+  failed_when: false
+  check_mode: false
