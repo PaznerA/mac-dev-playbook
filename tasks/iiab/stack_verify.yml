@@ -61,27 +61,27 @@
         (install_jellyfin | default(false)) | ternary(
           [{'name': 'Jellyfin', 'port': jellyfin_port | default(8096), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (jellyfin_port | default(8096)) ~ '/health',
-            'hint': 'Otevri https://' ~ (jellyfin_domain | default('media.dev.local')) ~ ' a projdi pruvodce'}], [])
+            'hint': 'Otevri https://' ~ (jellyfin_domain | default('media.' ~ instance_tld)) ~ ' a projdi pruvodce'}], [])
         +
         (install_portainer | default(false)) | ternary(
           [{'name': 'Portainer', 'port': portainer_port | default(9002), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (portainer_port | default(9002)) ~ '/',
-            'hint': 'Otevri https://' ~ (portainer_domain | default('portainer.dev.local')) ~ ' a vytvor admin ucet (do 5 minut!)'}], [])
+            'hint': 'Otevri https://' ~ (portainer_domain | default('portainer.' ~ instance_tld)) ~ ' a vytvor admin ucet (do 5 minut!)'}], [])
         +
         (install_openwebui | default(false)) | ternary(
           [{'name': 'Open WebUI', 'port': openwebui_port | default(3004), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (openwebui_port | default(3004)) ~ '/',
-            'hint': 'Otevri https://' ~ (openwebui_domain | default('ai.dev.local')) ~ ' a vytvor ucet (prvni user = admin)'}], [])
+            'hint': 'Otevri https://' ~ (openwebui_domain | default('ai.' ~ instance_tld)) ~ ' a vytvor ucet (prvni user = admin)'}], [])
         +
         (install_uptime_kuma | default(false)) | ternary(
           [{'name': 'Uptime Kuma', 'port': uptime_kuma_port | default(3001), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (uptime_kuma_port | default(3001)) ~ '/',
-            'hint': 'Otevri https://' ~ (uptime_kuma_domain | default('uptime.dev.local')) ~ ' a vytvor admin ucet'}], [])
+            'hint': 'Otevri https://' ~ (uptime_kuma_domain | default('uptime.' ~ instance_tld)) ~ ' a vytvor admin ucet'}], [])
         +
         (install_wordpress | default(false)) | ternary(
           [{'name': 'WordPress', 'port': wordpress_port | default(8084), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (wordpress_port | default(8084)) ~ '/',
-            'hint': 'Otevri https://' ~ (wordpress_domain | default('wp.dev.local')) ~ '/wp-admin/install.php'}], [])
+            'hint': 'Otevri https://' ~ (wordpress_domain | default('wordpress.' ~ instance_tld)) ~ '/wp-admin/install.php'}], [])
         +
         (install_kiwix | default(false)) | ternary(
           [{'name': 'Kiwix', 'port': kiwix_port | default(8888), 'proto': 'http',

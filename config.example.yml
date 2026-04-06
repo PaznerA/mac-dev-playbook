@@ -54,7 +54,7 @@ install_observability: true       # Grafana + Prometheus + Loki + Tempo + Alloy
 
 # ── Síť ───────────────────────────────────────────────────────────────────────
 install_tailscale: true
-install_dnsmasq: true             # auto *.dev.local DNS
+install_dnsmasq: true             # auto *.<instance_tld> DNS
 
 # ── IIAB – self-hosted services ───────────────────────────────────────────────
 # Vyžaduje: install_nginx: true, install_php: true (kde je uvedeno)

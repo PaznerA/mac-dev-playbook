@@ -22,7 +22,7 @@
     method: POST
     body_format: json
     body:
-      email: "{{ openwebui_admin_email | default('admin@dev.local') }}"
+      email: "{{ openwebui_admin_email | default('admin@' ~ instance_tld) }}"
       password: "{{ openwebui_admin_password | default('changeme_pw_openwebui_admin') }}"
     status_code: [200, 400, 401, 403]
     timeout: 10
@@ -37,7 +37,7 @@
     body_format: json
     body:
       name: "{{ openwebui_admin_name | default('Admin') }}"
-      email: "{{ openwebui_admin_email | default('admin@dev.local') }}"
+      email: "{{ openwebui_admin_email | default('admin@' ~ instance_tld) }}"
       password: "{{ openwebui_admin_password | default('changeme_pw_openwebui_admin') }}"
     status_code: [200, 201]
     timeout: 10

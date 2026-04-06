@@ -131,16 +131,16 @@
   changed_when: false
 
 # ── 6. dnsmasq – reset ──────────────────────────────────────────────────
-- name: "[BLANK] Remove dnsmasq dev.local config"
+- name: "[BLANK] Remove dnsmasq {{ dnsmasq_dev_domain | default(instance_tld) }} config"
   ansible.builtin.lineinfile:
     path: "{{ homebrew_prefix }}/etc/dnsmasq.conf"
-    regexp: "dev\\.local"
+    regexp: "{{ (dnsmasq_dev_domain | default(instance_tld)) | regex_escape() }}"
     state: absent
   failed_when: false
 
-- name: "[BLANK] Remove macOS resolver for dev.local"
+- name: "[BLANK] Remove macOS resolver for {{ dnsmasq_dev_domain | default(instance_tld) }}"
   ansible.builtin.file:
-    path: "/etc/resolver/{{ dnsmasq_dev_domain | default('dev.local') }}"
+    path: "/etc/resolver/{{ dnsmasq_dev_domain | default(instance_tld) }}"
     state: absent
   become: true
   failed_when: false

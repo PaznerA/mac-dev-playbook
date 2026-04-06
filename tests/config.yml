@@ -96,7 +96,8 @@ shell_aliases:
     command: "bat --style=numbers"
 
 # ── dnsmasq ───────────────────────────────────────────────────────────────────
-dnsmasq_dev_domain: "dev.local"
+instance_tld: "dev.local"
+dnsmasq_dev_domain: "{{ instance_tld }}"
 dnsmasq_dev_address: "127.0.0.1"
 
 # ── Nginx – auto-detekce z install_* flagů (v CI = jen default.conf) ─────────

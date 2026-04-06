@@ -1,14 +1,14 @@
 ---
 # ==============================================================================
-# DNSMASQ – automatický DNS resolver pro *.dev.local
+# DNSMASQ – automatický DNS resolver pro *.instance_tld (default: dev.local)
 # Odstraňuje nutnost ručně editovat /etc/hosts
 #
 # Jak to funguje:
 #   1. dnsmasq naslouchá na 127.0.0.1:53
-#   2. macOS /etc/resolver/dev.local přesměruje *.dev.local dotazy na dnsmasq
-#   3. dnsmasq odpoví 127.0.0.1 pro všechny *.dev.local domény
+#   2. macOS /etc/resolver/<instance_tld> přesměruje *.<instance_tld> dotazy na dnsmasq
+#   3. dnsmasq odpoví 127.0.0.1 pro všechny *.<instance_tld> domény
 #
-# Výsledek: grafana.dev.local, gitea.dev.local, n8n.dev.local... fungují
+# Výsledek: grafana.<instance_tld>, gitea.<instance_tld>, n8n.<instance_tld>... fungují
 # automaticky bez jakékoliv ruční konfigurace.
 # ==============================================================================
 
@@ -32,10 +32,10 @@
 - name: Deploy dnsmasq configuration
   ansible.builtin.blockinfile:
     path: "{{ homebrew_prefix }}/etc/dnsmasq.conf"
-    marker: "# {mark} DEV.LOCAL (ansible managed)"
+    marker: "# {mark} {{ (dnsmasq_dev_domain | default(instance_tld)) | upper }} (ansible managed)"
     block: |
-      # *.dev.local → {{ _dnsmasq_target }} (LAN IP)
-      address=/.{{ dnsmasq_dev_domain | default('dev.local') }}/{{ _dnsmasq_target }}
+      # *.{{ dnsmasq_dev_domain }} → {{ _dnsmasq_target }} (LAN IP)
+      address=/.{{ dnsmasq_dev_domain | default(instance_tld) }}/{{ _dnsmasq_target }}
 
       # Volitelné vlastní záznamy
       {% for entry in dnsmasq_additional_addresses | default([]) %}
@@ -46,8 +46,8 @@
       listen-address={{ _dnsmasq_listen }}
       bind-interfaces
 
-      # Nezasílat dotazy s .local na upstream DNS (mDNS/Bonjour doménou)
-      local=/dev.local/
+      # Nezasílat dotazy s .{{ dnsmasq_dev_domain }} na upstream DNS
+      local=/{{ dnsmasq_dev_domain | default(instance_tld) }}/
 
       # Rychlejší cache
       cache-size=1000
@@ -63,11 +63,11 @@
   become: true
   when: not ansible_check_mode
 
-- name: Create macOS resolver for dev.local domain
+- name: Create macOS resolver for {{ dnsmasq_dev_domain }} domain
   ansible.builtin.copy:
-    dest: "/etc/resolver/{{ dnsmasq_dev_domain | default('dev.local') }}"
+    dest: "/etc/resolver/{{ dnsmasq_dev_domain | default(instance_tld) }}"
     content: |
-      # Vygenerováno Ansible – *.{{ dnsmasq_dev_domain | default('dev.local') }} → dnsmasq
+      # Vygenerováno Ansible – *.{{ dnsmasq_dev_domain | default(instance_tld) }} → dnsmasq
       nameserver 127.0.0.1
       port {{ dnsmasq_port | default(53) }}
     mode: '0644'
@@ -85,12 +85,12 @@
     - dnsmasq_svc.rc != 0
     - "'already started' not in (dnsmasq_svc.stdout | default(''))"
 
-- name: Verify dnsmasq resolves dev.local correctly
-  ansible.builtin.command: "dig +short grafana.dev.local @127.0.0.1"
+- name: Verify dnsmasq resolves {{ dnsmasq_dev_domain }} correctly
+  ansible.builtin.command: "dig +short grafana.{{ dnsmasq_dev_domain | default(instance_tld) }} @127.0.0.1"
   register: dns_check
   changed_when: false
   failed_when: false
 
 - name: Show DNS verification result
   ansible.builtin.debug:
-    msg: "DNS check grafana.dev.local → {{ dns_check.stdout | default('(prázdné – dnsmasq se spouští)') }}"
+    msg: "DNS check grafana.{{ dnsmasq_dev_domain | default(instance_tld) }} → {{ dns_check.stdout | default('(prázdné – dnsmasq se spouští)') }}"

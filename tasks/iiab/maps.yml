@@ -162,7 +162,7 @@
       ══════════════════════════════════════════════════════
        🗺️  Tileserver-gl (offline mapy) nainstalován
       ══════════════════════════════════════════════════════
-       URL:       https://{{ maps_domain | default('maps.dev.local') }}
+       URL:       https://{{ maps_domain | default('maps.' ~ instance_tld) }}
        Port:      {{ maps_port | default(8080) }}
        Data dir:  {{ maps_data_dir }}
 
@@ -174,7 +174,7 @@
            - url: "https://..."
              dest: "czech-republic.mbtiles"
 
-       Přidej do /etc/hosts:   127.0.0.1 {{ maps_domain | default('maps.dev.local') }}
+       Přidej do /etc/hosts:   127.0.0.1 {{ maps_domain | default('maps.' ~ instance_tld) }}
 
        Tipy:
          • MapTiler Cloud (free): https://cloud.maptiler.com

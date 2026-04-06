@@ -39,7 +39,7 @@
       ╔══════════════════════════════════════════════════════════════════════╗
       ║  JELLYFIN – PRVNÍ SPUŠTĚNÍ                                         ║
       ║                                                                     ║
-      ║  Otevři: https://{{ jellyfin_domain | default('media.dev.local') }}                ║
+      ║  Otevři: https://{{ jellyfin_domain | default('media.' ~ instance_tld) }}                ║
       ║  Projdi průvodce nastavením (admin účet, knihovny).                ║
       ║                                                                     ║
       ║  Mediální složky v kontejneru:                                     ║

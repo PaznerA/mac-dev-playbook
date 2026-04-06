@@ -82,11 +82,19 @@ install_metabase: false           # Metabase – BI dashboardy                  
 install_superset: false           # Apache Superset – data vizualizace                   [vyžaduje: PostgreSQL, Redis Docker]
 
 # ── Identita / federace ───────────────────────────────────────────────────────
-install_bluesky_pds: false        # Bluesky PDS – AT Protocol identity server (SSO @user.dev.local)
+install_bluesky_pds: false        # Bluesky PDS – AT Protocol identity server (SSO @user.<instance_tld>)
 
 # ── Síť / přístup ─────────────────────────────────────────────────────────────
 install_tailscale: true           # Tailscale – WireGuard mesh VPN (vzdálený přístup ke všem službám)
-install_dnsmasq: true             # dnsmasq – auto *.dev.local DNS (bez /etc/hosts editace)
+install_dnsmasq: true             # dnsmasq – auto *.<instance_tld> DNS (bez /etc/hosts editace)
+
+# ==============================================================================
+# INSTANCE IDENTITY – název a TLD instance
+# Umožňuje provozovat více instancí s různými doménami (např. *.acme.box)
+# ==============================================================================
+
+instance_name: "devboxnos"
+instance_tld: "dev.local"
 
 # ==============================================================================
 # HOMEBREW – obecné nastavení
@@ -424,7 +432,7 @@ ollama_keep_alive: "5m"        # Uvolnit model z RAM po nečinnosti (default 5m,
 
 # Spustit openclaw jako launchd daemon (vždy běžící, autorestart)
 openclaw_install_daemon: true
-openclaw_domain: "claw.dev.local"
+openclaw_domain: "claw.{{ instance_tld }}"
 openclaw_gateway_port: 18789
 
 # Jméno agenta (persona)
@@ -629,7 +637,7 @@ mariadb_users:
 # IIAB – WORDPRESS
 # ==============================================================================
 
-wordpress_domain: "wordpress.dev.local"
+wordpress_domain: "wordpress.{{ instance_tld }}"
 wordpress_dir: "{{ ansible_facts['env']['HOME'] }}/projects/wordpress"
 wordpress_db_name: "wordpress"
 wordpress_db_user: "wordpress"
@@ -640,13 +648,13 @@ wordpress_version: "latest"             # Docker image tag
 wordpress_port: 8084                    # Lokální port kontejneru (nginx proxy)
 wordpress_admin_user: "admin"
 wordpress_admin_password: "changeme_pw_wordpress_admin"
-wordpress_admin_email: "admin@dev.local"
+wordpress_admin_email: "admin@{{ instance_tld }}"
 
 # ==============================================================================
 # IIAB – NEXTCLOUD
 # ==============================================================================
 
-nextcloud_domain: "cloud.dev.local"
+nextcloud_domain: "cloud.{{ instance_tld }}"
 nextcloud_dir: "{{ ansible_facts['env']['HOME'] }}/projects/nextcloud"
 nextcloud_data_dir: "{{ ansible_facts['env']['HOME'] }}/nextcloud-data"
 nextcloud_db_name: "nextcloud"
@@ -663,7 +671,7 @@ nextcloud_port: 8085                    # Lokální port kontejneru (nginx proxy
 # Kiwix běží v Docker kontejneru (nejjednodušší na macOS)
 # ==============================================================================
 
-kiwix_domain: "kiwix.dev.local"
+kiwix_domain: "kiwix.{{ instance_tld }}"
 kiwix_port: 8888                           # Lokální port kiwix-serve
 kiwix_data_dir: "{{ ansible_facts['env']['HOME'] }}/kiwix"       # Sem ukládej .zim soubory
 
@@ -686,7 +694,7 @@ kiwix_zim_files: []
 # IIAB – OFFLINE MAPY (tileserver-gl + MBTiles)
 # ==============================================================================
 
-maps_domain: "maps.dev.local"
+maps_domain: "maps.{{ instance_tld }}"
 maps_port: 8080
 maps_data_dir: "{{ ansible_facts['env']['HOME'] }}/maps"        # Sem ukládej .mbtiles soubory
 
@@ -752,7 +760,7 @@ alloy_otlp_grpc_port: 4317    # Alloy veřejný OTLP gRPC (apps → Alloy)
 alloy_otlp_http_port: 4318    # Alloy veřejný OTLP HTTP (apps → Alloy)
 
 # ── Domény ────────────────────────────────────────────────────────────────────
-grafana_domain: "grafana.dev.local"
+grafana_domain: "grafana.{{ instance_tld }}"
 # Ostatní služby nejsou veřejně exponovány (localhost only), přes Grafana
 observability_hostname: "{{ ansible_facts['hostname'] }}"  # Hostname v Grafana labelech
 
@@ -807,7 +815,7 @@ grafana_dashboards:
 # IIAB – N8N (workflow automation)
 # ==============================================================================
 
-n8n_domain: "n8n.dev.local"
+n8n_domain: "n8n.{{ instance_tld }}"
 n8n_port: 5678
 n8n_version: "latest"      # nebo konkrétní: "1.40.0"
 n8n_data_dir: "{{ ansible_facts['env']['HOME'] }}/n8n"
@@ -818,7 +826,7 @@ n8n_timezone: "Europe/Prague"
 # IIAB – GITEA (self-hosted Git)
 # ==============================================================================
 
-gitea_domain: "git.dev.local"
+gitea_domain: "git.{{ instance_tld }}"
 gitea_port: 3003         # 3000=Grafana, 3001=Uptime Kuma, 3002=rezerva → Gitea na 3003
 gitea_ssh_port: 2222
 gitea_data_dir: "{{ ansible_facts['env']['HOME'] }}/gitea"
@@ -835,7 +843,7 @@ gitea_disable_registration: false              # true = pouze admin může přid
 #           Interní PostgreSQL, Redis, Sidekiq – vše v jednom kontejneru.
 # ==============================================================================
 
-gitlab_domain: "gitlab.dev.local"
+gitlab_domain: "gitlab.{{ instance_tld }}"
 gitlab_http_port: 8929          # Interní HTTP port (nginx přebírá SSL, forwarduje sem)
 gitlab_ssh_port: 2224           # Git SSH (22=systém, 2222=Gitea → Gitlab na 2224)
 gitlab_version: "latest"        # nebo konkrétní: "17.9.1-ce.0"
@@ -851,14 +859,14 @@ gitlab_sidekiq_concurrency: 10  # Background job vlákna
 # Vyžaduje: install_openclaw: true (Ollama musí běžet na portu 11434)
 # ==============================================================================
 
-openwebui_domain: "ai.dev.local"
+openwebui_domain: "ai.{{ instance_tld }}"
 openwebui_port: 3004             # Interní port kontejneru 8080 → host 3004
 openwebui_version: "main"        # nebo konkrétní: "0.5.20"
 openwebui_data_dir: "{{ ansible_facts['env']['HOME'] }}/openwebui"
 openwebui_secret_key: "changeme_pw_openwebui"
 openwebui_enable_signup: true    # false = admin musí přidávat uživatele ručně
 openwebui_admin_name: "Admin"
-openwebui_admin_email: "admin@dev.local"
+openwebui_admin_email: "admin@{{ instance_tld }}"
 openwebui_admin_password: "changeme_pw_openwebui_admin"
 
 # ==============================================================================
@@ -866,7 +874,7 @@ openwebui_admin_password: "changeme_pw_openwebui_admin"
 # Vyžaduje: install_gitea: true + manuální OAuth2 aplikace v Gitee
 # ==============================================================================
 
-woodpecker_domain: "ci.dev.local"
+woodpecker_domain: "ci.{{ instance_tld }}"
 woodpecker_port: 8060            # Web UI
 woodpecker_grpc_port: 9060       # gRPC pro agenty (interní)
 woodpecker_version: "v3"                # latest tag odstraněn, musí být semver (v3/v3.x/v3.x.y)
@@ -881,7 +889,7 @@ woodpecker_max_workflows: 4      # Max paralelních pipeline runů na agenta
 # IIAB – PORTAINER CE (Docker management UI)
 # ==============================================================================
 
-portainer_domain: "portainer.dev.local"
+portainer_domain: "portainer.{{ instance_tld }}"
 portainer_port: 9002                   # 9000/9001 rezervováno pro RustFS (S3 API + console)
 portainer_version: "latest"
 portainer_data_dir: "{{ ansible_facts['env']['HOME'] }}/portainer"
@@ -891,7 +899,7 @@ portainer_admin_password: "changeme_pw_portainer"
 # IIAB – JELLYFIN (media server)
 # ==============================================================================
 
-jellyfin_domain: "media.dev.local"
+jellyfin_domain: "media.{{ instance_tld }}"
 jellyfin_port: 8096
 jellyfin_version: "latest"
 jellyfin_lan_access: true              # true = port dostupný z LAN (pro TV, mobilní klienty)
@@ -905,7 +913,7 @@ jellyfin_music_dir: "{{ ansible_facts['env']['HOME'] }}/media/music"
 # IIAB – UPTIME KUMA (monitoring dashboard)
 # ==============================================================================
 
-uptime_kuma_domain: "uptime.dev.local"
+uptime_kuma_domain: "uptime.{{ instance_tld }}"
 uptime_kuma_port: 3001
 uptime_kuma_version: "1"   # nebo konkrétní: "1.23.13"
 uptime_kuma_data_dir: "{{ ansible_facts['env']['HOME'] }}/uptime-kuma"
@@ -917,7 +925,7 @@ uptime_kuma_auto_monitors: true  # Automaticky vytvořit monitory pro všechny i
 # IIAB – CALIBRE-WEB (ebook server)
 # ==============================================================================
 
-calibreweb_domain: "books.dev.local"
+calibreweb_domain: "books.{{ instance_tld }}"
 calibreweb_port: 8083
 calibreweb_version: "latest"   # nebo konkrétní: "0.6.21"
 calibreweb_books_dir: "{{ ansible_facts['env']['HOME'] }}/calibre"   # Calibre library
@@ -952,12 +960,12 @@ pmset_networkoversleep: 0              # Neuspávat síťovku při sleep displej
 pmset_ttyskeepawake: 1                 # TTY session zabraňuje spánku
 
 # ==============================================================================
-# DNSMASQ – automatický *.dev.local DNS resolver
+# DNSMASQ – automatický *.<instance_tld> DNS resolver
 # Odstraňuje nutnost ručně editovat /etc/hosts
 # ==============================================================================
 
-dnsmasq_dev_domain: "dev.local"           # Doména pro lokální vývoj
-dnsmasq_dev_address: "127.0.0.1"          # Cíl *.dev.local z localhostu
+dnsmasq_dev_domain: "{{ instance_tld }}"   # Doména pro lokální vývoj (z instance_tld)
+dnsmasq_dev_address: "127.0.0.1"          # Cíl *.<instance_tld> z localhostu
 dnsmasq_port: 53                          # DNS port (53 = výchozí)
 dnsmasq_lan_access: true                  # true = dnsmasq poslouchá i na LAN (pro TV, mobily, hosty)
 dnsmasq_additional_addresses: []          # Další vlastní DNS záznamy
@@ -1026,14 +1034,14 @@ traefik_image_version: "latest"
 traefik_http_port: 80
 traefik_https_port: 443
 traefik_dashboard_port: 8080
-traefik_domain: "traefik.dev.local"
+traefik_domain: "traefik.{{ instance_tld }}"
 traefik_log_level: "INFO"           # DEBUG / INFO / WARN / ERROR
 traefik_config_dir: "{{ ansible_facts['env']['HOME'] }}/iiab/traefik"
 
 # ── Home Assistant ─────────────────────────────────────────────────────────────
 homeassistant_version: "stable"     # stable / latest / konkrétní tag (2025.1.0)
 homeassistant_port: 8123
-homeassistant_domain: "home.dev.local"
+homeassistant_domain: "home.{{ instance_tld }}"
 homeassistant_timezone: "Europe/Prague"
 homeassistant_config_dir: "{{ ansible_facts['env']['HOME'] }}/homeassistant"
 # true = privileged + network_mode: host → mDNS/Bonjour auto-discovery
@@ -1049,7 +1057,7 @@ homeassistant_privileged: false
 rustfs_version: "latest"
 rustfs_api_port: 9010               # S3 API (aws-cli, rclone, restic, SDK…) – 9000 obsazeno PHP-FPM
 rustfs_console_port: 9001           # Web konzole
-rustfs_domain: "fs.dev.local"
+rustfs_domain: "fs.{{ instance_tld }}"
 rustfs_data_dir: "{{ ansible_facts['env']['HOME'] }}/rustfs/data"
 rustfs_access_key: "changeme_pw_rustfs_access"
 rustfs_secret_key: "changeme_pw_rustfs_secret"
@@ -1059,7 +1067,7 @@ rustfs_secret_key: "changeme_pw_rustfs_secret"
 # Vyžaduje: install_mariadb: true, redis_docker: true
 # ==============================================================================
 
-erpnext_domain: "erp.dev.local"
+erpnext_domain: "erp.{{ instance_tld }}"
 erpnext_port: 8080
 erpnext_version: "v15"
 erpnext_data_dir: "{{ ansible_facts['env']['HOME'] }}/erpnext/sites"
@@ -1070,14 +1078,14 @@ erpnext_admin_password: "changeme_pw_erpnext"
 # Vyžaduje: install_mariadb: true
 # ==============================================================================
 
-freescout_domain: "helpdesk.dev.local"
+freescout_domain: "helpdesk.{{ instance_tld }}"
 freescout_port: 8090
 freescout_version: "latest"
 freescout_data_dir: "{{ ansible_facts['env']['HOME'] }}/freescout/data"
 freescout_db_name: "freescout"
 freescout_db_user: "freescout"
 freescout_db_password: "changeme_pw_freescout"
-freescout_admin_email: "admin@dev.local"
+freescout_admin_email: "admin@{{ instance_tld }}"
 freescout_admin_password: "changeme_pw_freescout"
 freescout_timezone: "Europe/Prague"
 
@@ -1086,7 +1094,7 @@ freescout_timezone: "Europe/Prague"
 # Vyžaduje: install_postgresql: true
 # ==============================================================================
 
-mattermost_domain: "chat.dev.local"
+mattermost_domain: "chat.{{ instance_tld }}"
 mattermost_port: 8065
 mattermost_version: "latest"
 mattermost_data_dir: "{{ ansible_facts['env']['HOME'] }}/mattermost"
@@ -1100,7 +1108,7 @@ mattermost_timezone: "Europe/Prague"
 # Vyžaduje: install_postgresql: true, redis_docker: true
 # ==============================================================================
 
-outline_domain: "wiki.dev.local"
+outline_domain: "wiki.{{ instance_tld }}"
 outline_port: 3005
 outline_version: "latest"
 outline_data_dir: "{{ ansible_facts['env']['HOME'] }}/outline/data"
@@ -1115,7 +1123,7 @@ outline_utils_secret: "changeme_pw_outline_utils"
 # Vyžaduje: install_mariadb: true
 # ==============================================================================
 
-freepbx_domain: "pbx.dev.local"
+freepbx_domain: "pbx.{{ instance_tld }}"
 freepbx_port: 8088                     # Web UI
 freepbx_sip_port: 5060                 # SIP signaling (UDP+TCP)
 freepbx_iax_port: 4569                 # IAX2 protocol
@@ -1132,7 +1140,7 @@ freepbx_timezone: "Europe/Prague"
 # ENGINEERING – QGIS SERVER (GIS mapový server)
 # ==============================================================================
 
-qgis_domain: "gis.dev.local"
+qgis_domain: "gis.{{ instance_tld }}"
 qgis_port: 8071
 qgis_version: "3.36"
 qgis_data_dir: "{{ ansible_facts['env']['HOME'] }}/qgis"
@@ -1142,7 +1150,7 @@ qgis_data_dir: "{{ ansible_facts['env']['HOME'] }}/qgis"
 # Vyžaduje: install_postgresql: true
 # ==============================================================================
 
-metabase_domain: "bi.dev.local"
+metabase_domain: "bi.{{ instance_tld }}"
 metabase_port: 3002
 metabase_version: "latest"
 metabase_data_dir: "{{ ansible_facts['env']['HOME'] }}/metabase"
@@ -1156,7 +1164,7 @@ metabase_timezone: "Europe/Prague"
 # Vyžaduje: install_postgresql: true, redis_docker: true
 # ==============================================================================
 
-superset_domain: "superset.dev.local"
+superset_domain: "superset.{{ instance_tld }}"
 superset_port: 8089
 superset_version: "latest"
 superset_data_dir: "{{ ansible_facts['env']['HOME'] }}/superset"
@@ -1167,10 +1175,10 @@ superset_secret_key: "changeme_pw_superset_secret"
 
 # ==============================================================================
 # INFRA – BLUESKY PDS (AT Protocol Personal Data Server)
-# Federovaná identita: @user.bsky.dev.local → SSO pro všechny služby
+# Federovaná identita: @user.bsky.<instance_tld> → SSO pro všechny služby
 # ==============================================================================
 
-bluesky_pds_hostname: "bsky.dev.local"
+bluesky_pds_hostname: "bsky.{{ instance_tld }}"
 bluesky_pds_port: 2583
 bluesky_pds_version: "latest"
 bluesky_pds_data_dir: "{{ ansible_facts['env']['HOME'] }}/bluesky-pds"

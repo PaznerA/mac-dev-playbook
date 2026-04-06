@@ -38,11 +38,11 @@
   ansible.builtin.shell: >
     {{ docker_bin }} compose -p iiab
     exec -T wordpress wp core install --allow-root
-    --url="https://{{ wordpress_domain | default('wordpress.dev.local') }}"
+    --url="https://{{ wordpress_domain | default('wordpress.' ~ instance_tld) }}"
     --title="Dev WordPress"
     --admin_user="{{ wordpress_admin_user | default('admin') }}"
     --admin_password="{{ wordpress_admin_password | default('changeme_pw_wordpress_admin') }}"
-    --admin_email="{{ wordpress_admin_email | default('admin@dev.local') }}"
+    --admin_email="{{ wordpress_admin_email | default('admin@' ~ instance_tld) }}"
     --skip-email
   when:
     - _wp_container.stdout | default('') | length > 0

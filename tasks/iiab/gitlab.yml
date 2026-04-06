@@ -40,7 +40,7 @@
       # Edituj přes config.yml proměnné, ne přímo zde.
       # ===========================================================================
 
-      external_url 'https://{{ gitlab_domain | default("gitlab.dev.local") }}'
+      external_url 'https://{{ gitlab_domain | default("gitlab." ~ instance_tld) }}'
 
       # ── Interní nginx (reverzní proxy přebírá SSL) ────────────────────────────
       nginx['listen_port']  = {{ gitlab_http_port | default(8929) }}
@@ -110,6 +110,6 @@
       ║    cat {{ gitlab_config_dir }}/initial_root_password               ║
       ║    (soubor zmizí po 24 hodinách – okamžitě změň heslo!)           ║
       ║                                                                     ║
-      ║  Admin URL: https://{{ gitlab_domain | default("gitlab.dev.local") }}      ║
+      ║  Admin URL: https://{{ gitlab_domain | default("gitlab." ~ instance_tld) }}      ║
       ║  SSH klon: git clone ssh://git@localhost:{{ gitlab_ssh_port | default(2224) }}/group/repo.git ║
       ╚══════════════════════════════════════════════════════════════════════╝

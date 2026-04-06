@@ -38,9 +38,9 @@
       ║  WOODPECKER CI – MANUÁLNÍ KROK (pouze při první instalaci)         ║
       ║                                                                     ║
       ║  V Gitee vytvoř OAuth2 aplikaci:                                   ║
-      ║    https://{{ gitea_domain | default('git.dev.local') }}/user/settings/applications  ║
+      ║    https://{{ gitea_domain | default('git.' ~ instance_tld) }}/user/settings/applications  ║
       ║    Název: Woodpecker CI                                             ║
-      ║    Redirect URI: https://{{ woodpecker_domain | default('ci.dev.local') }}/authorize ║
+      ║    Redirect URI: https://{{ woodpecker_domain | default('ci.' ~ instance_tld) }}/authorize ║
       ║                                                                     ║
       ║  Zkopíruj Client ID + Secret do config.yml:                        ║
       ║    woodpecker_gitea_client: "<client-id>"                          ║
