@@ -1,0 +1,116 @@
+---
+# ==============================================================================
+# WOODPECKER SETUP – vytvoření Gitea repozitáře + mirror playbooku
+#
+# Automaticky:
+#   1. Ověří/vytvoří repozitář devboxnos-playbook v Gitee
+#   2. Přidá git remote a pushne aktuální stav
+#   3. Ověří/registruje Woodpecker webhook
+#
+# Vyžaduje: install_woodpecker + install_gitea
+# ==============================================================================
+
+- name: "[Woodpecker] Set Gitea API base URL"
+  ansible.builtin.set_fact:
+    _gitea_api: "http://127.0.0.1:{{ gitea_port | default(3003) }}/api/v1"
+    _gitea_user: "{{ gitea_admin_user | default(ansible_facts['user_id']) }}"
+    _gitea_pass: "{{ gitea_admin_password | default('changeme_gitea') }}"
+
+- name: "[Woodpecker] Check if devboxnos-playbook repo exists"
+  ansible.builtin.uri:
+    url: "{{ _gitea_api }}/repos/{{ _gitea_user }}/devboxnos-playbook"
+    method: GET
+    user: "{{ _gitea_user }}"
+    password: "{{ _gitea_pass }}"
+    force_basic_auth: true
+    status_code: [200, 404]
+  register: _gitea_repo_check
+  check_mode: false
+
+- name: "[Woodpecker] Create devboxnos-playbook repo in Gitea"
+  ansible.builtin.uri:
+    url: "{{ _gitea_api }}/user/repos"
+    method: POST
+    user: "{{ _gitea_user }}"
+    password: "{{ _gitea_pass }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      name: devboxnos-playbook
+      description: "devBoxNOS Ansible playbook – local CI mirror"
+      private: true
+      auto_init: false
+    status_code: [201]
+  when: _gitea_repo_check.status == 404
+
+- name: "[Woodpecker] Check if gitea remote exists"
+  ansible.builtin.command:
+    cmd: git remote get-url gitea
+    chdir: "{{ playbook_dir }}"
+  register: _git_remote_gitea
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "[Woodpecker] Add gitea remote"
+  ansible.builtin.command:
+    cmd: >
+      git remote add gitea
+      http://{{ _gitea_user }}:{{ _gitea_pass }}@127.0.0.1:{{ gitea_port | default(3003) }}/{{ _gitea_user }}/devboxnos-playbook.git
+    chdir: "{{ playbook_dir }}"
+  no_log: true
+  when: _git_remote_gitea.rc != 0
+
+- name: "[Woodpecker] Update gitea remote URL (idempotent)"
+  ansible.builtin.command:
+    cmd: >
+      git remote set-url gitea
+      http://{{ _gitea_user }}:{{ _gitea_pass }}@127.0.0.1:{{ gitea_port | default(3003) }}/{{ _gitea_user }}/devboxnos-playbook.git
+    chdir: "{{ playbook_dir }}"
+  no_log: true
+  changed_when: false
+  when: _git_remote_gitea.rc == 0
+
+- name: "[Woodpecker] Push playbook to Gitea"
+  ansible.builtin.command:
+    cmd: git push -u gitea dev
+    chdir: "{{ playbook_dir }}"
+  register: _git_push
+  changed_when: "'Everything up-to-date' not in _git_push.stderr"
+  failed_when: false
+
+- name: "[Woodpecker] Check if Woodpecker webhook exists on repo"
+  ansible.builtin.uri:
+    url: "{{ _gitea_api }}/repos/{{ _gitea_user }}/devboxnos-playbook/hooks"
+    method: GET
+    user: "{{ _gitea_user }}"
+    password: "{{ _gitea_pass }}"
+    force_basic_auth: true
+    status_code: [200]
+  register: _gitea_hooks
+  check_mode: false
+
+- name: "[Woodpecker] Set expected webhook URL"
+  ansible.builtin.set_fact:
+    _woodpecker_hook_url: "http://127.0.0.1:{{ woodpecker_port | default(8060) }}/hook"
+
+- name: "[Woodpecker] Register Woodpecker webhook"
+  ansible.builtin.uri:
+    url: "{{ _gitea_api }}/repos/{{ _gitea_user }}/devboxnos-playbook/hooks"
+    method: POST
+    user: "{{ _gitea_user }}"
+    password: "{{ _gitea_pass }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      type: gitea
+      active: true
+      events:
+        - push
+        - pull_request
+      config:
+        url: "{{ _woodpecker_hook_url }}"
+        content_type: json
+        secret: "{{ woodpecker_agent_secret | default('changeme_pw_woodpecker') }}"
+    status_code: [201]
+  when: _gitea_hooks.json | selectattr('config.url', 'equalto', _woodpecker_hook_url) | list | length == 0

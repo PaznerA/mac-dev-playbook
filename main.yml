@@ -539,6 +539,13 @@
       when: install_gitea | default(false)
       tags: ['iiab', 'gitea', 'stacks']
 
+    # Woodpecker CI setup: Gitea repo mirror + webhook
+    - import_tasks: tasks/woodpecker-setup.yml
+      when:
+        - install_woodpecker | default(false)
+        - install_gitea | default(false)
+      tags: ['woodpecker', 'ci', 'stacks']
+
     # WordPress post-start: wp-cli auto-install (admin účet + site title)
     - import_tasks: tasks/iiab/wordpress_post.yml
       when: install_wordpress | default(false)
