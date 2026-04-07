@@ -559,6 +559,11 @@
       when: install_puter | default(false)
       tags: ['iiab', 'puter', 'stacks']
 
+    # Puter apps: register devBoxNOS services as iframe apps
+    - import_tasks: tasks/iiab/puter_apps.yml
+      when: install_puter | default(false)
+      tags: ['iiab', 'puter', 'puter-apps', 'stacks']
+
     # Portainer post-start: admin init + OIDC settings
     - import_tasks: tasks/iiab/portainer_post.yml
       when: install_portainer | default(false)

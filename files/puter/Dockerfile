@@ -27,6 +27,25 @@ RUN sed -i "s|// res.setHeader('Access-Control-Allow-Credentials', true);|res.se
 RUN sed -i "s|cors: {|cors: { credentials: true,|g" \
     /opt/puter/app/src/backend/src/modules/web/SocketioService.js
 
+# Fix: Set cookie domain to parent domain for cross-subdomain auth (api.os.dev.local ↔ os.dev.local)
+# Without domain attribute, cookies are only sent to the exact host that set them.
+# We add domain: '.' + config.domain to make cookies valid across all subdomains.
+RUN node -e " \
+  const fs = require('fs'); \
+  const files = [ \
+    '/opt/puter/app/src/backend/src/routers/login.js', \
+    '/opt/puter/app/src/backend/src/routers/signup.js' \
+  ]; \
+  files.forEach(f => { \
+    let c = fs.readFileSync(f, 'utf8'); \
+    c = c.replace(/sameSite: 'none',\n\s+secure: true,\n\s+httpOnly: true,/g, \
+      \"sameSite: 'none',\\n        secure: true,\\n        httpOnly: true,\\n        domain: '.' + (require('/opt/puter/app/src/backend/src/config').domain || 'os.dev.local'),\" \
+    ); \
+    fs.writeFileSync(f, c); \
+  }); \
+  console.log('Cookie domain patched'); \
+"
+
 # Disable Camera/Recorder auto-launch (cloud-only apps, not available in self-hosted)
 RUN sed -i 's/app-5584fbf7-ed69-41fc-99cd-85da21b1ef51/disabled-camera/g' \
     /opt/puter/app/src/gui/dist/bundle.min.js && \
