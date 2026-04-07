@@ -327,7 +327,7 @@
     body:
       providers: "{{ _ak_all_proxy.json.results | default([]) | map(attribute='pk') | list }}"
       config:
-        authentik_host: "http://localhost:9000"
+        authentik_host: "https://{{ authentik_domain | default('auth.dev.local') }}"
         authentik_host_browser: "https://{{ authentik_domain | default('auth.dev.local') }}"
     status_code: [200]
   when:
