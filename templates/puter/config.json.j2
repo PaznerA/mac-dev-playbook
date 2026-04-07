@@ -5,7 +5,6 @@
   "pub_port": 443,
   "protocol": "https",
   "nginx_mode": true,
-  "experimental_no_subdomain": true,
   "cookie_name": "puter_token",
   "jwt_secret": "{{ puter_jwt_secret | default(lookup('pipe', 'openssl rand -hex 32')) }}",
   "services": {
