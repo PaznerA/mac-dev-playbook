@@ -1,5 +1,24 @@
 FROM ghcr.io/heyputer/puter:latest
 
+# Fix: Copy pre-built GUI assets (CSS, fonts, images, manifest) to runtime gui/dist
+# Puter serves from src/gui/dist/ but only JS is there; CSS/fonts/images are in app/dist/
+RUN mkdir -p /opt/puter/app/src/gui/dist && \
+    cp -r /opt/puter/app/dist/* /opt/puter/app/src/gui/dist/
+
+# Fix: Add CSS link to HTML (Puter homepage doesn't include it in self-hosted/bundled mode)
+# Inject CSS link after the </head> opening — template uses JS backtick strings
+RUN node -e " \
+  const fs = require('fs'); \
+  const f = '/opt/puter/app/src/backend/src/services/PuterHomepageService.js'; \
+  let c = fs.readFileSync(f, 'utf8'); \
+  c = c.replace( \
+    '<link rel=\"preload\" as=\"image\" href=\"\${asset_dir}/images/wallpaper.webp\">', \
+    '<link rel=\"preload\" as=\"image\" href=\"\${asset_dir}/images/wallpaper.webp\">\\n        <link rel=\"stylesheet\" href=\"\${asset_dir}/bundle.min.css\">' \
+  ); \
+  fs.writeFileSync(f, c); \
+  console.log('CSS link injected'); \
+"
+
 # Fix CORS credentials (Puter 2.5.x bug — commented out in source)
 RUN sed -i "s|// res.setHeader('Access-Control-Allow-Credentials', true);|res.setHeader('Access-Control-Allow-Credentials', true);|g" \
     /opt/puter/app/src/backend/src/modules/web/WebServerService.js
@@ -10,6 +29,6 @@ RUN sed -i "s|cors: {|cors: { credentials: true,|g" \
 
 # Disable Camera/Recorder auto-launch (cloud-only apps, not available in self-hosted)
 RUN sed -i 's/app-5584fbf7-ed69-41fc-99cd-85da21b1ef51/disabled-camera/g' \
-    /opt/puter/app/dist/bundle.min.js && \
+    /opt/puter/app/src/gui/dist/bundle.min.js && \
     sed -i 's/app-7bdca1a4-6373-4c98-ad97-03ff2d608ca1/disabled-recorder/g' \
-    /opt/puter/app/dist/bundle.min.js
+    /opt/puter/app/src/gui/dist/bundle.min.js
