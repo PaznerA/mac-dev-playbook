@@ -31,6 +31,12 @@ services:
       GITEA__service__DISABLE_REGISTRATION: "{{ gitea_disable_registration | default(false) | string | lower }}"
       GITEA__log__LEVEL: "Warn"
       TZ: "Europe/Prague"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - devops_net
       - {{ stacks_shared_network }}

@@ -98,18 +98,24 @@
         (install_gitlab | default(false)) | ternary(
           [{'name': 'GitLab', 'port': gitlab_http_port | default(8929), 'proto': 'http',
             'url': 'http://127.0.0.1:' ~ (gitlab_http_port | default(8929)) ~ '/'}], [])
-      }}
-    _svc_onboarding: >-
-      {{
-        (install_jellyfin | default(false)) | ternary(
-          [{'name': 'Jellyfin', 'port': jellyfin_port | default(8096), 'proto': 'http',
-            'url': 'http://127.0.0.1:' ~ (jellyfin_port | default(8096)) ~ '/health',
-            'hint': 'Otevri https://' ~ (jellyfin_domain | default('media.dev.local')) ~ ' a projdi pruvodce'}], [])
         +
         (install_openwebui | default(false)) | ternary(
           [{'name': 'Open WebUI', 'port': openwebui_port | default(3004), 'proto': 'http',
-            'url': 'http://127.0.0.1:' ~ (openwebui_port | default(3004)) ~ '/',
-            'hint': 'Otevri https://' ~ (openwebui_domain | default('ai.dev.local')) ~ ' a vytvor ucet (prvni user = admin)'}], [])
+            'url': 'http://127.0.0.1:' ~ (openwebui_port | default(3004)) ~ '/'}], [])
+        +
+        (install_portainer | default(false)) | ternary(
+          [{'name': 'Portainer', 'port': portainer_port | default(9002), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (portainer_port | default(9002)) ~ '/'}], [])
+        +
+        (install_jellyfin | default(false)) | ternary(
+          [{'name': 'Jellyfin', 'port': jellyfin_port | default(8096), 'proto': 'http',
+            'url': 'http://127.0.0.1:' ~ (jellyfin_port | default(8096)) ~ '/health'}], [])
+      }}
+    _svc_onboarding: >-
+      {{
+        (false) | ternary([], [])  {# Jellyfin moved to _svc_auto (auto-setup by jellyfin_post.yml) #}
+        +
+        (false) | ternary([], [])  {# Open WebUI moved to _svc_auto (admin auto-created by openwebui_post.yml) #}
         +
         (install_uptime_kuma | default(false)) | ternary(
           [{'name': 'Uptime Kuma', 'port': uptime_kuma_port | default(3001), 'proto': 'http',
@@ -126,10 +132,7 @@
             'url': 'http://127.0.0.1:' ~ (kiwix_port | default(8888)) ~ '/',
             'hint': 'Kiwix potrebuje ZIM soubory. Spust download-zim.sh a restartuj.'}], [])
         +
-        (install_portainer | default(false)) | ternary(
-          [{'name': 'Portainer', 'port': portainer_port | default(9002), 'proto': 'http',
-            'url': 'http://127.0.0.1:' ~ (portainer_port | default(9002)) ~ '/',
-            'hint': 'Otevri https://' ~ (portainer_domain | default('portainer.dev.local')) ~ ' a vytvor admin ucet do 5 minut!'}], [])
+        (false) | ternary([], [])  {# Portainer moved to _svc_auto (admin auto-created by portainer_post.yml) #}
         +
         (install_outline | default(false)) | ternary(
           [{'name': 'Outline', 'port': outline_port | default(3005), 'proto': 'http',

@@ -42,3 +42,51 @@
     - _portainer_admin_check.status | default(0) == 404
   changed_when: _portainer_admin_create.status | default(0) == 200
   failed_when: false
+
+# ── Authentik OIDC přes Portainer Settings API ──────────────────────────────
+
+- name: "[Portainer Post] Get auth token for admin"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/auth"
+    method: POST
+    body_format: json
+    body:
+      Username: "admin"
+      Password: "{{ portainer_admin_password | default(global_password_prefix + '_pw_portainer') }}"
+    status_code: [200]
+    timeout: 10
+  register: _portainer_auth
+  when:
+    - _portainer_ready.status | default(0) == 200
+    - install_authentik | default(false)
+  failed_when: false
+
+- name: "[Portainer Post] Configure OAuth2 settings (Authentik)"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/settings"
+    method: PUT
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ _portainer_auth.json.jwt | default('') }}"
+    body:
+      AuthenticationMethod: 3
+      OAuthSettings:
+        ClientID: "{{ authentik_oidc_portainer_client_id }}"
+        ClientSecret: "{{ authentik_oidc_portainer_client_secret }}"
+        AuthorizationURI: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/authorize/"
+        AccessTokenURI: "http://infra-authentik-server-1:9000/application/o/token/"
+        ResourceURI: "http://infra-authentik-server-1:9000/application/o/userinfo"
+        RedirectURI: "https://{{ portainer_domain | default('portainer.dev.local') }}"
+        UserIdentifier: "preferred_username"
+        Scopes: "openid profile email"
+        OAuthAutoCreateUsers: true
+        DefaultTeamID: 0
+        SSO: true
+        LogoutURI: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/portainer/end-session/"
+    status_code: [200]
+    timeout: 10
+  when:
+    - _portainer_auth.json.jwt is defined
+    - _portainer_auth.json.jwt | length > 0
+  changed_when: true
+  failed_when: false

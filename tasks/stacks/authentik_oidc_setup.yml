@@ -29,6 +29,60 @@
   ansible.builtin.debug:
     msg: "{{ 'OK — token získán' if (_ak_token | length >= 10) else 'CHYBA — token nenalezen, OIDC setup přeskočen' }}"
 
+# ── 1b. RBAC skupiny (providers, admins, managers, users, guests) ────────────
+
+- name: "[Authentik OIDC] List existing groups"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/groups/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_groups_resp
+  failed_when: false
+  when: _ak_token | length >= 10
+
+- name: "[Authentik OIDC] Create default RBAC groups"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/groups/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      is_superuser: "{{ item.name == 'devboxnos-providers' or item.name == 'devboxnos-admins' }}"
+    status_code: [200, 201]
+  loop: "{{ authentik_default_groups | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - _ak_token | length >= 10
+    - _ak_groups_resp.json is defined
+    - item.name not in (_ak_groups_resp.json.results | default([]) | map(attribute='name') | list)
+  failed_when: false
+
+- name: "[Authentik OIDC] Add provider admin to providers group"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/users/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      username: "provider-admin"
+      name: "Provider Admin"
+      email: "{{ provider_admin_email | default('') }}"
+      path: "providers"
+      groups: "{{ _ak_groups_resp.json.results | default([]) | selectattr('name', 'equalto', 'devboxnos-providers') | map(attribute='pk') | list }}"
+    status_code: [200, 201, 400]
+  when:
+    - _ak_token | length >= 10
+    - provider_admin_email | default('') | length > 0
+    - _ak_groups_resp.json is defined
+  failed_when: false
+
 # ── 2. Flows ─────────────────────────────────────────────────────────────────
 
 - name: "[Authentik OIDC] Get authorization flow"

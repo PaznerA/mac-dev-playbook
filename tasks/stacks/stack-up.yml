@@ -9,6 +9,32 @@
 - name: "[Stacks] Flush handlers before stack deployment"
   ansible.builtin.meta: flush_handlers
 
+# ── mkcert CA pro kontejnery (OIDC discovery potřebuje důvěřovat self-signed certům) ──
+
+- name: "[Stacks] Resolve mkcert CAROOT path"
+  ansible.builtin.command: mkcert -CAROOT
+  register: _mkcert_caroot
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: "[Stacks] Create shared certs directory for containers"
+  ansible.builtin.file:
+    path: "{{ stacks_dir }}/shared-certs"
+    state: directory
+    mode: '0755'
+  when: _mkcert_caroot.rc | default(1) == 0
+
+- name: "[Stacks] Copy mkcert root CA to shared-certs"
+  ansible.builtin.copy:
+    src: "{{ _mkcert_caroot.stdout | trim }}/rootCA.pem"
+    dest: "{{ stacks_dir }}/shared-certs/rootCA.pem"
+    mode: '0644'
+    remote_src: true
+  when:
+    - _mkcert_caroot.rc | default(1) == 0
+    - _mkcert_caroot.stdout | default('') | trim | length > 0
+
 # ── Deploy compose souborů z šablon ──────────────────────────────────────────
 
 - name: "[Stacks] Deploy infra compose"

@@ -92,3 +92,28 @@
   changed_when: true
   failed_when: false
   check_mode: false
+
+# ── OIDC: nastavení user_oidc jako výchozí login metody ─────────────────
+- name: "[Nextcloud Post] Enable OIDC as direct login (skip Nextcloud login page)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose -p iiab
+    exec -T -u www-data nextcloud
+    php occ config:app:set user_oidc allow_multiple_user_backends --value=0
+  when:
+    - _nc_container.stdout | default('') | length > 0
+    - install_authentik | default(false)
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "[Nextcloud Post] Set OIDC provider as login redirect"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose -p iiab
+    exec -T -u www-data nextcloud
+    php occ config:app:set user_oidc login_redirect --value=authentik
+  when:
+    - _nc_container.stdout | default('') | length > 0
+    - install_authentik | default(false)
+  changed_when: false
+  failed_when: false
+  check_mode: false

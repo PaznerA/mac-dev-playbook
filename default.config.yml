@@ -8,6 +8,43 @@
 global_password_prefix: "changeme"
 
 # ==============================================================================
+# INSTANCE IDENTITY & FLEET
+# Kazdy box ma unikatni identitu. Provider (Czechbot.eu) spravuje fleet.
+# ==============================================================================
+
+instance_name: "devboxnos"                # Unikatni nazev instance (lowercase, bez mezer)
+instance_tld: "dev.local"                 # TLD pro vsechny sluzby (napr. grafana.<tld>)
+instance_org: ""                          # Nazev organizace klienta
+instance_location: ""                     # Lokalita (napr. "Praha, CZ")
+instance_role: "standalone"               # standalone | headquarters | factory | office | division
+instance_parent: ""                       # Slug nadrazeneho boxu (pro hierarchii)
+
+# ── Fleet / Heartbeat ────────────────────────────────────────────────────────
+configure_heartbeat: false                # Heartbeat daemon pro fleet reporting
+heartbeat_endpoint: ""                    # URL fleet management serveru
+heartbeat_interval: 300                   # Interval v sekundach (5 minut)
+heartbeat_api_key: "{{ global_password_prefix }}_pw_heartbeat"
+
+# ── Box Management API ───────────────────────────────────────────────────────
+install_boxapi: false                     # FastAPI management API
+boxapi_port: 8099
+boxapi_domain: "api.{{ instance_tld }}"
+boxapi_secret: "{{ global_password_prefix }}_pw_boxapi"
+
+# ── Provider Access ──────────────────────────────────────────────────────────
+provider_admin_email: ""                  # Email providera (Czechbot.eu) — same rights as CEO
+provider_tailscale_tag: "tag:provider"    # Tailscale ACL tag pro providera
+
+# ── Backup (Restic) ──────────────────────────────────────────────────────────
+configure_backup: false
+restic_repo: ""                           # "/Volumes/Backup/restic" | "s3:endpoint/bucket" | "sftp:user@host:/path"
+restic_password: "{{ global_password_prefix }}_pw_restic"
+restic_keep_daily: 7
+restic_keep_weekly: 4
+restic_keep_monthly: 6
+restic_backup_schedule_hour: 3            # Hodina denni zalohy (0-23)
+
+# ==============================================================================
 # INSTALLATION QUEUE
 # Zakomentuj (#) libovolný řádek pro PŘESKOČENÍ dané komponenty.
 # Comment out (#) any line to SKIP that component during provisioning.
@@ -840,7 +877,10 @@ n8n_port: 5678
 n8n_version: "latest"      # nebo konkrétní: "1.40.0"
 n8n_data_dir: "{{ ansible_facts['env']['HOME'] }}/n8n"
 n8n_timezone: "Europe/Prague"
-# n8n od v1.0 nemá env var pro admin heslo – první registrovaný uživatel = owner
+n8n_admin_email: "admin@dev.local"
+n8n_admin_password: "{{ global_password_prefix }}_pw_n8n"
+n8n_admin_firstname: "Admin"
+n8n_admin_lastname: "devBoxNOS"
 
 # ==============================================================================
 # IIAB – GITEA (self-hosted Git)
@@ -1077,6 +1117,9 @@ homeassistant_config_dir: "{{ ansible_facts['env']['HOME'] }}/homeassistant"
 # Pro plný Bonjour/mDNS na Mac je potřeba nativní instalace HA nebo host networking
 # přes --network host v Docker Desktop (experimentální funkce).
 homeassistant_privileged: false
+homeassistant_admin_name: "Admin"
+homeassistant_admin_user: "admin"
+homeassistant_admin_password: "{{ global_password_prefix }}_pw_homeassistant"
 
 # ==============================================================================
 # RUSTFS – S3-compatible object storage
@@ -1187,6 +1230,10 @@ metabase_db_name: "metabase"
 metabase_db_user: "metabase"
 metabase_db_password: "{{ global_password_prefix }}_pw_metabase"
 metabase_timezone: "Europe/Prague"
+metabase_admin_email: "admin@dev.local"
+metabase_admin_password: "{{ global_password_prefix }}_pw_metabase_admin"
+metabase_admin_first_name: "Admin"
+metabase_admin_last_name: "devBoxNOS"
 
 # ==============================================================================
 # DATA – APACHE SUPERSET (data vizualizace)
@@ -1293,6 +1340,19 @@ authentik_db_user: "authentik"
 authentik_db_password: "{{ global_password_prefix }}_pw_authentik_db"
 authentik_bootstrap_password: "{{ global_password_prefix }}_pw_authentik_admin"
 authentik_bootstrap_email: "admin@dev.local"
+
+# ── Authentik RBAC skupiny (vytvorene automaticky pri blank run) ──────────────
+authentik_default_groups:
+  - name: "devboxnos-providers"
+    description: "Provider admins (full remote access, same as CEO)"
+  - name: "devboxnos-admins"
+    description: "Client CEO/CTO (full local + remote access)"
+  - name: "devboxnos-managers"
+    description: "Division/department managers"
+  - name: "devboxnos-users"
+    description: "Standard employees"
+  - name: "devboxnos-guests"
+    description: "Guest access (IIAB terminal only)"
 
 # ── OIDC Service Registry (single source of truth) ──────────────────────────
 # Authentik post-start automaticky vytvoří OIDC providery + aplikace.

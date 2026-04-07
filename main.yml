@@ -544,8 +544,45 @@
       when: install_wordpress | default(false)
       tags: ['iiab', 'wordpress', 'stacks']
 
-    # Open WebUI, Uptime Kuma, Portainer — manuální onboarding
-    # (auto-admin přes API je nespolehlivý, uživatel vytvoří účet v browseru)
+    # Open WebUI post-start: auto-registrace prvního admin uživatele
+    - import_tasks: tasks/iiab/openwebui_post.yml
+      when: install_openwebui | default(false)
+      tags: ['iiab', 'openwebui', 'stacks']
+
+    # n8n post-start: owner setup (první uživatel = admin)
+    - import_tasks: tasks/iiab/n8n_post.yml
+      when: install_n8n | default(false)
+      tags: ['iiab', 'n8n', 'stacks']
+
+    # Portainer post-start: admin init + OIDC settings
+    - import_tasks: tasks/iiab/portainer_post.yml
+      when: install_portainer | default(false)
+      tags: ['iiab', 'portainer', 'stacks']
+
+    # Metabase post-start: auto-setup admin via /api/setup
+    - import_tasks: tasks/iiab/metabase_post.yml
+      when: install_metabase | default(false)
+      tags: ['iiab', 'metabase', 'stacks']
+
+    # Home Assistant post-start: auto-onboarding via API
+    - import_tasks: tasks/iiab/homeassistant_post.yml
+      when: install_homeassistant | default(false)
+      tags: ['iiab', 'homeassistant', 'stacks']
+
+    # Jellyfin post-start: auto-setup via Startup API
+    - import_tasks: tasks/iiab/jellyfin_post.yml
+      when: install_jellyfin | default(false)
+      tags: ['iiab', 'jellyfin', 'stacks']
+
+    # Calibre-Web post-start: change default admin password
+    - import_tasks: tasks/iiab/calibreweb_post.yml
+      when: install_calibreweb | default(false)
+      tags: ['iiab', 'calibreweb', 'stacks']
+
+    # FreeScout post-start: create admin via Artisan CLI
+    - import_tasks: tasks/iiab/freescout_post.yml
+      when: install_freescout | default(false)
+      tags: ['iiab', 'freescout', 'stacks']
 
     # Verifikace: ověří že všechny služby odpovídají (po post-start úlohách)
     - import_tasks: tasks/iiab/stack_verify.yml
@@ -563,6 +600,36 @@
     # ──────────────────────────────────────────────────────────────────────────
     - import_tasks: tasks/service-registry.yml
       tags: ['service-registry', 'registry']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Box Management API – FastAPI health/status/execution endpoint
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/boxapi.yml
+      when: install_boxapi | default(false)
+      tags: ['boxapi', 'api']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Heartbeat – fleet reporting daemon
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/heartbeat.yml
+      when: configure_heartbeat | default(false)
+      tags: ['heartbeat', 'fleet']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Backup – Restic automated backups
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/backup.yml
+      when: configure_backup | default(false)
+      tags: ['backup']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Export/Import – hardware migration (run only with --tags)
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/export-state.yml
+      tags: ['export', 'never']
+
+    - import_tasks: tasks/import-state.yml
+      tags: ['import', 'never']
 
     # ──────────────────────────────────────────────────────────────────────────
     # Finální přehled služeb (vždy na konci)

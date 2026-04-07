@@ -1,19 +1,22 @@
 {
-  "config_name": "devboxnos",
-  "domain": "{{ puter_domain | default('os.dev.local') }}",
+  "config_name": "{{ instance_name | default('devboxnos') }}",
+  "domain": "{{ puter_domain | default('os.' + instance_tld | default('dev.local')) }}",
   "http_port": 4100,
   "pub_port": 443,
   "protocol": "https",
   "nginx_mode": true,
+  "experimental_no_subdomain": true,
+  "cookie_name": "puter_token",
+  "jwt_secret": "{{ puter_jwt_secret | default(lookup('pipe', 'openssl rand -hex 32')) }}",
   "services": {
     "database": {
       "engine": "sqlite",
       "path": "puter-database.sqlite"
     },
     "file-cache": {
-      "disk_limit": {{ (puter_file_cache_mb | default(512)) * 1024 }},
-      "disk_max_size": {{ (puter_file_cache_mb | default(512)) * 1024 }},
-      "precache_size": {{ (puter_file_cache_mb | default(512)) * 1024 }},
+      "disk_limit": {{ (puter_file_cache_mb | default(512)) * 1024 * 1024 }},
+      "disk_max_size": {{ (puter_file_cache_mb | default(512)) * 1024 * 1024 }},
+      "precache_size": {{ (puter_file_cache_mb | default(512)) * 1024 * 1024 }},
       "path": "./file-cache"
     }
   }

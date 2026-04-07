@@ -75,6 +75,7 @@ services:
 {% endif %}
     volumes:
       - {{ n8n_data_dir }}:/home/node/.n8n
+      - {{ stacks_dir }}/shared-certs/rootCA.pem:/usr/local/share/ca-certificates/mkcert-ca.crt:ro
     environment:
       N8N_HOST: "{{ n8n_domain | default('n8n.dev.local') }}"
       N8N_PORT: "5678"
@@ -82,6 +83,7 @@ services:
       WEBHOOK_URL: "https://{{ n8n_domain | default('n8n.dev.local') }}/"
       GENERIC_TIMEZONE: "{{ n8n_timezone | default('Europe/Prague') }}"
       TZ: "{{ n8n_timezone | default('Europe/Prague') }}"
+      NODE_EXTRA_CA_CERTS: "/usr/local/share/ca-certificates/mkcert-ca.crt"
 {% if install_authentik | default(false) %}
       # ── Authentik SSO (OIDC) ───────────────────────────────────────────────
       N8N_AUTH_OIDC_ENABLED: "true"
@@ -90,6 +92,12 @@ services:
       N8N_AUTH_OIDC_ISSUER: "http://infra-authentik-server-1:9000/application/o/n8n/"
       N8N_AUTH_OIDC_ALLOWED_GROUPS: ""
 {% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - iiab_net
       - {{ stacks_shared_network }}
@@ -199,6 +207,7 @@ services:
 {% endif %}
     volumes:
       - {{ openwebui_data_dir }}:/app/backend/data
+      - {{ stacks_dir }}/shared-certs/rootCA.pem:/usr/local/share/ca-certificates/mkcert-ca.crt:ro
     environment:
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
       WEBUI_AUTH: "true"
@@ -208,6 +217,7 @@ services:
       SCARF_NO_ANALYTICS: "true"
       DO_NOT_TRACK: "true"
       ANONYMIZED_TELEMETRY: "false"
+      REQUESTS_CA_BUNDLE: "/usr/local/share/ca-certificates/mkcert-ca.crt"
 {% if install_authentik | default(false) %}
       # ── Authentik SSO (OIDC) ───────────────────────────────────────────────
       ENABLE_OAUTH_SIGNUP: "true"
@@ -218,6 +228,12 @@ services:
       OAUTH_MERGE_ACCOUNTS_BY_EMAIL: "true"
       OAUTH_SCOPES: "openid profile email"
 {% endif %}
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/config"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

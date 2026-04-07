@@ -1,0 +1,67 @@
+---
+# ==============================================================================
+# JELLYFIN POST-START – auto-setup via Startup API
+# Jellyfin exposes /Startup/* endpoints before first configuration.
+# ==============================================================================
+
+- name: "[Jellyfin Post] Wait for API"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ jellyfin_port | default(8096) }}/health"
+    method: GET
+    timeout: 5
+    status_code: [200]
+  register: _jf_ready
+  until: _jf_ready.status | default(0) == 200
+  retries: 12
+  delay: 10
+  failed_when: false
+
+- name: "[Jellyfin Post] Check startup configuration state"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ jellyfin_port | default(8096) }}/Startup/Configuration"
+    method: GET
+    timeout: 10
+    status_code: [200, 403]
+  register: _jf_startup
+  failed_when: false
+  when: _jf_ready.status | default(0) == 200
+
+- name: "[Jellyfin Post] Set initial configuration"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ jellyfin_port | default(8096) }}/Startup/Configuration"
+    method: POST
+    body_format: json
+    body:
+      UICulture: "{{ jellyfin_language | default('en-US') }}"
+      MetadataCountryCode: "{{ jellyfin_country | default('CZ') }}"
+      PreferredMetadataLanguage: "{{ jellyfin_language | default('en') }}"
+    status_code: [204, 200]
+    timeout: 10
+  when:
+    - _jf_startup.status | default(0) == 200
+  failed_when: false
+
+- name: "[Jellyfin Post] Create admin user"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ jellyfin_port | default(8096) }}/Startup/User"
+    method: POST
+    body_format: json
+    body:
+      Name: "{{ jellyfin_admin_user | default('admin') }}"
+      Password: "{{ jellyfin_admin_password | default(global_password_prefix + '_pw_jellyfin') }}"
+    status_code: [204, 200]
+    timeout: 10
+  when:
+    - _jf_startup.status | default(0) == 200
+  changed_when: true
+  failed_when: false
+
+- name: "[Jellyfin Post] Complete startup wizard"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ jellyfin_port | default(8096) }}/Startup/Complete"
+    method: POST
+    status_code: [204, 200]
+    timeout: 10
+  when:
+    - _jf_startup.status | default(0) == 200
+  failed_when: false
