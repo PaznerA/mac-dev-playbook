@@ -9,6 +9,23 @@
 # - Access-Control-Allow-Credentials: true (Puter 2.5.x bug — commented out)
 # - Socket.IO credentials: true
 
+- name: "[Puter Post] Remove cloud-only apps (camera, editor, player, recorder, viewer, pdf)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose -p iiab exec -T puter
+    node -e "
+    const Database = require('better-sqlite3');
+    const db = new Database('/var/puter/puter-database.sqlite');
+    ['camera','editor','player','recorder','viewer','pdf'].forEach(name => {
+      db.prepare('DELETE FROM apps WHERE name = ? AND index_url LIKE \"%puter.com%\"').run(name);
+    });
+    db.prepare('DELETE FROM app_opens').run();
+    console.log('CLEANED');
+    "
+  register: _puter_cleanup
+  changed_when: "'CLEANED' in (_puter_cleanup.stdout | default(''))"
+  failed_when: false
+  check_mode: false
+
 - name: "[Puter Post] Wait for API"
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ puter_port | default(5050) }}/healthcheck"
