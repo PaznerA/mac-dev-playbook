@@ -83,9 +83,12 @@ Passwords follow pattern `{global_password_prefix}_pw_{service}`. Blank run prom
 
 Centrální SSO přes Authentik (auth.dev.local). OIDC auto-setup vytváří providery + aplikace pro každou službu automaticky. Single source of truth: `authentik_oidc_apps` list v `default.config.yml`.
 
-**OIDC přes env vars:** Grafana, Outline, Open WebUI, n8n, Metabase
-**OIDC přes API/CLI:** Gitea (Admin API), Nextcloud (occ), Portainer (UI)
-**Proxy Outpost:** Uptime Kuma, Calibre-Web, Home Assistant
+**Native OIDC (env vars):** Grafana, Outline, Open WebUI, n8n, GitLab (omniauth)
+**Native OIDC (API/CLI):** Gitea (Admin API), Nextcloud (occ), Portainer (UI)
+**Proxy auth (nginx forward_auth — access control only):** Uptime Kuma, Calibre-Web, Home Assistant, Jellyfin, Kiwix, WordPress, ERPNext, FreeScout, Infisical, Vaultwarden, Paperclip, Superset, Puter, Metabase
+**No SSO:** FreePBX, QGIS, Bluesky PDS
+
+Proxy auth = gates access (Authentik login required), but service shows its own login form. Native OIDC = true SSO ("Login with Authentik" button). Embedded outpost auto-assigned to proxy providers in `authentik_oidc_setup.yml`. Cookie domain `.dev.local` enables cross-subdomain session sharing. Nginx `proxy_redirect` rewrites outpost Location header to public `auth.dev.local` URL.
 
 ### Secrets Management
 
