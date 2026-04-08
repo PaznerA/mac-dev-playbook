@@ -144,6 +144,7 @@ services:
   # ── Bluesky PDS (Personal Data Server) – AT Protocol federace ──────────────
   bluesky-pds:
     image: ghcr.io/bluesky-social/pds:{{ bluesky_pds_version | default('latest') }}
+    hostname: bluesky-pds
     restart: unless-stopped
     ports:
 {% if services_lan_access | default(false) %}
@@ -154,9 +155,9 @@ services:
     volumes:
       - {{ bluesky_pds_data_dir | default(ansible_facts['env']['HOME'] + '/bluesky-pds') }}:/pds
     environment:
-      PDS_HOSTNAME: "{{ bluesky_pds_hostname | default('bsky.dev.local') }}"
-      PDS_JWT_SECRET: "{{ bluesky_pds_jwt_secret | default('changeme_pw_bluesky_jwt') }}"
-      PDS_ADMIN_PASSWORD: "{{ bluesky_pds_admin_password | default('changeme_pw_bluesky') }}"
+      PDS_HOSTNAME: "{{ bluesky_pds_hostname | default('bsky.dev.lan') }}"
+      PDS_JWT_SECRET: "{{ bluesky_pds_jwt_secret }}"
+      PDS_ADMIN_PASSWORD: "{{ bluesky_pds_admin_password }}"
       PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: "{{ bluesky_pds_rotation_key }}"
       PDS_DATA_DIRECTORY: /pds
       PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
@@ -166,7 +167,18 @@ services:
       PDS_REPORT_SERVICE_URL: "https://mod.bsky.app"
       PDS_REPORT_SERVICE_DID: "did:plc:ar7c4by46qjdydhdevvrndac"
       PDS_CRAWLERS: "https://bsky.network"
+      PDS_INVITE_REQUIRED: "{{ bluesky_pds_invite_required | default(true) | string | lower }}"
+{% if bluesky_pds_email_smtp_url | default('') | length > 0 %}
+      PDS_EMAIL_SMTP_URL: "{{ bluesky_pds_email_smtp_url }}"
+      PDS_EMAIL_FROM_ADDRESS: "{{ bluesky_pds_email_from | default('noreply@' ~ bluesky_pds_hostname) }}"
+{% endif %}
       LOG_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/xrpc/_health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     networks:
       - infra_net
       - {{ stacks_shared_network }}

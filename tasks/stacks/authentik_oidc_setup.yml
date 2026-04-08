@@ -62,6 +62,45 @@
     - item.name not in (_ak_groups_resp.json.results | default([]) | map(attribute='name') | list)
   failed_when: false
 
+- name: "[Authentik OIDC] Refresh group list after creation"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/groups/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_groups_resp
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik OIDC] Add akadmin to devboxnos-admins group"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/users/?search=akadmin"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_akadmin_user
+  when:
+    - _ak_token | length >= 10
+    - _ak_groups_resp.json is defined
+  failed_when: false
+
+- name: "[Authentik OIDC] Assign akadmin to admins group"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/users/{{ (_ak_akadmin_user.json.results | first).pk }}/"
+    method: PATCH
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      groups: "{{ (_ak_akadmin_user.json.results | first).groups | default([]) | union(_ak_groups_resp.json.results | selectattr('name', 'equalto', 'devboxnos-admins') | map(attribute='pk') | list) }}"
+    status_code: [200]
+  when:
+    - _ak_token | length >= 10
+    - _ak_akadmin_user.json.results | default([]) | length > 0
+    - _ak_groups_resp.json.results | selectattr('name', 'equalto', 'devboxnos-admins') | list | length > 0
+  failed_when: false
+
 - name: "[Authentik OIDC] Add provider admin to providers group"
   ansible.builtin.uri:
     url: "{{ _ak_base }}/api/v3/core/users/"
@@ -303,6 +342,142 @@
     - item.slug not in (_ak_existing_app_slugs | default([]))
   register: _ak_created_proxy_apps
   failed_when: false
+
+# ── 8b. RBAC: Create expression policies per tier ────────────────────────────
+
+- name: "[Authentik RBAC] Refresh group list for policy creation"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/groups/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_groups_fresh
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik RBAC] List existing policies"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/policies/expression/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_existing_policies
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik RBAC] Create tier expression policies"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/policies/expression/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "devboxnos-{{ item.name }}"
+      expression: "return request.user.is_superuser or any(g.name in {{ item.groups | to_json }} for g in request.user.ak_groups.all())"
+      execution_logging: false
+    status_code: [200, 201]
+  loop: "{{ authentik_rbac_tiers | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - _ak_token | length >= 10
+    - "'devboxnos-' ~ item.name not in (_ak_existing_policies.json.results | default([]) | map(attribute='name') | list)"
+  register: _ak_created_policies
+  failed_when: false
+
+- name: "[Authentik RBAC] Update existing tier policies (ensure superuser bypass)"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/policies/expression/{{ (_ak_existing_policies.json.results | selectattr('name', 'equalto', 'devboxnos-' ~ item.name) | first).pk }}/"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "devboxnos-{{ item.name }}"
+      expression: "return request.user.is_superuser or any(g.name in {{ item.groups | to_json }} for g in request.user.ak_groups.all())"
+      execution_logging: false
+    status_code: [200]
+  loop: "{{ authentik_rbac_tiers | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - _ak_token | length >= 10
+    - "'devboxnos-' ~ item.name in (_ak_existing_policies.json.results | default([]) | map(attribute='name') | list)"
+  failed_when: false
+
+# ── 8c. RBAC: Bind policies to applications ──────────────────────────────────
+
+- name: "[Authentik RBAC] Refresh policy list"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/policies/expression/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_all_policies
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik RBAC] Refresh application list for binding"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/core/applications/?page_size=100"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_all_apps_rbac
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik RBAC] List existing policy bindings"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/policies/bindings/?page_size=200"
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+    status_code: 200
+  register: _ak_existing_bindings
+  when: _ak_token | length >= 10
+  failed_when: false
+
+- name: "[Authentik RBAC] Bind tier policies to applications"
+  ansible.builtin.uri:
+    url: "{{ _ak_base }}/api/v3/policies/bindings/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _ak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      policy: "{{ _policy_pk }}"
+      target: "{{ _app_pk }}"
+      negate: false
+      enabled: true
+      order: 0
+      timeout: 30
+    status_code: [200, 201]
+  loop: "{{ ((_ak_oauth_apps | default([])) + (_ak_proxy_apps | default([]))) }}"
+  loop_control:
+    label: "{{ item.slug }} → tier {{ _app_tier }}"
+  vars:
+    _app_tier: "{{ authentik_app_tiers[item.slug] | default(3) }}"
+    _tier_name: "{{ (authentik_rbac_tiers | selectattr('tier', 'equalto', _app_tier | int) | list | first | default({'name': 'tier-user'})).name }}"
+    _app_pk: "{{ (_ak_all_apps_rbac.json.results | default([]) | selectattr('slug', 'equalto', item.slug) | list | first | default({})).pk | default('') }}"
+    _policy_pk: "{{ (_ak_all_policies.json.results | default([]) | selectattr('name', 'equalto', 'devboxnos-' ~ _tier_name) | list | first | default({})).pk | default('') }}"
+    _existing_binding_targets: "{{ _ak_existing_bindings.json.results | default([]) | map(attribute='target') | list }}"
+  when:
+    - _ak_token | length >= 10
+    - _app_pk | length > 0
+    - _policy_pk | length > 0
+    - _app_pk not in _existing_binding_targets
+  failed_when: false
+
+- name: "[Authentik RBAC] Summary"
+  ansible.builtin.debug:
+    msg: >-
+      RBAC: {{ authentik_rbac_tiers | default([]) | length }} tier policies,
+      {{ ((_ak_oauth_apps | default([])) + (_ak_proxy_apps | default([]))) | length }} apps bound
+  when: _ak_token | length >= 10
 
 # ── 9. Assign proxy providers to embedded outpost ───────────────────────────
 

@@ -180,6 +180,7 @@
       - "*.{{ instance_tld | default('dev.local') }}"
       - "{{ '*.os.' + (instance_tld | default('dev.local')) if (install_puter | default(false)) else '' }}"
       - "{{ '*.dev.lan' if (install_bluesky_pds | default(false)) else '' }}"
+      - "{{ '*.' ~ (bluesky_pds_hostname | default('bsky.dev.lan')) if (install_bluesky_pds | default(false)) else '' }}"
 
 - name: Check if SSL cert covers all required SANs
   ansible.builtin.shell: >
@@ -208,6 +209,7 @@
     "*.{{ instance_tld | default('dev.local') }}"
     {{ '"*.os.' + (instance_tld | default('dev.local')) + '"' if (install_puter | default(false)) else '' }}
     {{ '"*.dev.lan"' if (install_bluesky_pds | default(false)) else '' }}
+    {{ '"*.' ~ (bluesky_pds_hostname | default('bsky.dev.lan')) ~ '"' if (install_bluesky_pds | default(false)) else '' }}
   args:
     creates: "{{ homebrew_prefix }}/etc/nginx/ssl/local-dev.crt"
 
