@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glasswing — NOS Security Research Dashboard</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+  --text: #e6edf3; --text2: #8b949e; --accent: #58a6ff; --green: #3fb950;
+  --red: #f85149; --orange: #d29922; --purple: #bc8cff; --cyan: #39d2c0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+a { color: var(--accent); text-decoration: none; }
+
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+.header h1 { font-size: 20px; font-weight: 600; }
+.header .subtitle { color: var(--text2); font-size: 13px; }
+
+.tabs { display: flex; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; overflow-x: auto; }
+.tab { padding: 10px 16px; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; font-size: 14px; white-space: nowrap; transition: all 0.15s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+.upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 24px; transition: all 0.2s; cursor: pointer; }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(88,166,255,0.05); }
+.upload-zone h3 { margin-bottom: 8px; }
+.upload-zone p { color: var(--text2); font-size: 13px; margin-bottom: 4px; }
+.upload-zone input { display: none; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.stat .label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.stat .sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+.run-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+.run-header { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.run-header:hover { background: var(--surface2); }
+.run-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-critical { background: rgba(248,81,73,0.15); color: var(--red); }
+.badge-high { background: rgba(210,153,34,0.15); color: var(--orange); }
+.badge-medium { background: rgba(136,198,255,0.15); color: var(--accent); }
+.badge-pentest { background: rgba(188,140,255,0.15); color: var(--purple); }
+.badge-clean { background: rgba(63,185,80,0.15); color: var(--green); }
+.run-date { color: var(--text2); font-size: 13px; min-width: 140px; }
+.run-title { flex: 1; font-size: 14px; }
+.run-body { padding: 0 16px 16px; display: none; }
+.run-body.open { display: block; }
+.run-body pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; max-height: 600px; overflow-y: auto; }
+
+.comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.comp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.comp-card h4 { font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+.comp-card .version { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--cyan); }
+.comp-card .meta { font-size: 12px; color: var(--text2); margin-top: 6px; }
+.comp-card .bar { height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.comp-card .bar-fill { height: 100%; border-radius: 2px; }
+
+.pentest-area { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.pentest-area:last-child { border-bottom: none; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-tested { background: var(--green); }
+.dot-planned { background: var(--text2); }
+.dot-finding { background: var(--red); }
+
+.rem-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rem-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); color: var(--text2); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+.rem-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.rem-table tr:hover { background: var(--surface2); }
+
+.help { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+.help h3 { margin-bottom: 8px; font-size: 15px; }
+.help code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+.help ol, .help ul { padding-left: 20px; margin-top: 8px; }
+.help li { margin-bottom: 6px; font-size: 13px; color: var(--text2); }
+
+.chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+.chart-container h3 { margin-bottom: 12px; font-size: 15px; }
+.chart-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+.chart-bar-label { min-width: 100px; color: var(--text2); text-align: right; }
+.chart-bar-track { flex: 1; height: 20px; background: var(--surface2); border-radius: 4px; overflow: hidden; position: relative; }
+.chart-bar-segment { height: 100%; float: left; }
+.chart-bar-value { position: absolute; right: 6px; top: 2px; font-size: 11px; color: var(--text); }
+
+.empty { text-align: center; padding: 60px; color: var(--text2); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Glasswing <span style="color:var(--text2); font-weight:400">NOS Security Research</span></h1>
+    <div class="subtitle">FOSS vulnerability monitoring, autonomous pentesting, upstream patch development</div>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="overview">Overview</div>
+  <div class="tab" data-tab="timeline">Run Timeline</div>
+  <div class="tab" data-tab="components">Components</div>
+  <div class="tab" data-tab="pentest">Pentest Coverage</div>
+  <div class="tab" data-tab="remediation">Remediation Queue</div>
+  <div class="tab" data-tab="help">How It Works</div>
+</div>
+
+<div class="container">
+  <div class="upload-zone" id="uploadZone">
+    <h3>Upload security data files</h3>
+    <p>Drag and drop all files from <code>docs/llm/security/</code> here</p>
+    <p>Accepts: *.json, *.md (scan-state, versions, remediation-queue, pentest-journal, advisory reports)</p>
+    <input type="file" id="fileInput" multiple accept=".json,.md">
+  </div>
+  <div id="content"></div>
+</div>
+
+<script>
+/* NOTE: This is a local-only tool processing user's own files.
+   All data stays in-browser, no network requests. */
+
+const state = { files: {}, parsed: {} };
+
+// ── File handling ──────────────────────────────────────────────────────────
+const zone = document.getElementById('uploadZone');
+const input = document.getElementById('fileInput');
+
+zone.addEventListener('click', () => input.click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+input.addEventListener('change', e => handleFiles(e.target.files));
+
+async function handleFiles(fileList) {
+  for (const f of fileList) {
+    const text = await f.text();
+    state.files[f.name] = text;
+    if (f.name.endsWith('.json')) {
+      try { state.parsed[f.name] = JSON.parse(text); } catch(e) { /* skip invalid */ }
+    } else if (f.name.endsWith('.md')) {
+      state.parsed[f.name] = { _type: 'markdown', _filename: f.name, _content: text };
+    }
+  }
+  const count = Object.keys(state.files).length;
+  zone.querySelector('h3').textContent = count + ' files loaded';
+  zone.querySelector('p').textContent = 'Click or drop to add more';
+  render();
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+let activeTab = 'overview';
+document.getElementById('tabs').addEventListener('click', e => {
+  if (!e.target.dataset.tab) return;
+  activeTab = e.target.dataset.tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
+  render();
+});
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function get(n) { return state.parsed[n]; }
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function fmtDate(iso) {
+  if (!iso) return '\u2014';
+  try { return new Date(iso).toLocaleString('cs-CZ', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }); }
+  catch { return iso; }
+}
+function makeBadge(sev) {
+  const cls = { CRITICAL:'critical', HIGH:'high', MEDIUM:'medium', LOW:'medium' }[sev] || 'clean';
+  const span = document.createElement('span');
+  span.className = 'run-badge badge-' + cls;
+  span.textContent = sev;
+  return span.outerHTML;
+}
+
+// ── Safe DOM builder ────────────────────────────────────────────────────────
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
+    if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v);
+  });
+  children.flat().forEach(c => {
+    if (c == null) return;
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return el;
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function render() {
+  const el = document.getElementById('content');
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const renderers = { overview: buildOverview, timeline: buildTimeline, components: buildComponents, pentest: buildPentest, remediation: buildRemediation, help: buildHelp };
+  const fragment = (renderers[activeTab] || buildOverview)();
+  el.appendChild(fragment);
+}
+
+function buildOverview() {
+  const frag = document.createDocumentFragment();
+  const ss = get('scan-state.json');
+  const rq = get('remediation-queue.json');
+  const pj = get('pentest-journal.json');
+  const ver = get('versions.json');
+
+  if (!ss && !rq) {
+    frag.appendChild(h('div', {class:'empty'}, h('h3', null, 'No data loaded'), h('p', null, 'Upload files from docs/llm/security/ to get started')));
+    return frag;
+  }
+
+  const cycle = ss?.scan_cycle || 0;
+  const totalComp = ver?.components?.length || 0;
+  const pinned = ver?.components?.filter(c => c.pinned)?.length || 0;
+  const items = rq?.items || [];
+  const remCrit = items.filter(i => i.severity === 'CRITICAL').length;
+  const remHigh = items.filter(i => i.severity === 'HIGH').length;
+  const remPending = items.filter(i => i.status === 'pending').length;
+  const ptAreas = pj?.targets?.reduce((s,t) => s + (t.areas_planned?.length||0), 0) || 0;
+  const ptTested = pj?.targets?.reduce((s,t) => s + (t.areas_tested?.length||0), 0) || 0;
+  const ptFindings = pj?.targets?.reduce((s,t) => s + (t.findings?.length||0), 0) || 0;
+  const ptPatches = pj?.patch_development?.patches?.length || 0;
+  const covPct = ptAreas > 0 ? Math.round(ptTested / ptAreas * 100) : 0;
+
+  // Stats
+  const stats = h('div', {class:'stats'},
+    h('div',{class:'stat'}, h('div',{class:'label'},'Scan Cycle'), h('div',{class:'value'},String(cycle)), h('div',{class:'sub'},'Last: '+fmtDate(ss?.last_advisory_check))),
+    h('div',{class:'stat'}, h('div',{class:'label'},'Components'), h('div',{class:'value'},String(totalComp)), h('div',{class:'sub'},pinned+' pinned / '+(totalComp-pinned)+' floating')),
+    h('div',{class:'stat'}, h('div',{class:'label'},'Rem. Items'), h('div',{class:'value',style:{color:remCrit>0?'var(--red)':'var(--green)'}},String(items.length)), h('div',{class:'sub'},remCrit+' crit, '+remHigh+' high, '+remPending+' pending')),
+    h('div',{class:'stat'}, h('div',{class:'label'},'Pentest'), h('div',{class:'value'},covPct+'%'), h('div',{class:'sub'},ptTested+'/'+ptAreas+' areas, '+ptFindings+' findings')),
+    h('div',{class:'stat'}, h('div',{class:'label'},'Patches'), h('div',{class:'value'},String(ptPatches)), h('div',{class:'sub'},(pj?.targets?.length||0)+' targets'))
+  );
+  frag.appendChild(stats);
+
+  // Severity bar
+  if (items.length) {
+    const sev = {CRITICAL:0,HIGH:0,MEDIUM:0};
+    items.forEach(i => { if (sev[i.severity]!==undefined) sev[i.severity]++; });
+    const total = items.length;
+    const chart = h('div',{class:'chart-container'}, h('h3',null,'Findings by Severity'));
+    const row = h('div',{class:'chart-bar-row'},
+      h('div',{class:'chart-bar-label'},'Total '+total),
+      h('div',{class:'chart-bar-track'},
+        h('div',{class:'chart-bar-segment',style:{width:(sev.CRITICAL/total*100)+'%',background:'var(--red)'}}),
+        h('div',{class:'chart-bar-segment',style:{width:(sev.HIGH/total*100)+'%',background:'var(--orange)'}}),
+        h('div',{class:'chart-bar-segment',style:{width:(sev.MEDIUM/total*100)+'%',background:'var(--accent)'}}),
+        h('div',{class:'chart-bar-value'},sev.CRITICAL+'C '+sev.HIGH+'H '+sev.MEDIUM+'M')
+      )
+    );
+    chart.appendChild(row);
+    frag.appendChild(chart);
+  }
+
+  // Pentest progress bars
+  if (pj?.targets?.length) {
+    const pc = h('div',{class:'chart-container'}, h('h3',null,'Pentest Progress by Target'));
+    pj.targets.forEach(t => {
+      const pl = t.areas_planned?.length||0, te = t.areas_tested?.length||0, fi = t.findings?.length||0;
+      const pct = pl > 0 ? (te/pl*100) : 0;
+      pc.appendChild(h('div',{class:'chart-bar-row'},
+        h('div',{class:'chart-bar-label'},t.component),
+        h('div',{class:'chart-bar-track'},
+          h('div',{class:'chart-bar-segment',style:{width:pct+'%',background:fi>0?'var(--red)':'var(--green)'}}),
+          h('div',{class:'chart-bar-value'},te+'/'+pl+(fi?' +'+fi+'!':''))
+        )
+      ));
+    });
+    frag.appendChild(pc);
+  }
+
+  // Recent reports
+  const reports = Object.keys(state.parsed).filter(k => k.endsWith('.md') && k!=='pentest-task.md').sort().reverse();
+  if (reports.length) {
+    const tl = h('div',null, h('h2',{style:{fontSize:'16px',marginBottom:'12px'}},'Recent Advisory Reports'));
+    reports.slice(0,5).forEach(k => {
+      const md = state.parsed[k];
+      const title = md._content.split('\n')[0]?.replace(/^#+\s*/,'') || k;
+      const card = h('div',{class:'run-card'});
+      const header = h('div',{class:'run-header'},
+        h('span',{class:'run-date'},k.replace('.md','')),
+        h('span',{class:'run-title'},title),
+        h('span',{class:'run-badge badge-pentest'},'report')
+      );
+      const body = h('div',{class:'run-body'}, h('pre',null,md._content));
+      header.addEventListener('click', () => body.classList.toggle('open'));
+      card.appendChild(header);
+      card.appendChild(body);
+      tl.appendChild(card);
+    });
+    frag.appendChild(tl);
+  }
+
+  return frag;
+}
+
+function buildTimeline() {
+  const frag = document.createDocumentFragment();
+  const reports = Object.keys(state.parsed).filter(k => k.endsWith('.md') && k!=='pentest-task.md').sort().reverse();
+  if (!reports.length) { frag.appendChild(h('div',{class:'empty'},'No advisory reports loaded. Upload *.md files from docs/llm/security/')); return frag; }
+
+  frag.appendChild(h('h2',{style:{fontSize:'16px',marginBottom:'12px'}},'All Task Run Outputs'));
+  reports.forEach(k => {
+    const md = state.parsed[k];
+    const title = md._content.split('\n')[0]?.replace(/^#+\s*/,'') || k;
+    const hasCrit = md._content.includes('CRITICAL');
+    const badgeType = hasCrit ? 'critical' : md._content.includes('HIGH') ? 'high' : 'clean';
+    const card = h('div',{class:'run-card'});
+    const header = h('div',{class:'run-header'},
+      h('span',{class:'run-date'},k.replace('.md','')),
+      h('span',{class:'run-title'},title),
+      h('span',{class:'run-badge badge-'+badgeType},badgeType.toUpperCase())
+    );
+    const body = h('div',{class:'run-body'}, h('pre',null,md._content));
+    header.addEventListener('click', () => body.classList.toggle('open'));
+    card.appendChild(header); card.appendChild(body);
+    frag.appendChild(card);
+  });
+  return frag;
+}
+
+function buildComponents() {
+  const frag = document.createDocumentFragment();
+  const ver = get('versions.json');
+  const ss = get('scan-state.json');
+  if (!ver) { frag.appendChild(h('div',{class:'empty'},'Upload versions.json')); return frag; }
+
+  const grid = h('div',{class:'comp-grid'});
+  ver.components.forEach(c => {
+    const sd = ss?.components?.[c.id];
+    const findings = sd?.findings_count||0;
+    const color = findings>3?'var(--red)':findings>0?'var(--orange)':'var(--green)';
+    const card = h('div',{class:'comp-card'},
+      h('h4',null, c.name, h('span',{class:'version'},c.default_version)),
+      h('div',{class:'meta'}, c.category+(c.stack?' / '+c.stack:'')+' | '+c.priority+' priority'),
+      h('div',{class:'meta'}, 'Findings: '+findings+' | Last scan: '+fmtDate(sd?.last_cve_scan)),
+      h('div',{class:'meta'}, (c.image||'Homebrew/native')+' | '+(c.pinned?'pinned':'floating')),
+      h('div',{class:'bar'}, h('div',{class:'bar-fill',style:{width:Math.min(findings*20,100)+'%',background:color}}))
+    );
+    grid.appendChild(card);
+  });
+  frag.appendChild(grid);
+  return frag;
+}
+
+function buildPentest() {
+  const frag = document.createDocumentFragment();
+  const pj = get('pentest-journal.json');
+  if (!pj) { frag.appendChild(h('div',{class:'empty'},'Upload pentest-journal.json')); return frag; }
+
+  pj.targets.forEach(t => {
+    const planned = t.areas_planned||[], tested = t.areas_tested||[], findings = t.findings||[];
+    const testedNames = new Set(tested.map(a => a.area));
+
+    const card = h('div',{class:'comp-card',style:{marginBottom:'16px'}},
+      h('h4',null, t.component, h('span',{class:'version'},t.version_tested)),
+      h('div',{class:'meta'}, t.language+' | '+t.upstream_repo+' | Status: '+t.status)
+    );
+
+    const areasDiv = h('div',{style:{marginTop:'8px'}});
+    planned.forEach(a => {
+      const isTested = testedNames.has(a.area);
+      const hasFinding = findings.some(f => f.attack_class === a.attack_class);
+      const dotCls = hasFinding?'dot-finding':isTested?'dot-tested':'dot-planned';
+      const priCls = a.priority==='critical'?'critical':a.priority==='high'?'high':'medium';
+      areasDiv.appendChild(h('div',{class:'pentest-area'},
+        h('span',{class:'dot '+dotCls}),
+        h('span',{style:{flex:'1'}},a.area),
+        h('span',{class:'run-badge badge-'+priCls},a.priority),
+        h('span',{style:{color:'var(--text2)',fontSize:'12px'}},a.attack_class)
+      ));
+    });
+    card.appendChild(areasDiv);
+
+    if (tested.length) {
+      const info = h('div',{style:{marginTop:'12px',fontSize:'12px',color:'var(--text2)'}}, 'Tested: '+tested.length+'/'+planned.length+' areas');
+      card.appendChild(info);
+      tested.forEach(a => {
+        const rc = a.result==='confirmed_vuln'?'var(--red)':a.result==='potential_vuln'?'var(--orange)':'var(--green)';
+        card.appendChild(h('div',{style:{fontSize:'12px',padding:'4px 0',color:'var(--text2)'}},
+          h('span',{style:{color:rc}},a.result), ' \u2014 '+a.area+' ('+fmtDate(a.date)+')'
+        ));
+      });
+    }
+
+    if (findings.length) {
+      card.appendChild(h('div',{style:{marginTop:'12px',fontSize:'13px',color:'var(--red)',fontWeight:'600'}}, 'Findings ('+findings.length+'):'));
+      findings.forEach(f => {
+        const fd = h('div',{style:{fontSize:'12px',padding:'4px 0',borderBottom:'1px solid var(--border)'}});
+        fd.appendChild(h('strong',null,f.id));
+        fd.appendChild(document.createTextNode(': '+f.title));
+        fd.appendChild(h('div',{style:{color:'var(--text2)',marginTop:'2px'}}, f.exploitability+' | confidence: '+f.confidence+' | '+f.disclosure_status));
+        card.appendChild(fd);
+      });
+    }
+    frag.appendChild(card);
+  });
+
+  const patches = pj.patch_development?.patches||[];
+  if (patches.length) {
+    const pc = h('div',{class:'chart-container'}, h('h3',null,'Developed Patches ('+patches.length+')'));
+    patches.forEach(p => {
+      pc.appendChild(h('div',{style:{padding:'8px 0',borderBottom:'1px solid var(--border)',fontSize:'13px'}},
+        h('strong',null,p.id), ' ('+p.component+') \u2014 '+p.description,
+        h('div',{style:{color:'var(--text2)',fontSize:'12px'}}, 'Status: '+p.status+' | PR: '+(p.upstream_pr||'not submitted'))
+      ));
+    });
+    frag.appendChild(pc);
+  }
+  return frag;
+}
+
+function buildRemediation() {
+  const frag = document.createDocumentFragment();
+  const rq = get('remediation-queue.json');
+  if (!rq) { frag.appendChild(h('div',{class:'empty'},'Upload remediation-queue.json')); return frag; }
+
+  const items = (rq.items||[]).slice().sort((a,b) => {
+    const s = {CRITICAL:0,HIGH:1,MEDIUM:2};
+    return (s[a.severity]??3)-(s[b.severity]??3);
+  });
+
+  const summary = h('div',{style:{marginBottom:'16px',fontSize:'14px'}},
+    'Total: '+items.length+' | CRIT: '+items.filter(i=>i.severity==='CRITICAL').length+
+    ' HIGH: '+items.filter(i=>i.severity==='HIGH').length+
+    ' MED: '+items.filter(i=>i.severity==='MEDIUM').length+
+    ' | Pending: '+items.filter(i=>i.status==='pending').length+
+    ' | Auto-fixable: '+items.filter(i=>i.auto_fixable).length
+  );
+  frag.appendChild(summary);
+
+  const table = h('table',{class:'rem-table'});
+  const thead = h('thead',null,h('tr',null,
+    h('th',null,'ID'),h('th',null,'Component'),h('th',null,'Sev'),h('th',null,'Type'),h('th',null,'Detail'),h('th',null,'Fix'),h('th',null,'Cyc')
+  ));
+  table.appendChild(thead);
+  const tbody = h('tbody');
+  items.forEach(i => {
+    const detail = (i.remediation_detail||'').substring(0,200) + ((i.remediation_detail||'').length>200?'...':'');
+    const tr = h('tr',null,
+      h('td',null,h('strong',null,i.id)),
+      h('td',null,i.component),
+      h('td',null,i.severity),
+      h('td',null,i.remediation_type),
+      h('td',{style:{maxWidth:'400px',fontSize:'12px'}},detail),
+      h('td',{class:'version'},i.fix_version||'\u2014'),
+      h('td',null,String(i.scan_cycle??''))
+    );
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  frag.appendChild(table);
+  return frag;
+}
+
+function buildHelp() {
+  const frag = document.createDocumentFragment();
+  const help = h('div',{class:'help'});
+  help.appendChild(h('h3',null,'Project Glasswing \u2014 NOS FOSS Security Research'));
+  help.appendChild(h('p',null,'Glasswing is an autonomous security research pipeline for devBoxNOS \u2014 a self-hosted FOSS platform running 40+ Docker services on Apple Silicon.'));
+
+  help.appendChild(h('h3',{style:{marginTop:'16px'}},'How it works'));
+  const ol1 = h('ol');
+  ['Scheduled task "NOS Security Monitor" runs in Claude for Mac (hourly/daily)',
+   'Phase 1: CVE advisory check \u2014 scans 5 oldest-checked components per run',
+   'Phase 2: Autonomous pentesting \u2014 clones upstream code to ~/glasswing/repos/',
+   'Phase 3: Patch development \u2014 develops fixes in ~/glasswing/patches/',
+   'Outputs: Advisory reports (*.md) + updated JSON state in docs/llm/security/'
+  ].forEach(t => ol1.appendChild(h('li',null,t)));
+  help.appendChild(ol1);
+
+  help.appendChild(h('h3',{style:{marginTop:'16px'}},'How to use this dashboard'));
+  const ol2 = h('ol');
+  ['Upload all files from ~/projects/mac-dev-playbook/docs/llm/security/',
+   'Browse tabs: Overview, Timeline, Components, Pentest, Remediation',
+   'Re-upload after each task run to see new data'
+  ].forEach(t => ol2.appendChild(h('li',null,t)));
+  help.appendChild(ol2);
+
+  help.appendChild(h('h3',{style:{marginTop:'16px'}},'File naming convention'));
+  const ul1 = h('ul');
+  ['YYYY-MM-DD-NN-advisory.md \u2014 Numbered advisory per run (NN = 01, 02, ...)',
+   'scan-state.json \u2014 Per-component timestamps and cycle counter',
+   'remediation-queue.json \u2014 All findings with severity, fix, status',
+   'pentest-journal.json \u2014 Attack areas, test results, findings, patches',
+   'versions.json \u2014 Component inventory with pinned versions',
+   'pentest-task.md \u2014 The scheduled task prompt (not shown in timeline)'
+  ].forEach(t => ul1.appendChild(h('li',null,t)));
+  help.appendChild(ul1);
+
+  help.appendChild(h('h3',{style:{marginTop:'16px'}},'Running the security task'));
+  help.appendChild(h('p',null,'In Claude for Mac: Settings > Scheduled Tasks > "NOS Security Monitor"'));
+  help.appendChild(h('p',null,'Workspace for code review: ~/glasswing/repos/'));
+
+  frag.appendChild(help);
+  return frag;
+}
+
+render();
+</script>
+</body>
+</html>
