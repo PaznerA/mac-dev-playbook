@@ -32,6 +32,36 @@
         - "{{ playbook_dir }}/credentials.yml"
       tags: ['always']
 
+    # ── Version Policy: latest ──────────────────────────────────────────────────
+    # -e version_policy=latest → override all pinned Docker image tags to latest.
+    # Stable (default) = CVE-patched pinned versions from default.config.yml.
+    - name: "Override pinned versions to latest (version_policy={{ version_policy }})"
+      ansible.builtin.set_fact:
+        mariadb_version: "latest"
+        postgresql_version: "alpine"
+        redis_version: "alpine"
+        traefik_image_version: "latest"
+        homeassistant_version: "latest"
+        rustfs_version: "latest"
+        erpnext_version: "latest"
+        n8n_version: "latest"
+        gitea_version: "latest"
+        gitlab_version: "latest"
+        openwebui_version: "latest"
+        woodpecker_version: "latest"
+        portainer_version: "latest"
+        jellyfin_version: "latest"
+        uptime_kuma_version: "latest"
+        freescout_version: "latest"
+        grafana_version: "latest"
+        tempo_version: "latest"
+        authentik_version: "latest"
+        vaultwarden_version: "latest"
+        superset_version: "latest"
+        nextcloud_version: "latest"
+      when: version_policy | default('stable') == 'latest'
+      tags: ['always']
+
     # sudo askpass helper – Homebrew cask installer (a další) interně volá
     # sudo, ale nezná Ansible become password. Tento skript ho předá přes
     # SUDO_ASKPASS env var, aby cask install nepadal na "sudo: a password is required".
