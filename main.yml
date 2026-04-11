@@ -174,6 +174,74 @@
         executable: /bin/bash
       failed_when: false
 
+    - name: Restart authentik
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/infra/docker-compose.yml" -p infra
+        restart authentik-server authentik-worker
+      failed_when: false
+
+    - name: Restart infisical
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/infra/docker-compose.yml" -p infra
+        restart infisical
+      failed_when: false
+
+    - name: Restart postgresql
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/infra/docker-compose.yml" -p infra
+        restart postgresql
+      failed_when: false
+
+    - name: Restart redis
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/infra/docker-compose.yml" -p infra
+        restart redis
+      failed_when: false
+
+    - name: Restart gitea
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/devops/docker-compose.yml" -p devops
+        restart gitea
+      failed_when: false
+
+    - name: Restart nextcloud
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/iiab/docker-compose.yml" -p iiab
+        restart nextcloud
+      failed_when: false
+
+    - name: Restart n8n
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/iiab/docker-compose.yml" -p iiab
+        restart n8n
+      failed_when: false
+
+    - name: Restart openwebui
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/iiab/docker-compose.yml" -p iiab
+        restart openwebui
+      failed_when: false
+
+    - name: Restart portainer
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/iiab/docker-compose.yml" -p iiab
+        restart portainer
+      failed_when: false
+
+    - name: Restart bluesky-pds
+      ansible.builtin.shell: >
+        {{ docker_bin }} compose -f "{{ stacks_dir }}/infra/docker-compose.yml" -p infra
+        restart bluesky-pds
+      failed_when: false
+
+    - name: Reapply authentik blueprints
+      ansible.builtin.shell: |
+        for bp in 00-admin-groups 10-oidc-apps 20-rbac-policies; do
+          {{ docker_bin }} exec infra-authentik-worker-1 \
+            ak apply_blueprint "/blueprints/custom/${bp}.yaml" 2>&1 || true
+        done
+      failed_when: false
+
   roles:
     - role: elliotweiser.osx-command-line-tools
 
@@ -211,6 +279,38 @@
         global_password_prefix: "{{ _prefix_prompt.user_input if (_prefix_prompt.user_input | default('') | length > 0) else global_password_prefix }}"
       when: blank | default(false) | bool
       tags: ['blank', 'reset']
+
+    - name: "[Blank] Persist prompted prefix to credentials.yml"
+      ansible.builtin.lineinfile:
+        path: "{{ playbook_dir }}/credentials.yml"
+        regexp: '^global_password_prefix:'
+        line: 'global_password_prefix: "{{ global_password_prefix }}"'
+        create: true
+        mode: '0600'
+      when:
+        - blank | default(false) | bool
+        - _prefix_prompt.user_input | default('') | length > 0
+      tags: ['blank', 'reset']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Previous-prefix state file — pro služby s "PUT needs old password" API
+    # (Portainer, Jellyfin, Metabase). Soubor je gitignored.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: "[State] Read previous password prefix (if exists)"
+      ansible.builtin.slurp:
+        src: "{{ playbook_dir }}/.ansible-prefix-state"
+      register: _prev_prefix_raw
+      failed_when: false
+      changed_when: false
+      tags: ['always']
+
+    - name: "[State] Expose previous_password_prefix fact (fallback = current)"
+      ansible.builtin.set_fact:
+        previous_password_prefix: >-
+          {{ (_prev_prefix_raw.content | b64decode | trim)
+             if (_prev_prefix_raw.content is defined)
+             else global_password_prefix }}
+      tags: ['always']
 
     - import_tasks: tasks/blank-reset.yml
       when: blank | default(false) | bool
@@ -256,70 +356,43 @@
         (install_superset | default(false))
       tags: ['always']
 
-    - name: Auto-generate Outline secrets (must be 64 hex chars)
-      ansible.builtin.set_fact:
-        outline_secret_key: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
-        outline_utils_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
-      when:
-        - install_outline | default(false)
-        - (outline_secret_key | default('')) is match('^.*changeme.*$') or (outline_secret_key | default('')) | length != 64
-      tags: ['always']
-
-    - name: Auto-generate Bluesky PDS rotation key if empty
-      ansible.builtin.set_fact:
-        bluesky_pds_rotation_key: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
-      when:
-        - install_bluesky_pds | default(false)
-        - (bluesky_pds_rotation_key | default('')) | length == 0
-      tags: ['always']
-
-    - name: Auto-generate Authentik secret key if weak
+    # ──────────────────────────────────────────────────────────────────────────
+    # Stateless secret regeneration — každý běh
+    #
+    # Safe group: krypto tajemství, která nešifrují perzistentní uživatelská data
+    # (sessions/tokens jsou znovu-vytvořitelné, blueprints/API reapplyují state).
+    # Destructive group: šifrují uživatelská data — regeneraci gatujeme přes
+    # blank=true nebo destroy_state=true a na non-blank runu ukážeme warning.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: "Auto-regenerate stateless secrets (every run — safe group)"
       ansible.builtin.set_fact:
         authentik_secret_key: "{{ lookup('pipe', 'openssl rand -hex 50') }}"
-      when:
-        - install_authentik | default(false)
-        - (authentik_secret_key | default('')) is match('^.*changeme.*$')
+        vaultwarden_admin_token: "{{ lookup('pipe', 'openssl rand -base64 48') }}"
+        paperclip_auth_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+        jsos_session_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+        glasswing_api_token: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+        outline_utils_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
       tags: ['always']
 
-    - name: Auto-generate Infisical encryption key if weak
+    - name: "Regenerate DESTRUCTIVE stateless secrets (blank or destroy_state)"
       ansible.builtin.set_fact:
         infisical_encryption_key: "{{ lookup('pipe', 'openssl rand -hex 16') }}"
         infisical_auth_secret: "{{ lookup('pipe', 'openssl rand -base64 32') }}"
-      when:
-        - install_infisical | default(false)
-        - (infisical_encryption_key | default('')) is match('^.*changeme.*$')
+        outline_secret_key: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+        bluesky_pds_rotation_key: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+      when: (blank | default(false) | bool) or (destroy_state | default(false) | bool)
       tags: ['always']
 
-    - name: Auto-generate Vaultwarden admin token if weak
-      ansible.builtin.set_fact:
-        vaultwarden_admin_token: "{{ lookup('pipe', 'openssl rand -base64 48') }}"
+    - name: "WARNING — destructive secrets preserved (use -e destroy_state=true to reset)"
+      ansible.builtin.debug:
+        msg: |
+          NEBEZPECI: infisical_encryption_key, outline_secret_key, bluesky_pds_rotation_key
+          zachovany z predchoziho runu (nemaji lazy regeneraci v non-blank runech).
+          Pro reset pridej -e destroy_state=true — smaze Infisical vault, Outline sifrovana data,
+          Bluesky PLC rotaci.
       when:
-        - install_vaultwarden | default(false)
-        - (vaultwarden_admin_token | default('')) is match('^.*changeme.*$')
-      tags: ['always']
-
-    - name: Auto-generate Paperclip auth secret if weak
-      ansible.builtin.set_fact:
-        paperclip_auth_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
-      when:
-        - install_paperclip | default(false)
-        - (paperclip_auth_secret | default('')) is match('^.*changeme.*$')
-      tags: ['always']
-
-    - name: Auto-generate jsOS session secret if weak
-      ansible.builtin.set_fact:
-        jsos_session_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
-      when:
-        - install_jsos | default(false)
-        - (jsos_session_secret | default('')) is match('^.*changeme.*$')
-      tags: ['always']
-
-    - name: Auto-generate Glasswing API token if weak
-      ansible.builtin.set_fact:
-        glasswing_api_token: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
-      when:
-        - install_glasswing | default(install_php | default(true))
-        - (glasswing_api_token | default('')) is match('^.*changeme.*$')
+        - not (blank | default(false) | bool)
+        - not (destroy_state | default(false) | bool)
       tags: ['always']
 
     - name: Stop Homebrew Redis if Docker Redis is enabled (port conflict)
@@ -659,6 +732,11 @@
       when: install_freescout | default(false)
       tags: ['iiab', 'freescout', 'stacks']
 
+    # GitLab post-start: admin password reconverge via gitlab-rails runner
+    - import_tasks: tasks/iiab/gitlab_post.yml
+      when: install_gitlab | default(false)
+      tags: ['iiab', 'gitlab', 'stacks']
+
     # Verifikace: ověří že všechny služby odpovídají (po post-start úlohách)
     - import_tasks: tasks/iiab/stack_verify.yml
       tags: ['iiab', 'stack', 'verify', 'stacks']
@@ -743,5 +821,13 @@
       ansible.builtin.file:
         path: "{{ ansible_facts['env']['HOME'] }}/.ansible_askpass"
         state: absent
+      changed_when: false
+      tags: ['always']
+
+    - name: "[State] Persist current prefix for next run"
+      ansible.builtin.copy:
+        content: "{{ global_password_prefix }}"
+        dest: "{{ playbook_dir }}/.ansible-prefix-state"
+        mode: '0600'
       changed_when: false
       tags: ['always']

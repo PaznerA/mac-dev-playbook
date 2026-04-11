@@ -23,11 +23,11 @@
 # normálně běží až v main.yml tasks (po blank-reset), takže bez tohoto
 # includu by blank mazal neexistující ~/service adresáře a skutečná data
 # na /Volumes/SSD1TB/{jellyfin,openwebui,portainer,...} by přežila.
-- name: "[BLANK] Apply external storage path overrides (if enabled)"
+- name: "[BLANK] Apply external storage path overrides (if external_storage_root set)"
   ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/external-paths.yml"
   when:
-    - configure_external_storage | default(false) | bool
     - external_storage_root is defined
+    - external_storage_root | default('') | length > 0
 
 # ── 1. Potvrzení ─────────────────────────────────────────────────────────
 - name: "[BLANK] Potvrzení destruktivní operace"
@@ -81,6 +81,16 @@
     {{ docker_bin }} network rm {{ stacks_shared_network }} 2>/dev/null || true
   failed_when: false
   changed_when: false
+
+- name: "[BLANK] Prune all unused Docker volumes (-a = named + anonymous)"
+  ansible.builtin.shell: "{{ docker_bin }} volume prune -f -a 2>&1 || {{ docker_bin }} volume prune -f 2>&1"
+  failed_when: false
+  changed_when: true
+
+- name: "[BLANK] Prune all unused Docker networks"
+  ansible.builtin.shell: "{{ docker_bin }} network prune -f"
+  failed_when: false
+  changed_when: true
 
 # ── 3. Homebrew služby – zastavit ───────────────────────────────────────
 - name: "[BLANK] Stop Homebrew services"
