@@ -50,7 +50,7 @@
 
 - name: "[Restore] Restore PostgreSQL databases"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec -i postgresql
+    {{ docker_bin }} compose -p infra exec -T postgresql
     psql -U postgres < {{ ansible_facts['env']['HOME'] }}/restore-temp/{{ ansible_facts['env']['HOME'] }}/backups/pg_dump.sql
   when:
     - install_postgresql | default(false)
@@ -64,7 +64,7 @@
 
 - name: "[Restore] Restore MariaDB databases"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec -i mariadb
+    {{ docker_bin }} compose -p infra exec -T mariadb
     mysql -uroot -p{{ mariadb_root_password | default(global_password_prefix + '_pw_mariadb') }}
     < {{ ansible_facts['env']['HOME'] }}/restore-temp/{{ ansible_facts['env']['HOME'] }}/backups/maria_dump.sql
   when:

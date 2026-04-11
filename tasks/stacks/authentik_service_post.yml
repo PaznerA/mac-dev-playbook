@@ -112,7 +112,7 @@
 
 - name: "[Authentik→Nextcloud] Install user_oidc app"
   ansible.builtin.command: >
-    {{ docker_bin }} exec -u www-data iiab-nextcloud-1
+    {{ docker_bin }} compose -p iiab exec -T -u www-data nextcloud
     php occ app:install user_oidc
   when:
     - install_nextcloud | default(false)
@@ -122,7 +122,7 @@
 
 - name: "[Authentik→Nextcloud] Enable user_oidc app"
   ansible.builtin.command: >
-    {{ docker_bin }} exec -u www-data iiab-nextcloud-1
+    {{ docker_bin }} compose -p iiab exec -T -u www-data nextcloud
     php occ app:enable user_oidc
   when:
     - install_nextcloud | default(false)
@@ -132,7 +132,7 @@
 
 - name: "[Authentik→Nextcloud] Check if OIDC provider registered"
   ansible.builtin.command: >
-    {{ docker_bin }} exec -u www-data iiab-nextcloud-1
+    {{ docker_bin }} compose -p iiab exec -T -u www-data nextcloud
     php occ user_oidc:provider
   register: _nc_oidc_check
   when:
@@ -147,7 +147,7 @@
 # pokryje verze bez subcommand.
 - name: "[Authentik→Nextcloud] Register OIDC provider (first-run)"
   ansible.builtin.command: >
-    {{ docker_bin }} exec -u www-data iiab-nextcloud-1
+    {{ docker_bin }} compose -p iiab exec -T -u www-data nextcloud
     php occ user_oidc:provider authentik
     --clientid="{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'nextcloud') | first).client_id }}"
     --clientsecret="{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'nextcloud') | first).client_secret }}"
@@ -169,7 +169,7 @@
 # failuje harmlessly (failed_when: false) a uzivatel vidi drift warning.
 - name: "[Authentik→Nextcloud] Update OIDC provider client_secret (reconverge)"
   ansible.builtin.command: >
-    {{ docker_bin }} exec -u www-data iiab-nextcloud-1
+    {{ docker_bin }} compose -p iiab exec -T -u www-data nextcloud
     php occ user_oidc:provider authentik
     --clientsecret="{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'nextcloud') | first).client_secret }}"
   register: _nc_oidc_update

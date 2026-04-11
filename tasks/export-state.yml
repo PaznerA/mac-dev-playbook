@@ -43,7 +43,7 @@
 
 - name: "[Export] Dump PostgreSQL databases"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec postgresql pg_dumpall -U postgres
+    {{ docker_bin }} compose -p infra exec -T postgresql pg_dumpall -U postgres
     > "{{ _export_ts_dir }}/postgresql.sql"
   when: _export_pg_running.stdout | default('') | length > 0
   check_mode: false
@@ -58,7 +58,7 @@
 
 - name: "[Export] Dump MariaDB databases"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec mariadb mysqldump -u root
+    {{ docker_bin }} compose -p infra exec -T mariadb mysqldump -u root
     -p{{ mariadb_root_password }} --all-databases
     > "{{ _export_ts_dir }}/mariadb.sql"
   when: _export_maria_running.stdout | default('') | length > 0

@@ -207,7 +207,7 @@
 
 - name: "[Import] Restore PostgreSQL from dump"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec -i postgresql psql -U postgres
+    {{ docker_bin }} compose -p infra exec -T postgresql psql -U postgres
     < "{{ _import_src }}/postgresql.sql"
   when:
     - _import_pg_dump.stat.exists | default(false)
@@ -231,7 +231,7 @@
 
 - name: "[Import] Restore MariaDB from dump"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec -i mariadb mariadb -u root
+    {{ docker_bin }} compose -p infra exec -T mariadb mariadb -u root
     -p{{ mariadb_root_password }}
     < "{{ _import_src }}/mariadb.sql"
   when:

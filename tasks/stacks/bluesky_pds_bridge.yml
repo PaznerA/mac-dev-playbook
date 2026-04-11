@@ -17,7 +17,7 @@
 
 - name: "[PDS Bridge] Get Authentik API token"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec infra-authentik-server-1
+    {{ docker_bin }} compose -p infra exec -T authentik-server
     ak shell -c
     "from authentik.core.models import Token;
     t=Token.objects.filter(identifier='devboxnos-api').first();
@@ -62,7 +62,7 @@
 
 - name: "[PDS Bridge] List existing PDS accounts"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec infra-bluesky-pds-1
+    {{ docker_bin }} compose -p infra exec -T bluesky-pds
     goat pds admin account list
     --pds-host http://localhost:3000
     --admin-password "{{ bluesky_pds_admin_password }}" 2>&1
@@ -115,7 +115,7 @@
 
 - name: "[PDS Bridge] Create PDS account"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec infra-bluesky-pds-1
+    {{ docker_bin }} compose -p infra exec -T bluesky-pds
     goat pds admin account create
     --pds-host http://localhost:3000
     --admin-password "{{ bluesky_pds_admin_password }}"

@@ -118,7 +118,7 @@
 # ── Paperclip: register allowed hostname(s) ─────────────────────────────────
 - name: "[Stacks] Paperclip post-start: register allowed hostname"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec devops-paperclip-1
+    {{ docker_bin }} compose -p devops exec -T paperclip
     pnpm paperclipai allowed-hostname {{ paperclip_domain | default('paperclip.dev.local') }}
   when:
     - install_paperclip | default(false)
@@ -128,7 +128,7 @@
 
 - name: "[Stacks] Paperclip post-start: register extra hostnames"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec devops-paperclip-1
+    {{ docker_bin }} compose -p devops exec -T paperclip
     pnpm paperclipai allowed-hostname {{ item }}
   loop: "{{ service_extra_hosts | default([]) }}"
   when:

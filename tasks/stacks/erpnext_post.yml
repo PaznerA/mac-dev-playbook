@@ -26,7 +26,7 @@
   block:
     - name: "[ERPNext] Wait for MariaDB to accept connections"
       ansible.builtin.shell: >
-        {{ docker_bin }} exec infra-mariadb-1
+        {{ docker_bin }} compose -p infra exec -T mariadb
         mariadb -u root -p{{ mariadb_root_password }} -e "SELECT 1" 2>&1
       register: _mariadb_check
       retries: 15
@@ -61,7 +61,7 @@
 # kazdym pokusem.
 - name: "[ERPNext] Run migrations with lock cleanup (partial setup recovery)"
   ansible.builtin.shell: |
-    {{ docker_bin }} exec b2b-erpnext-backend-1 bash -c '
+    {{ docker_bin }} compose -p b2b exec -T erpnext-backend bash -c '
       find /home/frappe/frappe-bench/sites -name "*.lock" -delete 2>/dev/null || true
       bench --site {{ erpnext_site_name | default("erp.dev.local") }} migrate 2>&1
     '
@@ -99,7 +99,7 @@
 # execution once the site exists (after configurator has completed).
 - name: "[ERPNext] Reconverge Administrator password"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec b2b-erpnext-backend-1
+    {{ docker_bin }} compose -p b2b exec -T erpnext-backend
     bench --site {{ erpnext_site_name | default('erp.dev.local') }}
     set-admin-password {{ erpnext_admin_password | quote }} 2>&1
   register: _erpnext_pw_reset

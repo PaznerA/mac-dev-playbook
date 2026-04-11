@@ -237,7 +237,7 @@
     - name: Reapply authentik blueprints
       ansible.builtin.shell: |
         for bp in 00-admin-groups 10-oidc-apps 20-rbac-policies; do
-          {{ docker_bin }} exec infra-authentik-worker-1 \
+          {{ docker_bin }} compose -p infra exec -T authentik-worker \
             ak apply_blueprint "/blueprints/custom/${bp}.yaml" 2>&1 || true
         done
       failed_when: false

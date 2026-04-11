@@ -17,7 +17,7 @@
 
 - name: "[Bluesky PDS] Check if admin account exists"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec infra-bluesky-pds-1
+    {{ docker_bin }} compose -p infra exec -T bluesky-pds
     goat pds admin account list
     --pds-host http://localhost:3000
     --admin-password "{{ bluesky_pds_admin_password }}" 2>&1
@@ -27,7 +27,7 @@
 
 - name: "[Bluesky PDS] Create admin account"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec infra-bluesky-pds-1
+    {{ docker_bin }} compose -p infra exec -T bluesky-pds
     goat pds admin account create
     --pds-host http://localhost:3000
     --admin-password "{{ bluesky_pds_admin_password }}"
@@ -52,7 +52,7 @@
 # a pouziva aktualni admin_password jako bearer token. Idempotentni.
 - name: "[Bluesky PDS] Reconverge admin account password"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec infra-bluesky-pds-1
+    {{ docker_bin }} compose -p infra exec -T bluesky-pds
     goat pds admin account update-password
     --pds-host http://localhost:3000
     --admin-password "{{ bluesky_pds_admin_password }}"

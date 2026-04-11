@@ -45,14 +45,14 @@
 
 - name: "[Backup] Dump PostgreSQL databases"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec postgresql
+    {{ docker_bin }} compose -p infra exec -T postgresql
     pg_dumpall -U postgres > {{ ansible_facts['env']['HOME'] }}/backups/pg_dump.sql
   when: install_postgresql | default(false)
   failed_when: false
 
 - name: "[Backup] Dump MariaDB databases"
   ansible.builtin.shell: >
-    {{ docker_bin }} exec mariadb
+    {{ docker_bin }} compose -p infra exec -T mariadb
     mysqldump --all-databases -uroot -p{{ mariadb_root_password | default(global_password_prefix + '_pw_mariadb') }}
     > {{ ansible_facts['env']['HOME'] }}/backups/maria_dump.sql
   when: install_mariadb | default(false)
@@ -99,10 +99,10 @@
       exec >> "$LOG_FILE" 2>&1
       echo "=== Backup started: $(date -Iseconds) ==="
       {% if install_postgresql | default(false) %}
-      {{ docker_bin }} exec postgresql pg_dumpall -U postgres > "${BACKUP_DIR}/pg_dump.sql" || true
+      {{ docker_bin }} compose -p infra exec -T postgresql pg_dumpall -U postgres > "${BACKUP_DIR}/pg_dump.sql" || true
       {% endif %}
       {% if install_mariadb | default(false) %}
-      {{ docker_bin }} exec mariadb mysqldump --all-databases -uroot -p{{ mariadb_root_password | default(global_password_prefix + '_pw_mariadb') }} > "${BACKUP_DIR}/maria_dump.sql" 2>/dev/null || true
+      {{ docker_bin }} compose -p infra exec -T mariadb mysqldump --all-databases -uroot -p{{ mariadb_root_password | default(global_password_prefix + '_pw_mariadb') }} > "${BACKUP_DIR}/maria_dump.sql" 2>/dev/null || true
       {% endif %}
       restic backup \
         --exclude-file="{{ restic_excludefile }}" \
