@@ -54,11 +54,18 @@
         msg: "rc={{ _erpnext_cfg_retry.rc | default('?') }} {{ (_erpnext_cfg_retry.stdout_lines | default([]))[-5:] | join(' | ') }}"
 
 # ── Případ 2: site existuje ale migrace nedokončila → bench migrate ───────────
-- name: "[ERPNext] Run migrations (partial setup recovery)"
-  ansible.builtin.shell: >
-    {{ docker_bin }} exec b2b-erpnext-backend-1
-    bench --site {{ erpnext_site_name | default('erp.dev.local') }} migrate 2>&1
+# VirtioFS I/O chyba (macOS bind mount) muze shodit filelock.__exit__ →
+# retry s cleanupem stale .lock souboru. Runtime: 30-120s za pokus, 3 pokusy.
+- name: "[ERPNext] Run migrations with lock cleanup (partial setup recovery)"
+  ansible.builtin.shell: |
+    {{ docker_bin }} exec b2b-erpnext-backend-1 bash -c '
+      find /home/frappe/frappe-bench/sites -name "*.lock" -delete 2>/dev/null || true
+      bench --site {{ erpnext_site_name | default("erp.dev.local") }} migrate 2>&1
+    '
   register: _erpnext_migrate
+  retries: 3
+  delay: 15
+  until: _erpnext_migrate.rc | default(1) == 0
   when:
     - _erpnext_site_config.stat.exists
     - _erpnext_cfg_exit.stdout | default('0') | int != 0
@@ -66,7 +73,7 @@
 
 - name: "[ERPNext] Migration result"
   ansible.builtin.debug:
-    msg: "{{ (_erpnext_migrate.stdout_lines | default([]))[-5:] | join(' | ') }}"
+    msg: "rc={{ _erpnext_migrate.rc | default('?') }} {{ (_erpnext_migrate.stdout_lines | default([]))[-5:] | join(' | ') }}"
   when: _erpnext_migrate is defined and _erpnext_migrate.changed | default(false)
 
 # ── Restart po opravách ────────────────────────────────────────────────────────
@@ -81,20 +88,39 @@
     (_erpnext_migrate is defined and _erpnext_migrate.rc | default(1) == 0)
   failed_when: false
 
+# ── Admin password reconverge (state-declarative UPDATE) ──────────────────
+# `bench set-admin-password` is idempotent-on-write — always overwrites the
+# Administrator password regardless of current value. Runs every playbook
+# execution once the site exists (after configurator has completed).
+- name: "[ERPNext] Reconverge Administrator password"
+  ansible.builtin.shell: >
+    {{ docker_bin }} exec b2b-erpnext-backend-1
+    bench --site {{ erpnext_site_name | default('erp.dev.local') }}
+    set-admin-password {{ erpnext_admin_password | quote }} 2>&1
+  register: _erpnext_pw_reset
+  when: _erpnext_site_config.stat.exists
+  changed_when: _erpnext_pw_reset.rc | default(1) == 0
+  failed_when: false
+
 # ── Health check ──────────────────────────────────────────────────────────────
+# /api/method/frappe.ping vraci {"message": "pong"} bez autentizace, 200 OK.
+# Frappe site routing vyzaduje `Host:` header — nginx frontend vybere spravny
+# site podle FRAPPE_SITE_NAME_HEADER ($host). Bez headeru → 404.
 - name: "[ERPNext] Verify site is accessible"
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ erpnext_port | default(8082) }}"
-    status_code: [200, 302, 303, 404]
+    url: "http://127.0.0.1:{{ erpnext_port | default(8082) }}/api/method/frappe.ping"
+    headers:
+      Host: "{{ erpnext_site_name | default('erp.dev.local') }}"
+    status_code: [200]
     timeout: 10
   register: _erpnext_health
-  retries: 12
-  delay: 5
-  until: _erpnext_health.status | default(0) in [200, 302, 303]
+  retries: 18
+  delay: 10
+  until: _erpnext_health.status | default(0) == 200
   failed_when: false
 
 - name: "[ERPNext] Status"
   ansible.builtin.debug:
     msg: >-
-      ERPNext {{ 'OK (' ~ _erpnext_health.status ~ ')' if _erpnext_health.status | default(0) in [200, 302, 303]
+      ERPNext {{ 'OK (' ~ _erpnext_health.status ~ ')' if _erpnext_health.status | default(0) == 200
       else 'NEDOSTUPNY – zkontroluj: ' ~ docker_bin ~ ' compose -f ' ~ stacks_dir ~ '/b2b/docker-compose.yml -p b2b logs' }}
