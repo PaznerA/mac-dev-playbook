@@ -98,6 +98,8 @@
     - jsos.conf
     # ── AI orchestrace
     - paperclip.conf
+    # ── Security dashboard
+    - glasswing.conf
   notify: Restart nginx
 
 - name: Build list of nginx sites to enable
@@ -137,6 +139,7 @@
          + ((install_puter | default(false)) | ternary(['puter.conf'], []))
          + ((install_jsos | default(false)) | ternary(['jsos.conf'], []))
          + ((install_paperclip | default(false)) | ternary(['paperclip.conf'], []))
+         + ((install_glasswing | default(install_php | default(true))) | ternary(['glasswing.conf'], []))
          + (nginx_sites_extra | default([]))
       }}
 

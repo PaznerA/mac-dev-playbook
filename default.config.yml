@@ -52,10 +52,16 @@ vulnscan_batch_size: 5                    # Počet komponent per scan run
 # ── Version Policy ────────────────────────────────────────────────────────────
 # "stable" = pinned CVE-patched versions (default, recommended for production)
 # "latest" = always pull newest available images/packages
+# "lts"    = LTS/stable release branches for databases and core infra;
+#            stable pins for services without LTS concept
+#
+# Per-service override: set individual *_version variables in config.yml
 #
 # Použití:
 #   ansible-playbook main.yml -K                          # stable (default)
 #   ansible-playbook main.yml -K -e version_policy=latest # latest
+#   ansible-playbook main.yml -K -e version_policy=lts    # lts
+#   ./security-update.sh                                  # security-only update
 version_policy: "stable"
 
 # ── Docker Resource Limits ────────────────────────────────────────────────────
@@ -93,6 +99,7 @@ install_dotnet: true              # .NET SDK (C#, F#) + EF CLI
 # ── AI Agent ──────────────────────────────────────────────────────────────────
 install_openclaw: true            # OpenClaw (Inspektor Klepítko, Ollama, bez API klíče)
 install_pi_agents: false          # PI agent framework + pi-autoresearch extension (pi.dev)
+install_glasswing: true           # Glasswing Security Dashboard (Nette PHP + SQLite) [vyžaduje: php, nginx]
 
 # ── macOS systémová konfigurace ────────────────────────────────────────────────
 configure_dotfiles: false         # Dotfiles – vyžaduje vlastní repo! Nastav dotfiles_repo v credentials.yml
@@ -391,6 +398,12 @@ php_composer_packages:
   # - name: drush/drush
   #   state: present
 
+# ── Glasswing Security Dashboard ─────────────────────────────────────────────
+glasswing_domain: "glasswing.dev.local"
+glasswing_app_dir: "{{ ansible_facts['env']['HOME'] }}/glasswing/app"
+glasswing_data_dir: "{{ glasswing_app_dir }}/data"
+glasswing_json_source: "{{ playbook_dir }}/docs/llm/security"
+
 # ==============================================================================
 # NODE.JS
 # ==============================================================================
@@ -669,7 +682,7 @@ mariadb_data_dir: "{{ ansible_facts['env']['HOME'] }}/mariadb/data"   # persiste
 # ==============================================================================
 
 install_postgresql: false
-postgresql_version: "16.10-alpine"      # CVE-2025-1094 (CVSS 8.1 SQLi), CVE-2025-8714/8715 (pg_dump RCE)
+postgresql_version: "16.13-alpine"      # CVE-2026-2005 (pgcrypto RCE), CVE-2026-2006 (multibyte RCE), CVE-2026-2004/2007 (buffer overflow). Was 16.10
 postgresql_port: 5432
 postgresql_root_user: "postgres"
 postgresql_root_password: "{{ global_password_prefix }}_pw_postgresql"
@@ -1176,7 +1189,7 @@ erpnext_site_name: "erp.dev.local"
 
 freescout_domain: "helpdesk.dev.local"
 freescout_port: 8090
-freescout_version: "1.8.207"             # CVE-2026-28289 (CVSS 10 zero-click RCE via email)
+freescout_version: "php8.3-1.17.152"     # tiredofit image tag = PHP+upstream ver; past CVE-2026-28289 (fixed before 1.17.152)
 freescout_data_dir: "{{ ansible_facts['env']['HOME'] }}/freescout/data"
 freescout_db_name: "freescout"
 freescout_db_user: "freescout"
@@ -1427,6 +1440,7 @@ authentik_app_tiers:
   home-assistant: 3
   kiwix: 4
   jellyfin: 4
+  glasswing: 1
   wordpress: 4
 
 # ── OIDC Service Registry (single source of truth) ──────────────────────────
@@ -1581,6 +1595,12 @@ authentik_oidc_apps:
     enabled: "{{ install_puter | default(false) }}"
     launch_url: "https://{{ puter_domain | default('os.dev.local') }}"
     external_host: "https://{{ puter_domain | default('os.dev.local') }}"
+    type: "proxy"
+  - name: "Glasswing"
+    slug: "glasswing"
+    enabled: "{{ install_glasswing | default(install_php | default(true)) }}"
+    launch_url: "https://{{ glasswing_domain | default('glasswing.dev.local') }}"
+    external_host: "https://{{ glasswing_domain | default('glasswing.dev.local') }}"
     type: "proxy"
 
 # Pomocné proměnné (odvozené z registru, pro compose templates)

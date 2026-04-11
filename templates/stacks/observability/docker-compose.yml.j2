@@ -144,12 +144,11 @@ services:
     volumes:
       - {{ stacks_dir }}/observability/tempo/tempo.yaml:/etc/tempo.yaml:ro
       - {{ tempo_storage_path | default(stacks_dir + '/observability/tempo/data') }}:/var/lib/tempo
+    # Distroless image – no curl/wget; tempo CLI has no -config.verify flag.
+    # Disable healthcheck: Tempo readiness is observable via /ready HTTP endpoint
+    # on port 3200 (Grafana datasource + Alloy scrape detects failures).
     healthcheck:
-      test: ["CMD", "/tempo", "-config.file=/etc/tempo.yaml", "-config.verify"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+      disable: true
     networks:
       - observability_net
       - {{ stacks_shared_network }}
