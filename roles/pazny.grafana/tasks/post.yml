@@ -1,6 +1,6 @@
 ---
 # ==============================================================================
-# GRAFANA ADMIN PASSWORD RECONVERGE — state-declarative UPDATE
+# pazny.grafana/tasks/post.yml — admin password reconverge
 #
 # GF_SECURITY_ADMIN_PASSWORD env var se cte pouze pri prvni inicializaci DB.
 # Pro non-blank runy (edited credentials.yml) potrebujeme explicitni password
@@ -8,7 +8,7 @@
 # Blank run tuto task tez spousti — harmless, password uz je z env vary stejny.
 # ==============================================================================
 
-- name: "[Grafana Admin] Check if Grafana container is running"
+- name: "[pazny.grafana Post] Check if Grafana container is running"
   ansible.builtin.shell: >
     {{ docker_bin }} compose
     -f "{{ stacks_dir }}/observability/docker-compose.yml"
@@ -18,7 +18,7 @@
   failed_when: false
   check_mode: false
 
-- name: "[Grafana Admin] Wait for Grafana HTTP API to be ready"
+- name: "[pazny.grafana Post] Wait for Grafana HTTP API to be ready"
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ grafana_port | default(3000) }}/api/health"
     status_code: [200]
@@ -30,7 +30,7 @@
   when: _grafana_container.stdout | default('') | length > 0
   failed_when: false
 
-- name: "[Grafana Admin] Reconverge admin password (grafana-cli reset-admin-password)"
+- name: "[pazny.grafana Post] Reconverge admin password (grafana-cli reset-admin-password)"
   ansible.builtin.shell: |
     {{ docker_bin }} compose -p observability exec -T grafana \
       grafana-cli admin reset-admin-password {{ grafana_admin_password | quote }} 2>&1
