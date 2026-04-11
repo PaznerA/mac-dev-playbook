@@ -28,7 +28,7 @@
   check_mode: false
   when: _fs_ready.status | default(0) in [200, 302, 500]
 
-- name: "[FreeScout Post] Create admin user via Artisan"
+- name: "[FreeScout Post] Create admin user via Artisan (first-run only)"
   ansible.builtin.shell: >
     {{ docker_bin }} compose -p b2b
     exec -T freescout
@@ -37,11 +37,26 @@
     --firstName="{{ freescout_admin_first_name | default('Admin') }}"
     --lastName="{{ freescout_admin_last_name | default('devBoxNOS') }}"
     --email="{{ freescout_admin_email | default('admin@dev.local') }}"
-    --password="{{ freescout_admin_password | default(global_password_prefix + '_pw_freescout') }}"
+    --password="{{ freescout_admin_password }}"
     2>&1 || true
   when:
     - _fs_ready.status | default(0) in [200, 302, 500]
     - (_fs_user_check.stdout | default('0') | trim) == '0'
   changed_when: true
+  failed_when: false
+  check_mode: false
+
+# ── Reconverge admin password every run (state-declarative UPDATE) ──────
+# FreeScout nema dedicated change-password artisan command, pouzijeme tinker
+# s App\User::where->update aby fungovalo pro existujici usere.
+- name: "[FreeScout Post] Reconverge admin password (tinker UPDATE)"
+  ansible.builtin.shell: |
+    {{ docker_bin }} compose -p b2b exec -T freescout \
+      php artisan tinker --execute="\$u=App\User::where('email','{{ freescout_admin_email | default('admin@dev.local') }}')->first(); if(\$u){\$u->password=bcrypt('{{ freescout_admin_password }}'); \$u->save(); echo 'UPDATED';}"
+  when:
+    - _fs_ready.status | default(0) in [200, 302, 500]
+    - (_fs_user_check.stdout | default('0') | trim) != '0'
+  register: _fs_pw_update
+  changed_when: "'UPDATED' in (_fs_pw_update.stdout | default(''))"
   failed_when: false
   check_mode: false

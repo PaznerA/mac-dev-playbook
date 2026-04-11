@@ -149,11 +149,34 @@
             'url': 'http://127.0.0.1:' ~ (vaultwarden_port | default(8062)) ~ '/alive'}], [])
       }}
 
-- name: "[Uptime Kuma] Deploy monitor setup script"
+- name: "[Uptime Kuma] Deploy helper scripts"
   ansible.builtin.copy:
-    src: uptime-kuma/setup-monitors.py
-    dest: "{{ uptime_kuma_data_dir }}/setup-monitors.py"
+    src: "uptime-kuma/{{ item }}"
+    dest: "{{ uptime_kuma_data_dir }}/{{ item }}"
     mode: '0755'
+  loop:
+    - setup-monitors.py
+    - reset-password.py
+
+# ── Reconverge admin password BEFORE monitor setup ──────────────────────
+# Password reconverge musi probehnout pred setup-monitors.py, aby login()
+# v monitor skriptu pouzil aktualni prefix. Script tries new pw first
+# (converged) → falls back to previous prefix + change_password → DRIFT.
+- name: "[Uptime Kuma] Reconverge admin password"
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ uptime_kuma_data_dir }}/reset-password.py"
+      - "http://127.0.0.1:{{ uptime_kuma_port | default(3001) }}"
+      - "{{ uptime_kuma_admin_user | default('admin') }}"
+      - "{{ uptime_kuma_admin_password }}"
+      - "{{ previous_password_prefix | default(global_password_prefix) }}_pw_uptime_kuma"
+  register: _kuma_pw_reset
+  changed_when: "'UPDATED' in (_kuma_pw_reset.stdout | default(''))"
+  failed_when: false
+  when:
+    - not (_kuma_pip.failed | default(false))
+    - _kuma_ready.status | default(0) | int in [200, 301, 302]
 
 - name: "[Uptime Kuma] Auto-create monitors"
   ansible.builtin.command:
@@ -162,7 +185,7 @@
       - "{{ uptime_kuma_data_dir }}/setup-monitors.py"
       - "http://127.0.0.1:{{ uptime_kuma_port | default(3001) }}"
       - "{{ uptime_kuma_admin_user | default('admin') }}"
-      - "{{ uptime_kuma_admin_password | default('changeme_pw_uptime_kuma') }}"
+      - "{{ uptime_kuma_admin_password }}"
       - "{{ _kuma_monitors | to_json }}"
   register: _kuma_result
   changed_when: "'Created' in (_kuma_result.stdout | default(''))"

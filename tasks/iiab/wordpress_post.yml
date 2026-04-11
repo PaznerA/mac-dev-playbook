@@ -34,14 +34,14 @@
   changed_when: true
   failed_when: false
 
-- name: "[WordPress Post] Run WordPress auto-install"
+- name: "[WordPress Post] Run WordPress auto-install (first-run only)"
   ansible.builtin.shell: >
     {{ docker_bin }} compose -p iiab
     exec -T wordpress wp core install --allow-root
     --url="https://{{ wordpress_domain | default('wordpress.dev.local') }}"
     --title="Dev WordPress"
     --admin_user="{{ wordpress_admin_user | default('admin') }}"
-    --admin_password="{{ wordpress_admin_password | default('changeme_pw_wordpress_admin') }}"
+    --admin_password="{{ wordpress_admin_password }}"
     --admin_email="{{ wordpress_admin_email | default('admin@dev.local') }}"
     --skip-email
   when:
@@ -49,4 +49,21 @@
     - _wp_installed.rc | default(1) != 0
   register: _wp_install
   changed_when: _wp_install.rc == 0
+  failed_when: false
+
+# ── Reconverge admin password every run (idempotent UPDATE) ────────────
+# `wp user update` is safe on existing users — always rewrites the password
+# field. This is the UPDATE leg pro state-declarative idempotence.
+- name: "[WordPress Post] Reconverge admin password (state-declarative UPDATE)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose -p iiab
+    exec -T wordpress wp user update
+    {{ wordpress_admin_user | default('admin') }}
+    --user_pass={{ wordpress_admin_password | quote }}
+    --allow-root
+  when:
+    - _wp_container.stdout | default('') | length > 0
+    - _wp_installed.rc | default(1) == 0
+  register: _wp_pw_update
+  changed_when: "'Success' in (_wp_pw_update.stdout | default(''))"
   failed_when: false

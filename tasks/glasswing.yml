@@ -65,23 +65,14 @@
   when: glasswing_component_count.stdout | int == 0
   register: glasswing_migrate
 
-- name: "[Glasswing] Check if API token exists"
-  ansible.builtin.command:
-    cmd: >
-      {{ homebrew_prefix }}/opt/php@{{ php_version }}/bin/php -r
-      "echo (new SQLite3('{{ glasswing_data_dir }}/glasswing.db'))->querySingle('SELECT COUNT(*) FROM api_tokens');"
-  register: glasswing_token_count
-  changed_when: false
-
-- name: "[Glasswing] Provision initial API token from credentials"
+- name: "[Glasswing] Reconverge API token from credentials (state-declarative)"
   ansible.builtin.shell: |
     {{ homebrew_prefix }}/opt/php@{{ php_version }}/bin/php {{ glasswing_app_dir }}/bin/provision-token.php \
       --db={{ glasswing_data_dir }}/glasswing.db \
       --token={{ glasswing_api_token }} \
       --name=ansible-provisioned
-  when: glasswing_token_count.stdout | int == 0
   register: glasswing_token_result
-  changed_when: "'Created' in (glasswing_token_result.stdout | default(''))"
+  changed_when: "'Created' in (glasswing_token_result.stdout | default('')) or 'Updated' in (glasswing_token_result.stdout | default(''))"
 
 - name: "[Glasswing] Set permissions on data directory"
   ansible.builtin.file:

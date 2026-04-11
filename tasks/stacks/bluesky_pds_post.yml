@@ -46,3 +46,21 @@
     msg: >-
       {{ _pds_create.stdout | default('Preskoceno (ucet jiz existuje nebo PDS nedostupny)') }}
   when: _pds_create is defined
+
+# ── Reconverge admin password every run (state-declarative UPDATE) ──────
+# goat pds admin account update-password funguje i na existujici ucet
+# a pouziva aktualni admin_password jako bearer token. Idempotentni.
+- name: "[Bluesky PDS] Reconverge admin account password"
+  ansible.builtin.shell: >
+    {{ docker_bin }} exec infra-bluesky-pds-1
+    goat pds admin account update-password
+    --pds-host http://localhost:3000
+    --admin-password "{{ bluesky_pds_admin_password }}"
+    --handle "pds.{{ bluesky_pds_hostname | default('bsky.dev.lan') }}"
+    --new-password "{{ bluesky_pds_admin_password }}" 2>&1
+  register: _pds_pw_update
+  when:
+    - _pds_health.status | default(0) == 200
+    - "'pds.' ~ (bluesky_pds_hostname | default('bsky.dev.lan')) in (_pds_accounts.stdout | default(''))"
+  changed_when: _pds_pw_update.rc | default(1) == 0
+  failed_when: false

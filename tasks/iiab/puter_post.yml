@@ -78,7 +78,7 @@
   failed_when: false
   check_mode: false
 
-- name: "[Puter Post] Reset admin password (blank run)"
+- name: "[Puter Post] Reconverge admin password (state-declarative UPDATE)"
   ansible.builtin.shell: >
     {{ docker_bin }} compose -p iiab exec -T puter
     node -e "
@@ -94,7 +94,7 @@
   when:
     - _puter_ready.status | default(0) == 200
     - _puter_admin_check.stdout | default('') | trim == 'EXISTS'
-    - blank | default(false) | bool
-  changed_when: true
+  register: _puter_reset
+  changed_when: "'RESET' in (_puter_reset.stdout | default(''))"
   failed_when: false
   check_mode: false

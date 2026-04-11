@@ -45,6 +45,24 @@
   failed_when: false
   check_mode: false
 
+# ── Admin password reconverge ────────────────────────────────────────────
+# occ user:resetpassword cte OC_PASS z env, bezi pri kazdem behu ⇒ drift
+# prefixu se projevi do existujiciho admin usera.
+- name: "[Nextcloud Post] Reconverge admin password (state-declarative UPDATE)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose -p iiab
+    exec -T -u www-data
+    -e OC_PASS={{ nextcloud_admin_password | quote }}
+    nextcloud php occ user:resetpassword --password-from-env
+    {{ nextcloud_admin_user | default('admin') }}
+  when:
+    - _nc_container.stdout | default('') | length > 0
+    - _nc_current_dbpass.stdout | default('') | trim != '__NC_NOT_INSTALLED__'
+  register: _nc_pw_reset
+  changed_when: "'Successfully reset password' in (_nc_pw_reset.stdout | default(''))"
+  failed_when: false
+  check_mode: false
+
 # ── trusted_domains sync ─────────────────────────────────────────────────
 - name: "[Nextcloud Post] Get current trusted_domains"
   ansible.builtin.shell: >
