@@ -267,6 +267,7 @@ services:
     volumes:
       - {{ authentik_data_dir | default(ansible_facts['env']['HOME'] + '/authentik') }}/media:/media
       - {{ authentik_data_dir | default(ansible_facts['env']['HOME'] + '/authentik') }}/templates:/templates
+      - {{ stacks_dir }}/infra/authentik/blueprints:/blueprints/custom:ro
     environment:
       AUTHENTIK_SECRET_KEY: "{{ authentik_secret_key }}"
       AUTHENTIK_REDIS__HOST: redis
@@ -301,6 +302,7 @@ services:
       - {{ authentik_data_dir | default(ansible_facts['env']['HOME'] + '/authentik') }}/media:/media
       - {{ authentik_data_dir | default(ansible_facts['env']['HOME'] + '/authentik') }}/templates:/templates
       - {{ authentik_data_dir | default(ansible_facts['env']['HOME'] + '/authentik') }}/certs:/certs
+      - {{ stacks_dir }}/infra/authentik/blueprints:/blueprints/custom:ro
     environment:
       AUTHENTIK_SECRET_KEY: "{{ authentik_secret_key }}"
       AUTHENTIK_REDIS__HOST: redis
