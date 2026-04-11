@@ -54,11 +54,13 @@ Passwords follow pattern `{global_password_prefix}_pw_{service}`. Blank run prom
 ### Playbook Execution Flow (`main.yml`)
 
 1. **Password prefix prompt** (if `blank=true`)
-2. **Blank reset** — wipes Docker, data, configs
+2. **Blank reset** — wipes Docker, data, configs. Honors external storage overrides via `tasks/stacks/external-paths.yml` so data on `/Volumes/SSD1TB/` gets wiped, not just empty `~/service` fallbacks.
 3. **Auto-enable dependencies** — PostgreSQL, Redis, MariaDB based on `install_*` flags
 4. **Auto-generate secrets** — Outline, Bluesky, Authentik, Infisical, Vaultwarden, Paperclip, jsOS
 5. **Roles**: osx-command-line-tools → pazny.mac.homebrew → pazny.dotfiles → pazny.mac.mas → pazny.mac.dock
-6. **Tasks**: macOS system → SSH/IIAB Terminal → languages/runtimes → nginx → external storage → Docker prereqs → service configs → stack-up → post-start (Authentik OIDC, ERPNext, Bluesky, Superset) → service-side OIDC (Gitea API, Nextcloud occ) → post-provision (Nextcloud, Gitea, WordPress) → stack_verify → jsOS → service registry
+6. **Tasks**: macOS system → SSH/IIAB Terminal → languages/runtimes → nginx → **external storage** (set_fact path overrides) → Docker prereqs → shared-network → **`tasks/stacks/core-up.yml`** (infra + observability ALWAYS first: configs rendered, compose up, DB setup, Authentik/Infisical/Bluesky PDS post-start) → iiab/devops service configs (nginx vhosts, data dirs) → observability host-side (Alloy, exporters, dashboards) → iiab extras service configs → **`tasks/stacks/stack-up.yml`** (remaining stacks: iiab/devops/b2b/voip/data/engineering compose up + ERPNext/Superset/Paperclip post-start + Authentik service-side OIDC + Bluesky bridge) → post-provision (Nextcloud, Gitea, WordPress) → stack_verify → jsOS → service registry
+
+**Key invariant**: Infra + Observability are **always required, always first**. Service-side tasks that run after core-up can assume MariaDB / Postgres / Authentik / Infisical / Grafana / Loki / Tempo are online. They inject their configs (nginx vhosts, compose includes, Alloy scrape targets) and use handlers to restart running containers as needed.
 
 ### Docker Stacks (8 compose files in `~/stacks/`)
 
@@ -144,4 +146,5 @@ README.md, TLDR.md, inline comments, and task names are in **Czech**.
 - `ansible_env` needs migration to `ansible_facts` before Ansible-core 2.24
 - Mattermost removed (no ARM64 FOSS image), config retained for future
 - Portainer OIDC requires manual UI setup (no env var support)
-- ERPNext migration sometimes fails on first blank run (auto-retry implemented)
+- ERPNext migration sometimes fails on first blank run (auto-retry implemented in `erpnext_post.yml`)
+- Jellyfin 10.10.7 / Open WebUI 0.6.35: known upstream bugs on fresh DB init. Versions pinned due to CVE requirements — first run may restart-loop until `erpnext_post.yml` / chroma regenerates data.

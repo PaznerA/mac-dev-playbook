@@ -18,6 +18,17 @@
 #   - Shell konfigurace (.zshrc bloky) – přepisuje se při reinstalaci
 # ==============================================================================
 
+# ── 0. External storage path overrides ──────────────────────────────────
+# KRITICKÉ: Musí běžet PŘED sestavením _blank_dirs. external-storage.yml
+# normálně běží až v main.yml tasks (po blank-reset), takže bez tohoto
+# includu by blank mazal neexistující ~/service adresáře a skutečná data
+# na /Volumes/SSD1TB/{jellyfin,openwebui,portainer,...} by přežila.
+- name: "[BLANK] Apply external storage path overrides (if enabled)"
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/stacks/external-paths.yml"
+  when:
+    - configure_external_storage | default(false) | bool
+    - external_storage_root is defined
+
 # ── 1. Potvrzení ─────────────────────────────────────────────────────────
 - name: "[BLANK] Potvrzení destruktivní operace"
   ansible.builtin.pause:
@@ -289,6 +300,9 @@
         +
         (install_vaultwarden | default(false)) | ternary(
           [vaultwarden_data_dir | default(ansible_facts['env']['HOME'] + '/vaultwarden')], [])
+        +
+        (install_glasswing | default(install_php | default(true))) | ternary(
+          [glasswing_app_dir | default(ansible_facts['env']['HOME'] + '/glasswing/app')], [])
       }}
 
 - name: "[BLANK] Remove data directories (sudo – Docker creates files as www-data)"

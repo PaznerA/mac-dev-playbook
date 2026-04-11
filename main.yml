@@ -32,9 +32,10 @@
         - "{{ playbook_dir }}/credentials.yml"
       tags: ['always']
 
-    # ── Version Policy: latest ──────────────────────────────────────────────────
-    # -e version_policy=latest → override all pinned Docker image tags to latest.
-    # Stable (default) = CVE-patched pinned versions from default.config.yml.
+    # ── Version Policy ─────────────────────────────────────────────────────────
+    # stable (default) = pinned CVE-patched versions from default.config.yml
+    # latest           = override all pinned Docker image tags to latest
+    # lts              = LTS/stable branches for databases + core infra
     - name: "Override pinned versions to latest (version_policy={{ version_policy }})"
       ansible.builtin.set_fact:
         mariadb_version: "latest"
@@ -60,6 +61,21 @@
         superset_version: "latest"
         nextcloud_version: "latest"
       when: version_policy | default('stable') == 'latest'
+      tags: ['always']
+
+    - name: "Override database/infra versions to LTS (version_policy={{ version_policy }})"
+      ansible.builtin.set_fact:
+        mariadb_version: "lts"
+        postgresql_version: "16-alpine"
+        redis_version: "7.2-alpine"
+        nextcloud_version: "stable"
+        traefik_image_version: "v3.6"
+      when: version_policy | default('stable') == 'lts'
+      tags: ['always']
+
+    - name: "Set docker compose pull flag for mutable tags"
+      ansible.builtin.set_fact:
+        _docker_compose_pull: "{{ '--pull always' if version_policy | default('stable') in ['latest', 'lts'] else '' }}"
       tags: ['always']
 
     # sudo askpass helper – Homebrew cask installer (a další) interně volá
@@ -298,6 +314,14 @@
         - (jsos_session_secret | default('')) is match('^.*changeme.*$')
       tags: ['always']
 
+    - name: Auto-generate Glasswing API token if weak
+      ansible.builtin.set_fact:
+        glasswing_api_token: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+      when:
+        - install_glasswing | default(install_php | default(true))
+        - (glasswing_api_token | default('')) is match('^.*changeme.*$')
+      tags: ['always']
+
     - name: Stop Homebrew Redis if Docker Redis is enabled (port conflict)
       ansible.builtin.shell: |
         brew services stop redis 2>/dev/null || true
@@ -424,6 +448,17 @@
     # Shared Docker network + adresářová struktura pro všechny stacky
     - import_tasks: tasks/stacks/shared-network.yml
       tags: ['iiab', 'docker', 'stacks']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # CORE STACKS – infra (DB/IAM/Vault) + observability VŽDY JAKO PRVNÍ
+    #
+    # Tyto dva stacky jsou backbone celého systému: ostatní role mohou
+    # předpokládat, že MariaDB / Postgres / Redis / Authentik / Infisical /
+    # Bluesky PDS / Grafana / Prometheus / Loki / Tempo běží a jen injectují
+    # své konfigy + notify handlery pro restart kontejnerů.
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/stacks/core-up.yml
+      tags: ['iiab', 'docker', 'stacks', 'core', 'infra', 'observability']
 
     # ──────────────────────────────────────────────────────────────────────────
     # IIAB – self-hosted knowledge services
@@ -668,6 +703,13 @@
     - import_tasks: tasks/vulnerability-scan.yml
       when: configure_vulnerability_scan | default(false)
       tags: ['vulnscan']
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Glasswing — Security Research Dashboard (Nette PHP + SQLite)
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/glasswing.yml
+      when: install_glasswing | default(install_php | default(true))
+      tags: ['glasswing', 'security']
 
     # ──────────────────────────────────────────────────────────────────────────
     # Export/Import – hardware migration (run only with --tags)
