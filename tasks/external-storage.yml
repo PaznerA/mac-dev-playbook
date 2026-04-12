@@ -76,8 +76,7 @@
     - "{{ gitlab_config_dir }}"
     - "{{ woodpecker_data_dir }}"
     - "{{ paperclip_data_dir }}"
-    # B2B
-    - "{{ erpnext_data_dir }}"
+    # B2B (erpnext_data_dir deprecated — named volume, viz P0.1 commit 3b88162)
     - "{{ freescout_data_dir }}"
     - "{{ outline_data_dir }}"
     # VoIP / Engineering / Data
