@@ -169,25 +169,9 @@ services:
     cpus: {{ docker_cpus_standard | default('1.0') }}
 
 {% endif %}
-{% if install_uptime_kuma | default(false) %}
-  uptime-kuma:
-    image: louislam/uptime-kuma:{{ uptime_kuma_version | default('1') }}
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ uptime_kuma_port | default(3001) }}:3001"
-    volumes:
-      - {{ uptime_kuma_data_dir }}:/app/data
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: {{ uptime_kuma_mem_limit | default(docker_mem_limit_light) }}
-    cpus: {{ docker_cpus_light | default('0.5') }}
-
-{% endif %}
+{# uptime-kuma service byl extrahovany do role pazny.uptime_kuma (Wave 2.2)
+   a rendereruje se do {{ stacks_dir }}/iiab/overrides/uptime-kuma.yml.
+   Stack-up.yml ho sesbira pres `find` a prida jako dodatecny -f flag. #}
 {% if install_calibreweb | default(false) %}
   calibre-web:
     image: lscr.io/linuxserver/calibre-web:{{ calibreweb_version | default('latest') }}
@@ -213,62 +197,9 @@ services:
     cpus: {{ docker_cpus_light | default('0.5') }}
 
 {% endif %}
-{% if install_openwebui | default(false) %}
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:{{ openwebui_version | default('main') }}
-    restart: unless-stopped
-    ports:
-{% if services_lan_access | default(false) %}
-      - "{{ openwebui_port | default(3004) }}:8080"
-{% else %}
-      - "127.0.0.1:{{ openwebui_port | default(3004) }}:8080"
-{% endif %}
-    volumes:
-      - {{ openwebui_data_dir }}:/app/backend/data
-      - {{ stacks_dir }}/shared-certs/rootCA.pem:/usr/local/share/ca-certificates/mkcert-ca.crt:ro
-    environment:
-      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
-      WEBUI_AUTH: "true"
-      WEBUI_SECRET_KEY: "{{ openwebui_secret_key | default(global_password_prefix + '_pw_openwebui') }}"
-      ENABLE_SIGNUP: "{{ openwebui_enable_signup | default(true) | string | lower }}"
-      DEFAULT_USER_ROLE: "user"
-      SCARF_NO_ANALYTICS: "true"
-      DO_NOT_TRACK: "true"
-      ANONYMIZED_TELEMETRY: "false"
-      REQUESTS_CA_BUNDLE: "/usr/local/share/ca-certificates/mkcert-ca.crt"
-{% if install_authentik | default(false) %}
-      # ── Authentik SSO (OIDC) ───────────────────────────────────────────────
-      ENABLE_OAUTH_SIGNUP: "true"
-      OAUTH_PROVIDER_NAME: "Authentik"
-      OAUTH_CLIENT_ID: "{{ authentik_oidc_openwebui_client_id }}"
-      OAUTH_CLIENT_SECRET: "{{ authentik_oidc_openwebui_client_secret }}"
-      OPENID_PROVIDER_URL: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/open-webui/.well-known/openid-configuration"
-      OAUTH_MERGE_ACCOUNTS_BY_EMAIL: "true"
-      OAUTH_SCOPES: "openid profile email"
-{% endif %}
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/config"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-{% if install_authentik | default(false) %}
-      - "{{ authentik_domain | default('auth.dev.local') }}:host-gateway"
-{% endif %}
-    networks:
-      - iiab_net
-      - {{ stacks_shared_network }}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-    mem_limit: {{ openwebui_mem_limit | default(docker_mem_limit_critical) }}
-    cpus: {{ docker_cpus_standard | default('1.0') }}
-
-{% endif %}
+{# open-webui service byl extrahovany do role pazny.open_webui (Wave 2.2)
+   a rendereruje se do {{ stacks_dir }}/iiab/overrides/open-webui.yml.
+   Stack-up.yml ho sesbira pres `find` a prida jako dodatecny -f flag. #}
 {% if install_homeassistant | default(false) %}
   homeassistant:
     image: homeassistant/home-assistant:{{ homeassistant_version | default('stable') }}
@@ -298,30 +229,9 @@ services:
     cpus: {{ docker_cpus_standard | default('1.0') }}
 
 {% endif %}
-{% if install_rustfs | default(false) %}
-  rustfs:
-    image: rustfs/rustfs:{{ rustfs_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ rustfs_api_port | default(9010) }}:9000"
-      - "127.0.0.1:{{ rustfs_console_port | default(9001) }}:9001"
-    volumes:
-      - {{ rustfs_data_dir | default(ansible_facts['env']['HOME'] + '/rustfs/data') }}:/data
-    environment:
-      RUSTFS_ACCESS_KEY: "{{ rustfs_access_key }}"
-      RUSTFS_SECRET_KEY: "{{ rustfs_secret_key }}"
-    networks:
-      - iiab_net
-      - {{ stacks_shared_network }}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: {{ rustfs_mem_limit | default(docker_mem_limit_light) }}
-    cpus: {{ docker_cpus_light | default('0.5') }}
-
-{% endif %}
+{# rustfs service byl extrahovany do role pazny.rustfs (Wave 2.2) a
+   rendereruje se do {{ stacks_dir }}/iiab/overrides/rustfs.yml.
+   Stack-up.yml ho sesbira pres `find` a prida jako dodatecny -f flag. #}
 {% if install_offline_maps | default(false) %}
   tileserver:
     image: maptiler/tileserver-gl:{{ maps_tileserver_version | default('latest') }}
@@ -380,53 +290,9 @@ services:
     cpus: {{ docker_cpus_standard | default('1.0') }}
 
 {% endif %}
-{% if install_vaultwarden | default(false) %}
-  # ── Vaultwarden – Bitwarden-kompatibilní password vault ───────────────────
-  vaultwarden:
-    image: vaultwarden/server:{{ vaultwarden_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-{% if services_lan_access | default(false) %}
-      - "{{ vaultwarden_port | default(8062) }}:80"
-{% else %}
-      - "127.0.0.1:{{ vaultwarden_port | default(8062) }}:80"
-{% endif %}
-    volumes:
-      - {{ vaultwarden_data_dir | default(ansible_facts['env']['HOME'] + '/vaultwarden') }}:/data
-{% if install_authentik | default(false) %}
-      - {{ stacks_dir }}/shared-certs/rootCA.pem:/usr/local/share/ca-certificates/mkcert-ca.crt:ro
-{% endif %}
-    environment:
-      DOMAIN: "https://{{ vaultwarden_domain | default('pass.dev.local') }}"
-      SIGNUPS_ALLOWED: "{{ vaultwarden_signups_allowed | default(false) | string | lower }}"
-      ADMIN_TOKEN: "{{ vaultwarden_admin_token }}"
-      WEBSOCKET_ENABLED: "true"
-{% if install_authentik | default(false) %}
-      SSO_ENABLED: "true"
-      SSO_CLIENT_ID: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'vaultwarden') | first).client_id }}"
-      SSO_CLIENT_SECRET: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'vaultwarden') | first).client_secret }}"
-      SSO_AUTHORITY: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/vaultwarden/"
-      SSO_PKCE: "true"
-      SSO_ONLY: "false"
-{% endif %}
-{% if install_authentik | default(false) %}
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["update-ca-certificates 2>/dev/null; exec /start.sh"]
-    extra_hosts:
-      - "{{ authentik_domain | default('auth.dev.local') }}:host-gateway"
-{% endif %}
-    networks:
-      - iiab_net
-      - {{ stacks_shared_network }}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: {{ vaultwarden_mem_limit | default(docker_mem_limit_light) }}
-    cpus: {{ docker_cpus_light | default('0.5') }}
-
-{% endif %}
+{# vaultwarden service byl extrahovany do role pazny.vaultwarden (Wave 2.2)
+   a rendereruje se do {{ stacks_dir }}/iiab/overrides/vaultwarden.yml.
+   Stack-up.yml ho sesbira pres `find` a prida jako dodatecny -f flag. #}
 
 networks:
   iiab_net:
