@@ -118,57 +118,10 @@ services:
     cpus: {{ docker_cpus_standard | default('1.0') }}
 
 {% endif %}
-{% if install_kiwix | default(false) %}
-  kiwix:
-    image: ghcr.io/kiwix/kiwix-serve:{{ kiwix_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-{% if services_lan_access | default(false) %}
-      - "{{ kiwix_port | default(8888) }}:8080"
-{% else %}
-      - "127.0.0.1:{{ kiwix_port | default(8888) }}:8080"
-{% endif %}
-    volumes:
-      - {{ kiwix_data_dir }}:/data
-    command: /data/*.zim
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: {{ kiwix_mem_limit | default(docker_mem_limit_light) }}
-    cpus: {{ docker_cpus_light | default('0.5') }}
-
-{% endif %}
-{% if install_jellyfin | default(false) %}
-  jellyfin:
-    image: jellyfin/jellyfin:{{ jellyfin_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-{% if jellyfin_lan_access | default(false) or services_lan_access | default(false) %}
-      - "{{ jellyfin_port | default(8096) }}:8096"
-{% else %}
-      - "127.0.0.1:{{ jellyfin_port | default(8096) }}:8096"
-{% endif %}
-    volumes:
-      - {{ jellyfin_config_dir }}:/config
-      - {{ jellyfin_cache_dir }}:/cache
-      - {{ jellyfin_movies_dir }}:/media/movies:ro
-      - {{ jellyfin_shows_dir }}:/media/shows:ro
-      - {{ jellyfin_music_dir }}:/media/music:ro
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-    mem_limit: {{ jellyfin_mem_limit | default(docker_mem_limit_critical) }}
-    cpus: {{ docker_cpus_standard | default('1.0') }}
-
-{% endif %}
+{# Kiwix presunut do pazny.kiwix role (Wave 2.2). Compose override se
+   rendereuje do {{ stacks_dir }}/iiab/overrides/kiwix.yml. #}
+{# Jellyfin presunut do pazny.jellyfin role (Wave 2.2). Compose override se
+   rendereuje do {{ stacks_dir }}/iiab/overrides/jellyfin.yml. #}
 {% if install_uptime_kuma | default(false) %}
   uptime-kuma:
     image: louislam/uptime-kuma:{{ uptime_kuma_version | default('1') }}
@@ -188,31 +141,8 @@ services:
     cpus: {{ docker_cpus_light | default('0.5') }}
 
 {% endif %}
-{% if install_calibreweb | default(false) %}
-  calibre-web:
-    image: lscr.io/linuxserver/calibre-web:{{ calibreweb_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ calibreweb_port | default(8083) }}:8083"
-    volumes:
-      - {{ ansible_facts['env']['HOME'] }}/calibre-web/config:/config
-      - {{ calibreweb_books_dir }}:/books
-    environment:
-      PUID: "{{ ansible_facts['user_uid'] }}"
-      PGID: "{{ ansible_facts['user_gid'] }}"
-      TZ: "{{ calibreweb_timezone | default('Europe/Prague') }}"
-      DOCKER_MODS: linuxserver/mods:universal-calibre
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: {{ calibreweb_mem_limit | default(docker_mem_limit_light) }}
-    cpus: {{ docker_cpus_light | default('0.5') }}
-
-{% endif %}
+{# Calibre-Web presunut do pazny.calibre_web role (Wave 2.2). Compose override
+   se rendereuje do {{ stacks_dir }}/iiab/overrides/calibre-web.yml. #}
 {% if install_openwebui | default(false) %}
   open-webui:
     image: ghcr.io/open-webui/open-webui:{{ openwebui_version | default('main') }}
@@ -269,35 +199,8 @@ services:
     cpus: {{ docker_cpus_standard | default('1.0') }}
 
 {% endif %}
-{% if install_homeassistant | default(false) %}
-  homeassistant:
-    image: homeassistant/home-assistant:{{ homeassistant_version | default('stable') }}
-    restart: unless-stopped
-{% if homeassistant_privileged | default(false) %}
-    privileged: true
-    network_mode: host
-{% else %}
-    ports:
-      - "127.0.0.1:{{ homeassistant_port | default(8123) }}:8123"
-    networks:
-      - iiab_net
-      - {{ stacks_shared_network }}
-{% endif %}
-    volumes:
-      - {{ homeassistant_config_dir | default(ansible_facts['env']['HOME'] + '/homeassistant') }}:/config
-    tmpfs:
-      - /tmp
-    environment:
-      TZ: "{{ homeassistant_timezone | default('Europe/Prague') }}"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-    mem_limit: {{ homeassistant_mem_limit | default(docker_mem_limit_standard) }}
-    cpus: {{ docker_cpus_standard | default('1.0') }}
-
-{% endif %}
+{# Home Assistant presunut do pazny.homeassistant role (Wave 2.2). Compose
+   override se rendereuje do {{ stacks_dir }}/iiab/overrides/homeassistant.yml. #}
 {% if install_rustfs | default(false) %}
   rustfs:
     image: rustfs/rustfs:{{ rustfs_version | default('latest') }}
@@ -322,25 +225,8 @@ services:
     cpus: {{ docker_cpus_light | default('0.5') }}
 
 {% endif %}
-{% if install_offline_maps | default(false) %}
-  tileserver:
-    image: maptiler/tileserver-gl:{{ maps_tileserver_version | default('latest') }}
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ maps_port | default(8070) }}:8080"
-    volumes:
-      - {{ maps_data_dir }}:/data
-    networks:
-      - iiab_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: {{ tileserver_mem_limit | default(docker_mem_limit_light) }}
-    cpus: {{ docker_cpus_light | default('0.5') }}
-
-{% endif %}
+{# Offline maps (tileserver) presunut do pazny.offline_maps role (Wave 2.2).
+   Compose override se rendereuje do {{ stacks_dir }}/iiab/overrides/tileserver.yml. #}
 {% if install_puter | default(false) %}
   # ── Puter – cloud OS webový desktop ───────────────────────────────────────
   puter:
