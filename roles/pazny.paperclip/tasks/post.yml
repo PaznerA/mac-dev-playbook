@@ -11,6 +11,14 @@
 # na existujici hostname.
 # ==============================================================================
 
+- name: "[pazny.paperclip Post] Initialize Paperclip instance (onboard)"
+  ansible.builtin.shell: >
+    {{ docker_bin }} compose -p devops exec -T paperclip
+    pnpm paperclipai onboard 2>&1
+  register: _paperclip_onboard
+  changed_when: "'created' in (_paperclip_onboard.stdout | default('') | lower)"
+  failed_when: false
+
 - name: "[pazny.paperclip Post] Register primary allowed hostname"
   ansible.builtin.shell: >
     {{ docker_bin }} compose -p devops exec -T paperclip
