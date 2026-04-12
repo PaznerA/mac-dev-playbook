@@ -79,12 +79,41 @@
         ((install_metabase | default(false) or install_superset | default(false)) | ternary(['data'], []))
       }}
 
+# ── Enumerate per-role compose overrides (Wave 2 role extraction) ───────────
+# Každá pazny.<svc> role rendereruje svůj fragment do
+# {{ stacks_dir }}/<stack>/overrides/<svc>.yml; tady se sezbírají a injectují
+# jako dodatečné -f flagy. Prázdný adresář = fallback na base compose only
+# (backward compatible s pre-Wave2 stavem).
+
+- name: "[Stacks] Enumerate compose overrides per remaining stack"
+  ansible.builtin.find:
+    paths: "{{ stacks_dir }}/{{ item }}/overrides"
+    patterns: "*.yml"
+    file_type: file
+  loop: "{{ _remaining_stacks }}"
+  register: _stack_overrides_find
+  check_mode: false
+  loop_control:
+    label: "{{ item }}"
+
+- name: "[Stacks] Build stack name → overrides list map"
+  ansible.builtin.set_fact:
+    _stack_overrides_map: >-
+      {{
+        dict(
+          _stack_overrides_find.results
+          | map(attribute='item')
+          | zip(_stack_overrides_find.results | map(attribute='files'))
+        )
+      }}
+
 # ── Start remaining stacks ──────────────────────────────────────────────────
 
 - name: "[Stacks] Start remaining active stacks (docker compose up --wait)"
   ansible.builtin.shell: >
     {{ docker_bin }} compose
     -f "{{ stacks_dir }}/{{ item }}/docker-compose.yml"
+    {% for f in _stack_overrides_map[item] | default([]) | sort(attribute='path') %}-f "{{ f.path }}" {% endfor %}
     -p "{{ item }}"
     up -d --remove-orphans --wait --wait-timeout 120
     {{ _docker_compose_pull | default('') }} 2>&1
