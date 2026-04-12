@@ -74,6 +74,14 @@
   register: glasswing_token_result
   changed_when: "'Created' in (glasswing_token_result.stdout | default('')) or 'Updated' in (glasswing_token_result.stdout | default(''))"
 
+- name: "[Glasswing] Write .env with API token for scheduled tasks"
+  ansible.builtin.copy:
+    dest: "{{ ansible_facts['env']['HOME'] }}/glasswing/.env"
+    mode: '0600'
+    content: |
+      GLASSWING_API_TOKEN={{ glasswing_api_token }}
+      GLASSWING_URL=https://{{ glasswing_domain | default('glasswing.dev.local') }}
+
 - name: "[Glasswing] Set permissions on data directory"
   ansible.builtin.file:
     path: "{{ glasswing_data_dir }}"
