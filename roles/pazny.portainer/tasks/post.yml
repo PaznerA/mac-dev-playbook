@@ -132,6 +132,17 @@
     - install_authentik | default(false)
   failed_when: false
 
+- name: "[pazny.portainer Post] OAuth2 auth token status"
+  ansible.builtin.debug:
+    msg: >-
+      Portainer OAuth2 setup:
+      {{ 'JWT obtained — proceeding with OAuth config'
+         if (_portainer_auth.json.jwt is defined and _portainer_auth.json.jwt | length > 0)
+         else 'FAILED to obtain JWT — OAuth config will be SKIPPED (check admin password)' }}
+  when:
+    - _portainer_ready.status | default(0) == 200
+    - install_authentik | default(false)
+
 - name: "[pazny.portainer Post] Configure OAuth2 settings (Authentik)"
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/settings"
@@ -154,10 +165,41 @@
         DefaultTeamID: 0
         SSO: true
         LogoutURI: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/portainer/end-session/"
-    status_code: [200]
+    status_code: [200, 400, 403, 500]
     timeout: 10
+  register: _portainer_oauth_put
   when:
     - _portainer_auth.json.jwt is defined
     - _portainer_auth.json.jwt | length > 0
-  changed_when: true
+  changed_when: _portainer_oauth_put.status | default(0) == 200
   failed_when: false
+
+- name: "[pazny.portainer Post] OAuth2 configuration result"
+  ansible.builtin.debug:
+    msg: >-
+      Portainer OAuth2:
+      {{ 'configured successfully (AuthMethod=3, SSO enabled)'
+         if (_portainer_oauth_put.status | default(0) == 200)
+         else ('FAILED — HTTP ' ~ (_portainer_oauth_put.status | default('?')) ~ ' — '
+               ~ (_portainer_oauth_put.json.message | default(_portainer_oauth_put.json.details | default('unknown error')))) }}
+  when: _portainer_oauth_put is defined
+
+- name: "[pazny.portainer Post] Verify OAuth2 settings applied"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ portainer_port | default(9002) }}/api/settings"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ _portainer_auth.json.jwt | default('') }}"
+    status_code: [200]
+    timeout: 10
+  register: _portainer_settings_verify
+  when:
+    - _portainer_oauth_put.status | default(0) == 200
+  failed_when: false
+
+- name: "[pazny.portainer Post] OAuth2 verification"
+  ansible.builtin.debug:
+    msg: >-
+      OAuth2 verify: AuthMethod={{ _portainer_settings_verify.json.AuthenticationMethod | default('?') }}
+      {{ 'OK — OAuth enabled' if (_portainer_settings_verify.json.AuthenticationMethod | default(0) | int == 3) else 'FAIL — NOT enabled — manual check required' }}
+  when: _portainer_settings_verify is defined and _portainer_settings_verify.status | default(0) == 200
