@@ -72,6 +72,14 @@
     - "{{ stacks_dir }}/observability/tempo"
     - "{{ stacks_dir }}/observability/grafana/provisioning/datasources"
     - "{{ stacks_dir }}/observability/grafana/provisioning/dashboards"
+    # Override adresáře pro non-core stacky (Wave 2 role fragments)
+    # Musí existovat PŘED stack-up.yml find taskem, jinak find task selže.
+    - "{{ stacks_dir }}/iiab/overrides"
+    - "{{ stacks_dir }}/devops/overrides"
+    - "{{ stacks_dir }}/b2b/overrides"
+    - "{{ stacks_dir }}/voip/overrides"
+    - "{{ stacks_dir }}/engineering/overrides"
+    - "{{ stacks_dir }}/data/overrides"
 
 # ── Ensure INFRA persistent data directories exist ──────────────────────────
 # Docker by je jinak vytvořil jako root:root 0755 což způsobí permission
