@@ -27,6 +27,8 @@ services:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'https://{{ gitlab_domain | default('gitlab.dev.local') }}'
         gitlab_rails['gitlab_shell_ssh_port'] = {{ gitlab_ssh_port | default(2224) }}
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
 {% if install_authentik | default(false) %}
         gitlab_rails['omniauth_enabled'] = true
         gitlab_rails['omniauth_allow_single_sign_on'] = ['openid_connect']
@@ -37,6 +39,12 @@ services:
     extra_hosts:
       - "{{ authentik_domain | default('auth.dev.local') }}:host-gateway"
 {% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/-/readiness || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 300s
     networks:
       - devops_net
       - {{ stacks_shared_network }}
