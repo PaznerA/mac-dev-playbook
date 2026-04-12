@@ -9,63 +9,15 @@ services:
    renderuje se do {{ stacks_dir }}/infra/overrides/mariadb.yml. core-up.yml
    ho merguje pres `docker compose -f base.yml -f overrides/mariadb.yml up`. #}
 
-{% if install_postgresql | default(false) %}
-  postgresql:
-    image: postgres:{{ postgresql_version | default('16-alpine') }}
-    hostname: postgresql
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ postgresql_port | default(5432) }}:5432"
-    volumes:
-      - {{ postgresql_data_dir | default(ansible_facts['env']['HOME'] + '/postgresql/data') }}:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: "{{ postgresql_root_password | default(global_password_prefix + '_pw_postgresql') }}"
-      POSTGRES_USER: "{{ postgresql_root_user | default('postgres') }}"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U {{ postgresql_root_user | default('postgres') }}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
-    networks:
-      - infra_net
-      - {{ stacks_shared_network }}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-    mem_limit: {{ postgresql_mem_limit | default(docker_mem_limit_standard) }}
-    cpus: {{ docker_cpus_standard | default('1.0') }}
+{# postgresql service byl extrahovany do role pazny.postgresql (Wave 2.2) a
+   renderuje se do {{ stacks_dir }}/infra/overrides/postgresql.yml. core-up.yml
+   ho merguje stejnym zpusobem. Install gate: install_postgresql. #}
 
-{% endif %}
-{% if redis_docker | default(false) %}
-  redis:
-    image: redis:{{ redis_version | default('7-alpine') }}
-    hostname: redis
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ redis_port | default(6379) }}:6379"
-    volumes:
-      - {{ redis_data_dir | default(ansible_facts['env']['HOME'] + '/redis/data') }}:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass {{ redis_password | default(global_password_prefix + '_pw_redis') }}
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "{{ redis_password | default(global_password_prefix + '_pw_redis') }}", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    networks:
-      - infra_net
-      - {{ stacks_shared_network }}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: {{ redis_mem_limit | default(docker_mem_limit_light) }}
-    cpus: {{ docker_cpus_light | default('0.5') }}
+{# redis service byl extrahovany do role pazny.redis (Wave 2.2) a renderuje
+   se do {{ stacks_dir }}/infra/overrides/redis.yml. core-up.yml ho merguje
+   stejnym zpusobem. Install gate: redis_docker (ne install_redis — kvuli
+   koexistenci s Homebrew Redis). #}
 
-{% endif %}
 {% if install_portainer | default(false) or install_traefik | default(false) %}
   # ── Docker Socket Proxy – bezpečnostní vrstva mezi kontejnery a Docker API ──
   # Eliminuje přímý přístup k docker.sock (container escape vektor)
