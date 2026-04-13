@@ -944,7 +944,7 @@ gitea_disable_registration: false              # true = pouze admin může přid
 gitlab_domain: "gitlab.dev.local"
 gitlab_http_port: 8929          # Interní HTTP port (nginx přebírá SSL, forwarduje sem)
 gitlab_ssh_port: 2224           # Git SSH (22=systém, 2222=Gitea → Gitlab na 2224)
-gitlab_version: "18.10.1-ce.0"  # CVE-2026-0723 (2FA bypass), 9 HIGH CVEs total
+gitlab_version: "18.10.3-ce.0"  # CVE-2026-5173 (websocket bypass CVSS 8.5), CVE-2026-1092 (DoS), CVE-2025-12664 (GraphQL DoS)
 gitlab_data_dir: "{{ ansible_facts['env']['HOME'] }}/gitlab"          # Repozitáře, uploads, artefakty (velké!)
 gitlab_config_dir: "{{ ansible_facts['env']['HOME'] }}/gitlab-config" # gitlab.rb + klíče (malé, ale důležité)
 gitlab_timezone: "Europe/Prague"
