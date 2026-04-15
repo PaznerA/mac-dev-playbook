@@ -1,0 +1,62 @@
+# =============================================================================
+# pazny.miniflux — compose override fragment
+# Merged do `docker compose -p iiab up` v tasks/stacks/stack-up.yml pres
+# ansible.builtin.find nad {{ stacks_dir }}/iiab/overrides/*.yml.
+#
+# Neredeklaruje top-level networks: — iiab_net a {{ stacks_shared_network }}
+# jsou definovane v base templates/stacks/iiab/docker-compose.yml.j2.
+#
+# Miniflux vyzaduje: PostgreSQL (z infra stacku).
+# OIDC client_id/secret se cte z centralniho authentik_oidc_apps listu
+# v default.config.yml pres derivovane authentik_oidc_miniflux_* promenne.
+# =============================================================================
+
+services:
+  miniflux:
+    image: miniflux/miniflux:{{ miniflux_version | default('2.2.19') }}
+    restart: unless-stopped
+    ports:
+{% if services_lan_access | default(false) %}
+      - "{{ miniflux_port | default(3011) }}:8080"
+{% else %}
+      - "127.0.0.1:{{ miniflux_port | default(3011) }}:8080"
+{% endif %}
+    volumes:
+      - {{ miniflux_data_dir | default(ansible_facts['env']['HOME'] + '/miniflux/data') }}:/data
+{% if install_authentik | default(false) %}
+      - {{ stacks_dir }}/shared-certs/rootCA.pem:/usr/local/share/ca-certificates/mkcert-ca.crt:ro
+{% endif %}
+    environment:
+      DATABASE_URL: "postgres://{{ miniflux_db_user | default('miniflux') }}:{{ miniflux_db_password | default(global_password_prefix + '_pw_miniflux') }}@postgresql:5432/{{ miniflux_db_name | default('miniflux') }}?sslmode=disable"
+      RUN_MIGRATIONS: "1"
+      CREATE_ADMIN: "1"
+      ADMIN_USERNAME: "admin"
+      ADMIN_PASSWORD: "{{ miniflux_admin_password | default(global_password_prefix + '_pw_miniflux_admin') }}"
+      BASE_URL: "https://{{ miniflux_domain | default('rss.dev.local') }}"
+      LISTEN_ADDR: ":8080"
+      LOG_LEVEL: "info"
+      METRICS_COLLECTOR: "1"
+      METRICS_ALLOWED_NETWORKS: "172.16.0.0/12"
+{% if install_authentik | default(false) %}
+      # ── Authentik SSO (OIDC) ───────────────────────────────────────────────
+      OAUTH2_PROVIDER: "oidc"
+      OAUTH2_CLIENT_ID: "{{ authentik_oidc_miniflux_client_id }}"
+      OAUTH2_CLIENT_SECRET: "{{ authentik_oidc_miniflux_client_secret }}"
+      OAUTH2_REDIRECT_URL: "https://{{ miniflux_domain | default('rss.dev.local') }}/oauth2/oidc/callback"
+      OAUTH2_OIDC_DISCOVERY_ENDPOINT: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/miniflux/"
+      OAUTH2_USER_CREATION: "1"
+{% endif %}
+{% if install_authentik | default(false) %}
+    extra_hosts:
+      - "{{ authentik_domain | default('auth.dev.local') }}:host-gateway"
+{% endif %}
+    networks:
+      - iiab_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: {{ miniflux_mem_limit | default('512m') }}
+    cpus: {{ miniflux_cpus | default(docker_cpus_light | default('0.5')) }}
