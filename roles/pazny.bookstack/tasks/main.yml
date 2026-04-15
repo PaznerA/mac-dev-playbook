@@ -1,0 +1,60 @@
+---
+# ==============================================================================
+# pazny.bookstack/tasks/main.yml
+#
+# Volano z tasks/stacks/stack-up.yml PRED `docker compose up b2b`:
+# vytvori data dir, deployne nginx vhost, vyrenderuje compose override
+# fragment do {{ stacks_dir }}/b2b/overrides/bookstack.yml, ktery pak
+# stack-up.yml sesbira pres `find` a prida jako dodatecny -f flag.
+#
+# BookStack ma native OIDC (Authentik) pres env vary — zadny post-start
+# setup neni potreba (user se vytvori pri prvnim OIDC loginu, pokud je
+# OIDC_USER_TO_GROUPS=true, automaticky do skupin z Authentiku).
+# DB user a databaze se vytvari v MariaDB post-start (pazny.mariadb/post.yml)
+# pres centralni mariadb_databases / mariadb_users list v default.config.yml.
+# ==============================================================================
+
+- name: "[pazny.bookstack] Ensure data directory exists"
+  ansible.builtin.file:
+    path: "{{ bookstack_data_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: "[pazny.bookstack] Render compose override fragment"
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ stacks_dir }}/b2b/overrides/bookstack.yml"
+    mode: '0644'
+  notify: Restart bookstack
+
+- name: "[pazny.bookstack] Deploy nginx vhost"
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/nginx/sites-available/bookstack.conf"
+    dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/bookstack.conf"
+    mode: '0644'
+  notify: Restart nginx
+  when: install_nginx | default(true)
+
+- name: "[pazny.bookstack] Enable nginx vhost (symlink)"
+  ansible.builtin.file:
+    src: "{{ homebrew_prefix }}/etc/nginx/sites-available/bookstack.conf"
+    dest: "{{ homebrew_prefix }}/etc/nginx/sites-enabled/bookstack.conf"
+    state: link
+    force: true
+  notify: Restart nginx
+  when: install_nginx | default(true)
+
+- name: "[pazny.bookstack] Print installation info"
+  ansible.builtin.debug:
+    msg: |
+      ══════════════════════════════════════════════════════
+       BookStack (Docker) připraven
+      ══════════════════════════════════════════════════════
+       URL:       https://{{ bookstack_domain }}
+       Kontejner: bookstack → 127.0.0.1:{{ bookstack_port | default(3013) }}
+       Data:      {{ bookstack_data_dir }}
+       DB:        {{ bookstack_db_name }} @ mariadb (b2b_net ↔ shared)
+       SSO:       {{ 'Authentik OIDC' if install_authentik | default(false) else 'local' }}
+
+       Přidej do /etc/hosts:   127.0.0.1 {{ bookstack_domain }}
+      ══════════════════════════════════════════════════════

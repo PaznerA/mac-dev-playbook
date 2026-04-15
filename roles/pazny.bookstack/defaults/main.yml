@@ -1,0 +1,27 @@
+---
+# ==============================================================================
+# pazny.bookstack — BookStack wiki platform (knihovna/kniha/kapitola struktura)
+#                   b2b compose stack
+#
+# LinuxServer.io image (lscr.io/linuxserver/bookstack) — PHP/Apache BookStack
+# s knihovním modelem (Shelf → Book → Chapter → Page). Vyžaduje MariaDB
+# (sdílená z infra stacku) + volitelně Redis pro cache/session.
+#
+# Credentials (bookstack_db_password, bookstack_app_key) zustavaji
+# v default.credentials.yml — centralizovane pro prefix rotation.
+# bookstack_app_key je Laravel APP_KEY (base64:<32-byte-base64>) a je
+# auto-generovan v main.yml pri prvnim runu / blank=true.
+# ==============================================================================
+
+bookstack_version: "v26.03.3-ls256"                    # LSIO pinned stable tag
+bookstack_domain: "bookstack.{{ instance_tld | default('dev.local') }}"
+bookstack_port: 3013                                    # unikatni — viz PORT REGISTRY
+bookstack_data_dir: "{{ ansible_facts['env']['HOME'] }}/bookstack/config"
+bookstack_db_name: "bookstack"
+bookstack_db_user: "bookstack"
+bookstack_db_host: "127.0.0.1"                          # ignorovano pokud install_mariadb=true (pouzije se 'mariadb' z b2b_net)
+bookstack_puid: 1000
+bookstack_pgid: 1000
+bookstack_tz: "{{ timezone | default('Europe/Prague') }}"
+bookstack_mem_limit: "{{ docker_mem_limit_standard | default('1g') }}"
+bookstack_cpus: "{{ docker_cpus_standard | default('1.0') }}"
