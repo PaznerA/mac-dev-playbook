@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: firefly
+  namespace: pazny
+  author: Pázny
+  description: Firefly III personal finance manager in Docker compose override (devBoxNOS b2b stack)
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: MacOSX
+      versions:
+        - all
+
+# Zadne role dependencies — Firefly je konzument MariaDB + Redis z infra stacku
+# a Authentik proxy outpostu pro SSO (remote_user_guard).
+dependencies: []
+
+collections: []
