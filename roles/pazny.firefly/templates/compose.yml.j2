@@ -1,0 +1,75 @@
+# =============================================================================
+# pazny.firefly — compose override fragment
+# Merged do `docker compose -p b2b up` v tasks/stacks/stack-up.yml pres
+# ansible.builtin.find nad {{ stacks_dir }}/b2b/overrides/*.yml.
+#
+# Nedeklaruje top-level networks: — b2b_net a {{ stacks_shared_network }}
+# jsou definovane v base templates/stacks/b2b/docker-compose.yml.j2.
+#
+# Firefly III vyzaduje: MariaDB + Redis (oboje z infra stacku).
+# SSO: remote_user_guard — Authentik proxy outpost pres nginx auth_request,
+# Firefly dostane REMOTE_USER + REMOTE_EMAIL hlavicky a auto-vytvari uzivatele.
+# =============================================================================
+
+services:
+  firefly:
+    image: fireflyiii/core:{{ firefly_version | default('version-6.2.22') }}
+    restart: unless-stopped
+    ports:
+{% if services_lan_access | default(false) %}
+      - "{{ firefly_port | default(3014) }}:8080"
+{% else %}
+      - "127.0.0.1:{{ firefly_port | default(3014) }}:8080"
+{% endif %}
+    volumes:
+      - {{ firefly_upload_dir }}:/var/www/html/storage/upload
+      - {{ firefly_export_dir }}:/var/www/html/storage/export
+    environment:
+      APP_ENV: "production"
+      APP_DEBUG: "false"
+      APP_KEY: "{{ firefly_app_key }}"
+      SITE_OWNER: "{{ firefly_site_owner | default(default_admin_email) }}"
+      APP_URL: "https://{{ firefly_domain }}"
+      TRUSTED_PROXIES: "**"
+      TZ: "{{ firefly_tz | default('Europe/Prague') }}"
+      DEFAULT_LANGUAGE: "{{ firefly_default_language | default('en_US') }}"
+      LOG_CHANNEL: "stack"
+      APP_LOG_LEVEL: "notice"
+      AUDIT_LOG_LEVEL: "emergency"
+      # ── Database (MariaDB z infra stacku) ─────────────────────────────────
+      DB_CONNECTION: "mysql"
+      DB_HOST: "{% if install_mariadb | default(false) %}mariadb{% else %}{{ firefly_db_host | default('127.0.0.1') }}{% endif %}"
+      DB_PORT: "3306"
+      DB_DATABASE: "{{ firefly_db_name }}"
+      DB_USERNAME: "{{ firefly_db_user }}"
+      DB_PASSWORD: "{{ firefly_db_password }}"
+      MYSQL_USE_SSL: "false"
+      # ── Cache / session (Redis z infra stacku) ────────────────────────────
+      CACHE_DRIVER: "redis"
+      SESSION_DRIVER: "redis"
+      REDIS_HOST: "redis"
+      REDIS_PASSWORD: "{{ redis_password | default(global_password_prefix + '_pw_redis') }}"
+      REDIS_PORT: "6379"
+{% if install_authentik | default(false) %}
+      # ── Authentik SSO (remote_user_guard via nginx auth_request) ─────────
+      # Firefly cte REMOTE_USER a REMOTE_EMAIL hlavicky nastavene nginxem po
+      # uspesne autentizaci pres Authentik proxy outpost. Auto-creates user
+      # on first login.
+      AUTHENTICATION_GUARD: "remote_user_guard"
+      AUTHENTICATION_GUARD_HEADER: "REMOTE_USER"
+      AUTHENTICATION_GUARD_EMAIL: "REMOTE_EMAIL"
+{% endif %}
+{% if install_authentik | default(false) %}
+    extra_hosts:
+      - "{{ authentik_domain | default('auth.dev.local') }}:host-gateway"
+{% endif %}
+    networks:
+      - b2b_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    mem_limit: {{ firefly_mem_limit | default(docker_mem_limit_standard) }}
+    cpus: {{ firefly_cpus | default(docker_cpus_standard | default('1.0')) }}

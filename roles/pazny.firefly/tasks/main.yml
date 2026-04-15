@@ -1,0 +1,62 @@
+---
+# ==============================================================================
+# pazny.firefly/tasks/main.yml
+#
+# Volano z tasks/stacks/stack-up.yml PRED `docker compose -p b2b up`:
+# vytvori data dirs, vyrenderuje compose override fragment do
+# {{ stacks_dir }}/b2b/overrides/firefly.yml, ktery pak stack-up.yml
+# sesbira pres `find` a prida jako dodatecny -f flag.
+#
+# Firefly pouziva remote_user_guard (REMOTE_USER header) pres Authentik
+# proxy outpost — zadny post-start OIDC setup. User se vytvori pri prvnim
+# prihlaseni pres nginx auth_request.
+# ==============================================================================
+
+- name: "[pazny.firefly] Ensure data directories exist"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ firefly_upload_dir }}"
+    - "{{ firefly_export_dir }}"
+
+- name: "[pazny.firefly] Render compose override fragment"
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ stacks_dir }}/b2b/overrides/firefly.yml"
+    mode: '0644'
+  notify: Restart firefly
+
+- name: "[pazny.firefly] Deploy nginx vhost"
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/nginx/sites-available/firefly.conf"
+    dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/firefly.conf"
+    mode: '0644'
+  notify: Restart nginx
+  when: install_nginx | default(true)
+
+- name: "[pazny.firefly] Enable nginx vhost (symlink)"
+  ansible.builtin.file:
+    src: "{{ homebrew_prefix }}/etc/nginx/sites-available/firefly.conf"
+    dest: "{{ homebrew_prefix }}/etc/nginx/sites-enabled/firefly.conf"
+    state: link
+    force: true
+  notify: Restart nginx
+  when: install_nginx | default(true)
+
+- name: "[pazny.firefly] Print installation info"
+  ansible.builtin.debug:
+    msg: |
+      ══════════════════════════════════════════════════════
+       Firefly III (Docker) připraven
+      ══════════════════════════════════════════════════════
+       URL:       https://{{ firefly_domain }}
+       Kontejner: firefly → 127.0.0.1:{{ firefly_port | default(3014) }}
+       Upload:    {{ firefly_upload_dir }}
+       Export:    {{ firefly_export_dir }}
+       DB:        {{ firefly_db_name }} @ mariadb (b2b_net)
+       SSO:       Authentik proxy outpost (REMOTE_USER)
+
+       Přidej do /etc/hosts:   127.0.0.1 {{ firefly_domain }}
+      ══════════════════════════════════════════════════════
