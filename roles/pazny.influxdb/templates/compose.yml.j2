@@ -1,0 +1,51 @@
+# =============================================================================
+# pazny.influxdb — compose override fragment
+# Merged do `docker compose -p observability up` v tasks/stacks/core-up.yml
+# přes ansible.builtin.find nad {{ stacks_dir }}/observability/overrides/*.yml.
+#
+# Nedeklaruje top-level networks: — observability_net a
+# {{ stacks_shared_network }} jsou definované v base
+# templates/stacks/observability/docker-compose.yml.j2.
+#
+# First-run setup (DOCKER_INFLUXDB_INIT_MODE=setup) se provede jen při prvním
+# startu s prázdným /var/lib/influxdb2. Následné starty ignorují init env vars.
+# =============================================================================
+
+services:
+  influxdb:
+    image: influxdb:{{ influxdb_version | default('2.7.12') }}
+    restart: unless-stopped
+    ports:
+{% if services_lan_access | default(false) %}
+      - "{{ influxdb_port | default(8086) }}:8086"
+{% else %}
+      - "127.0.0.1:{{ influxdb_port | default(8086) }}:8086"
+{% endif %}
+    volumes:
+      - {{ influxdb_data_dir }}:/var/lib/influxdb2
+      - {{ influxdb_config_dir }}:/etc/influxdb2
+    environment:
+      # ── Auto-setup (first-run only; ignored if DB already initialized) ─────
+      DOCKER_INFLUXDB_INIT_MODE: "{{ influxdb_init_mode | default('setup') }}"
+      DOCKER_INFLUXDB_INIT_USERNAME: "{{ influxdb_init_username | default('admin') }}"
+      DOCKER_INFLUXDB_INIT_PASSWORD: "{{ influxdb_admin_password }}"
+      DOCKER_INFLUXDB_INIT_ORG: "{{ influxdb_init_org | default('devboxnos') }}"
+      DOCKER_INFLUXDB_INIT_BUCKET: "{{ influxdb_init_bucket | default('default') }}"
+      DOCKER_INFLUXDB_INIT_RETENTION: "{{ influxdb_init_retention | default('90d') }}"
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "{{ influxdb_admin_token }}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - observability_net
+      - {{ stacks_shared_network }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    mem_limit: {{ influxdb_mem_limit | default(docker_mem_limit_standard | default('1g')) }}
+    cpus: {{ influxdb_cpus | default(docker_cpus_standard | default('1.0')) }}
