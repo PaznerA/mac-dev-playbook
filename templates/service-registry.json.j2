@@ -414,6 +414,151 @@
   "description": "Offline mapy"
 }) %}
 {% endif %}
+{# ── Wave A + Wave B (nové role, 9 služeb s doménou) ──────────────────── #}
+{% if install_ntfy | default(false) %}
+{% set _ = _services.append({
+  "name": "ntfy",
+  "category": "notifications",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_ntfy",
+  "domain": ntfy_domain | default('ntfy.dev.local'),
+  "port": ntfy_port | default(2586),
+  "url": "https://" ~ (ntfy_domain | default('ntfy.dev.local')),
+  "type": "docker",
+  "stack": "iiab",
+  "version": ntfy_version | default('v2.21.0'),
+  "description": "Self-hosted push notifications (pub/sub)"
+}) %}
+{% endif %}
+{% if install_miniflux | default(false) %}
+{% set _ = _services.append({
+  "name": "Miniflux",
+  "category": "knowledge",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_miniflux",
+  "domain": miniflux_domain | default('rss.dev.local'),
+  "port": miniflux_port | default(3011),
+  "url": "https://" ~ (miniflux_domain | default('rss.dev.local')),
+  "type": "docker",
+  "stack": "iiab",
+  "version": miniflux_version | default('2.2.19'),
+  "description": "Minimalisticky RSS/Atom reader"
+}) %}
+{% endif %}
+{% if install_code_server | default(false) %}
+{% set _ = _services.append({
+  "name": "code-server",
+  "category": "devops",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_code_server",
+  "domain": code_server_domain | default('code.dev.local'),
+  "port": code_server_port | default(3009),
+  "url": "https://" ~ (code_server_domain | default('code.dev.local')),
+  "type": "docker",
+  "stack": "devops",
+  "version": code_server_version | default('4.115.0-ls332'),
+  "description": "VS Code v prohlizeci (browser IDE)"
+}) %}
+{% endif %}
+{% if install_hedgedoc | default(false) %}
+{% set _ = _services.append({
+  "name": "HedgeDoc",
+  "category": "b2b",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_hedgedoc",
+  "domain": hedgedoc_domain | default('hedgedoc.dev.local'),
+  "port": hedgedoc_port | default(3012),
+  "url": "https://" ~ (hedgedoc_domain | default('hedgedoc.dev.local')),
+  "type": "docker",
+  "stack": "b2b",
+  "version": hedgedoc_version | default('1.10.7'),
+  "description": "Real-time colaborativni markdown editor"
+}) %}
+{% endif %}
+{% if install_bookstack | default(false) %}
+{% set _ = _services.append({
+  "name": "BookStack",
+  "category": "b2b",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_bookstack",
+  "domain": bookstack_domain | default('bookstack.dev.local'),
+  "port": bookstack_port | default(3013),
+  "url": "https://" ~ (bookstack_domain | default('bookstack.dev.local')),
+  "type": "docker",
+  "stack": "b2b",
+  "version": bookstack_version | default('v26.03.3-ls256'),
+  "description": "Wiki platforma (shelf/book/chapter/page)"
+}) %}
+{% endif %}
+{% if install_firefly | default(false) %}
+{% set _ = _services.append({
+  "name": "Firefly III",
+  "category": "b2b",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_firefly",
+  "domain": firefly_domain | default('firefly.dev.local'),
+  "port": firefly_port | default(3014),
+  "url": "https://" ~ (firefly_domain | default('firefly.dev.local')),
+  "type": "docker",
+  "stack": "b2b",
+  "version": firefly_version | default('version-6.2.21'),
+  "description": "Osobni finance a ucetnictvi"
+}) %}
+{% endif %}
+{% if install_onlyoffice | default(false) %}
+{% set _ = _services.append({
+  "name": "ONLYOFFICE",
+  "category": "b2b",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_onlyoffice",
+  "domain": onlyoffice_domain | default('office.dev.local'),
+  "port": onlyoffice_port | default(3015),
+  "url": "https://" ~ (onlyoffice_domain | default('office.dev.local')),
+  "type": "docker",
+  "stack": "b2b",
+  "version": onlyoffice_version | default('9.3.1.2'),
+  "description": "Document Server (embeddable editor backend)"
+}) %}
+{% endif %}
+{% if install_nodered | default(false) %}
+{% set _ = _services.append({
+  "name": "Node-RED",
+  "category": "automation",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_nodered",
+  "domain": nodered_domain | default('nodered.dev.local'),
+  "port": nodered_port | default(1880),
+  "url": "https://" ~ (nodered_domain | default('nodered.dev.local')),
+  "type": "docker",
+  "stack": "iiab",
+  "version": nodered_version | default('4.0.9'),
+  "description": "Low-code flow-based automatizace"
+}) %}
+{% endif %}
+{% if install_influxdb | default(false) %}
+{% set _ = _services.append({
+  "name": "InfluxDB",
+  "category": "observability",
+  "tier": 1,
+  "enabled": true,
+  "toggle_var": "install_influxdb",
+  "domain": influxdb_domain | default('influx.dev.local'),
+  "port": influxdb_port | default(8086),
+  "url": "https://" ~ (influxdb_domain | default('influx.dev.local')),
+  "type": "docker",
+  "stack": "observability",
+  "version": influxdb_version | default('2.7.12'),
+  "description": "Time-series database (OSS 2.x)"
+}) %}
+{% endif %}
 {# ── Tier 2: Služby s portem (bez domény) ──────────────────────────────── #}
 {% if install_nginx | default(true) %}
 {% set _ = _services.append({
