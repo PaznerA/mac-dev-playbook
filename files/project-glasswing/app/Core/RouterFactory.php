@@ -38,10 +38,16 @@ final class RouterFactory
 		$api->addRoute('api/v1/pentest/targets/<id>/findings', 'Pentest:findings');
 		$api->addRoute('api/v1/pentest/targets[/<id>]', 'Pentest:targets');
 
+		// Hub API (public — service names/ports are non-sensitive, nginx still
+		// gates the /hub browser page behind Authentik proxy auth)
+		$api->addRoute('api/v1/hub/services', 'Hub:services');
+		$api->addRoute('api/v1/hub/health', 'Hub:health');
+
 		// Public homepage (no auth — nginx exempts exact /)
 		$router->addRoute('', 'Homepage:default');
 
 		// Dashboard routes (browser, behind Authentik proxy auth)
+		$router->addRoute('hub', 'Hub:default');
 		$router->addRoute('dashboard', 'Dashboard:default');
 		$router->addRoute('pentest', 'Pentest:default');
 		$router->addRoute('remediation', 'Remediation:default');

@@ -1,5 +1,6 @@
 parameters:
 	dataDir: %tempDir%/../data
+	serviceRegistryPath: %tempDir%/../../../projects/default/service-registry.json
 
 application:
 	errorPresenter: Error
@@ -24,3 +25,6 @@ services:
 	- App\Model\PentestRepository
 	- App\Model\AdvisoryRepository
 	- App\Model\PatchRepository
+
+	# Hub — reads Ansible-generated service registry
+	- App\Model\ServiceRegistry(%serviceRegistryPath%)

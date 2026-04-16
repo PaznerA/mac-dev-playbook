@@ -108,7 +108,8 @@ install_dotnet: true              # .NET SDK (C#, F#) + EF CLI
 # ── AI Agent ──────────────────────────────────────────────────────────────────
 install_openclaw: true            # OpenClaw (Inspektor Klepítko, Ollama, bez API klíče)
 install_pi_agents: false          # PI agent framework + pi-autoresearch extension (pi.dev)
-install_glasswing: true           # Glasswing Security Dashboard (Nette PHP + SQLite) [vyžaduje: php, nginx]
+install_glasswing: true           # Glasswing Security Dashboard + Hub (Nette PHP + SQLite) [vyžaduje: php, nginx]
+install_playwright_tests: false   # Playwright e2e tests pod glasswing/tests (smoke + first-admin provisioning)
 
 # ── macOS systémová konfigurace ────────────────────────────────────────────────
 configure_dotfiles: false         # Dotfiles – vyžaduje vlastní repo! Nastav dotfiles_repo v credentials.yml

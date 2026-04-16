@@ -1,0 +1,20 @@
+{
+  "name": "glasswing-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Playwright e2e tests for Glasswing Hub and first-admin provisioning of devBoxNOS services",
+  "type": "module",
+  "scripts": {
+    "install-browsers": "playwright install chromium",
+    "test": "playwright test",
+    "test:smoke": "playwright test --project smoke",
+    "test:provisioning": "playwright test --project provisioning",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "dotenv": "^16.4.5"
+  }
+}
