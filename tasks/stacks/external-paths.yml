@@ -59,7 +59,7 @@
     gitlab_config_dir: "{{ external_storage_root }}/gitlab-config"
     woodpecker_data_dir: "{{ external_storage_root }}/woodpecker"
     paperclip_data_dir: "{{ external_storage_root }}/paperclip"
-    code_server_config_dir: "{{ external_storage_root }}/code-server/config"
+    code_server_data_dir: "{{ external_storage_root }}/code-server/config"
     code_server_workspace_dir: "{{ external_storage_root }}/code-server/workspace"
 
 # ── B2B stack (ERP, helpdesk, wiki) ─────────────────────────────────────────
@@ -72,7 +72,7 @@
     freescout_data_dir: "{{ external_storage_root }}/freescout/data"
     outline_data_dir: "{{ external_storage_root }}/outline/data"
     hedgedoc_data_dir: "{{ external_storage_root }}/hedgedoc/uploads"
-    bookstack_config_dir: "{{ external_storage_root }}/bookstack/config"
+    bookstack_data_dir: "{{ external_storage_root }}/bookstack/config"
     firefly_upload_dir: "{{ external_storage_root }}/firefly/upload"
     firefly_export_dir: "{{ external_storage_root }}/firefly/export"
     onlyoffice_data_dir: "{{ external_storage_root }}/onlyoffice/data"

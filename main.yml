@@ -385,7 +385,6 @@
         glasswing_api_token: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
         outline_utils_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
         hedgedoc_session_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
-        bookstack_app_key: "base64:{{ lookup('pipe', 'openssl rand -base64 32') }}"
       tags: ['always']
 
     - name: "Regenerate DESTRUCTIVE stateless secrets (blank or destroy_state)"
@@ -395,6 +394,7 @@
         outline_secret_key: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
         bluesky_pds_rotation_key: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
         firefly_app_key: "base64:{{ lookup('pipe', 'openssl rand -base64 32') }}"
+        bookstack_app_key: "base64:{{ lookup('pipe', 'openssl rand -base64 32') }}"
         # onlyoffice_jwt_secret: host apps (Nextcloud, BookStack...) ulozi JWT secret
         # ve svem vlastnim configu. Regen na kazdem runu by rozbil integraci silently.
         onlyoffice_jwt_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
@@ -408,10 +408,11 @@
       ansible.builtin.debug:
         msg: |
           NEBEZPECI: infisical_encryption_key, outline_secret_key, bluesky_pds_rotation_key,
-          firefly_app_key, onlyoffice_jwt_secret, influxdb_admin_token zachovany z predchoziho
-          runu (nemaji lazy regeneraci v non-blank runech). Pro reset pridej -e destroy_state=true
-          — smaze Infisical vault, Outline sifrovana data, Bluesky PLC rotaci, Firefly sifrovana
-          data, ONLYOFFICE host-app integraci, InfluxDB tokeny.
+          firefly_app_key, bookstack_app_key, onlyoffice_jwt_secret, influxdb_admin_token zachovany
+          z predchoziho runu (nemaji lazy regeneraci v non-blank runech). Pro reset pridej
+          -e destroy_state=true — smaze Infisical vault, Outline sifrovana data, Bluesky PLC
+          rotaci, Firefly sifrovana data, BookStack 2FA backup codes + API tokens,
+          ONLYOFFICE host-app integraci, InfluxDB tokeny.
       when:
         - not (blank | default(false) | bool)
         - not (destroy_state | default(false) | bool)

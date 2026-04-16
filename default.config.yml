@@ -20,6 +20,14 @@ instance_location: ""                     # Lokalita (napr. "Praha, CZ")
 instance_role: "standalone"               # standalone | headquarters | factory | office | division
 instance_parent: ""                       # Slug nadrazeneho boxu (pro hierarchii)
 
+# ── Playbook behavior ─────────────────────────────────────────────────────────
+# Fail playbook if any `docker compose up <stack>` returns non-zero exit.
+# Default true — silent stack bringup failures (image pull errors, port
+# collisions) previously got masked by `failed_when: false` on the shell task;
+# this turns them into hard errors so they're visible. Set false to tolerate
+# partial stack failures (e.g., `-e fail_on_stack_errors=false` during debug).
+fail_on_stack_errors: true
+
 # ── Fleet / Heartbeat ────────────────────────────────────────────────────────
 configure_heartbeat: false                # Heartbeat daemon pro fleet reporting
 heartbeat_endpoint: ""                    # URL fleet management serveru

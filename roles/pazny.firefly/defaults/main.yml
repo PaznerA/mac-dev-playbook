@@ -12,7 +12,7 @@
 # Zadny native OIDC env vars — proto nejsou v authentik_oidc_*_client_* listu.
 # ==============================================================================
 
-firefly_version: "version-6.2.22"
+firefly_version: "version-6.2.21"
 firefly_domain: "firefly.{{ instance_tld | default('dev.local') }}"
 firefly_port: 3014
 firefly_upload_dir: "{{ ansible_facts['env']['HOME'] }}/firefly/upload"
