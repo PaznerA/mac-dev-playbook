@@ -68,6 +68,7 @@
     - "{{ stacks_dir }}/observability"
     - "{{ stacks_dir }}/observability/overrides"
     - "{{ stacks_dir }}/observability/prometheus"
+    - "{{ stacks_dir }}/observability/prometheus/rules"
     - "{{ stacks_dir }}/observability/loki"
     - "{{ stacks_dir }}/observability/tempo"
     - "{{ stacks_dir }}/observability/grafana/provisioning/datasources"
@@ -243,6 +244,13 @@
     dest: "{{ stacks_dir }}/observability/prometheus/prometheus.yml"
     mode: '0644'
     force: true
+  when: install_observability | default(true)
+
+- name: "[Core] Deploy Prometheus recording rules (macOS compat)"
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/observability/prometheus/rules/macos-compat.yml"
+    dest: "{{ stacks_dir }}/observability/prometheus/rules/macos-compat.yml"
+    mode: '0644'
   when: install_observability | default(true)
 
 - name: "[Core] Deploy Loki configuration"

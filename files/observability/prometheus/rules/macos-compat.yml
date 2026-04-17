@@ -1,0 +1,45 @@
+# ==============================================================================
+# Prometheus recording rules — macOS metric compatibility layer
+#
+# Maps macOS-native node_memory_*_bytes metric names to Linux-equivalent
+# node_memory_Mem*_bytes names expected by community dashboards
+# (e.g. Node Exporter Full #1860).
+#
+# macOS Alloy exports:
+#   node_memory_total_bytes, node_memory_free_bytes, node_memory_active_bytes,
+#   node_memory_inactive_bytes, node_memory_wired_bytes, node_memory_compressed_bytes,
+#   node_memory_purgeable_bytes, node_memory_swap_total_bytes, node_memory_swap_used_bytes
+#
+# Linux dashboards expect:
+#   node_memory_MemTotal_bytes, node_memory_MemFree_bytes, node_memory_MemAvailable_bytes,
+#   node_memory_Buffers_bytes, node_memory_Cached_bytes, node_memory_SwapTotal_bytes,
+#   node_memory_SwapFree_bytes
+# ==============================================================================
+
+groups:
+  - name: macos_memory_compat
+    interval: 15s
+    rules:
+      - record: node_memory_MemTotal_bytes
+        expr: node_memory_total_bytes
+
+      - record: node_memory_MemFree_bytes
+        expr: node_memory_free_bytes
+
+      # MemAvailable ~ free + inactive + purgeable (macOS equivalent)
+      - record: node_memory_MemAvailable_bytes
+        expr: node_memory_free_bytes + node_memory_inactive_bytes + node_memory_purgeable_bytes
+
+      # Buffers don't exist on macOS — report 0
+      - record: node_memory_Buffers_bytes
+        expr: node_memory_free_bytes * 0
+
+      # Cached ~ inactive + purgeable (reclaimable pages)
+      - record: node_memory_Cached_bytes
+        expr: node_memory_inactive_bytes + node_memory_purgeable_bytes
+
+      - record: node_memory_SwapTotal_bytes
+        expr: node_memory_swap_total_bytes
+
+      - record: node_memory_SwapFree_bytes
+        expr: node_memory_swap_total_bytes - node_memory_swap_used_bytes

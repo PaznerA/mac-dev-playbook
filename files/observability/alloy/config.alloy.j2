@@ -68,6 +68,47 @@ prometheus.scrape "redis" {
 }
 {% endif %}
 
+// ── Docker service metrics (services with native /metrics endpoints) ─────────
+
+{% if install_miniflux | default(false) %}
+// Miniflux — Go process + HTTP request metrics
+prometheus.scrape "miniflux" {
+  targets = [{
+    __address__ = "localhost:{{ miniflux_port | default(3011) }}",
+  }]
+  forward_to  = [prometheus.remote_write.default.receiver]
+  job_name    = "miniflux"
+  metrics_path = "/metrics"
+  scrape_interval = "30s"
+}
+{% endif %}
+
+{% if install_firefly | default(false) %}
+// Firefly III — Laravel/PHP process metrics
+prometheus.scrape "firefly" {
+  targets = [{
+    __address__ = "localhost:{{ firefly_port | default(3014) }}",
+  }]
+  forward_to  = [prometheus.remote_write.default.receiver]
+  job_name    = "firefly"
+  metrics_path = "/metrics"
+  scrape_interval = "60s"
+}
+{% endif %}
+
+{% if install_influxdb | default(false) %}
+// InfluxDB 2.x — internal metrics
+prometheus.scrape "influxdb" {
+  targets = [{
+    __address__ = "localhost:{{ influxdb_port | default(8086) }}",
+  }]
+  forward_to  = [prometheus.remote_write.default.receiver]
+  job_name    = "influxdb"
+  metrics_path = "/metrics"
+  scrape_interval = "30s"
+}
+{% endif %}
+
 // Self-monitoring – Alloy vlastní metriky
 prometheus.scrape "alloy_self" {
   targets = [{

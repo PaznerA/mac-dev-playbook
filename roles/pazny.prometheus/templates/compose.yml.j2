@@ -20,6 +20,7 @@ services:
       - "127.0.0.1:{{ prometheus_port | default(9090) }}:9090"
     volumes:
       - {{ stacks_dir }}/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - {{ stacks_dir }}/observability/prometheus/rules:/etc/prometheus/rules:ro
       - {{ prometheus_storage_path | default(stacks_dir + '/observability/prometheus/data') }}:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
