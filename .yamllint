@@ -5,9 +5,20 @@ rules:
   line-length:
     max: 180
     level: warning
+  # Ansible Jinja2 templates use {{ var }} which yamllint flags as
+  # "too many spaces inside braces". Disable — incompatible with Jinja2.
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside-empty: 0
+    max-spaces-inside: -1
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside-empty: 0
+    max-spaces-inside: -1
 
 ignore: |
   .github/workflows/stale.yml
   .venv
   roles
   files/observability
+  files/project-glasswing
