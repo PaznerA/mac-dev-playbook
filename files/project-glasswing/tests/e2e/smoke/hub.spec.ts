@@ -53,6 +53,7 @@ test.describe('Glasswing Hub — smoke', () => {
   test('public homepage loads without auth', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('h1')).toContainText('Glasswing');
-    await expect(page.getByRole('link', { name: /prihlasit/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /systems hub/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /security dashboard/i })).toBeVisible();
   });
 });

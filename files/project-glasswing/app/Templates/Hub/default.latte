@@ -3,22 +3,22 @@
 {block content}
 
 <div class="stats">
-	<div class="stat">
+	<div class="stat" style="border-left:3px solid var(--accent)">
 		<div class="label">Systems</div>
 		<div class="value">{$stats['total']}</div>
 		<div class="sub">{$stats['stacks']} stacks</div>
 	</div>
-	<div class="stat">
+	<div class="stat" style="border-left:3px solid var(--green)">
 		<div class="label">Healthy</div>
 		<div class="value" style="color:var(--green)">{$stats['up']}</div>
 		<div class="sub">{$stats['unknown']} unchecked</div>
 	</div>
-	<div class="stat">
+	<div class="stat" style="border-left:3px solid {if $stats['down'] > 0}var(--red){else}var(--border){/if}">
 		<div class="label">Down</div>
 		<div class="value" style="color:{if $stats['down'] > 0}var(--red){else}var(--text2){/if}">{$stats['down']}</div>
 		<div class="sub">{if $stats['down'] > 0}needs attention{else}all clear{/if}</div>
 	</div>
-	<div class="stat">
+	<div class="stat" style="border-left:3px solid {if $stats['findings'] > 0}var(--orange){else}var(--border){/if}">
 		<div class="label">Findings</div>
 		<div class="value" style="color:{if $stats['findings'] > 0}var(--orange){else}var(--text2){/if}">{$stats['findings']}</div>
 		<div class="sub">CVE + misconfig</div>

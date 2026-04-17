@@ -146,23 +146,24 @@ a { color: var(--accent); text-decoration: none; }
 .hub-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
 
 /* System card */
-.sys-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; transition: border-color .15s; }
-.sys-card:hover { border-color: var(--accent); }
+.sys-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; transition: border-color .15s, box-shadow .15s; }
+.sys-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(88,166,255,.08); }
 .sys-card.hidden { display: none; }
-.sys-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.sys-title { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.sys-name { font-size: 14px; font-weight: 600; }
+.sys-card[data-health="down"] { border-left: 3px solid var(--red); }
+.sys-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 24px; }
+.sys-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.sys-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sys-badges { display: flex; gap: 4px; flex-shrink: 0; }
-.sys-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; background: var(--surface2); color: var(--text2); }
+.sys-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; background: var(--surface2); color: var(--text2); white-space: nowrap; }
 .sys-badge-type { color: var(--cyan); }
 .sys-badge-cat { color: var(--purple); }
-.sys-desc { font-size: 12px; color: var(--text2); line-height: 1.4; margin: 0; }
+.sys-desc { font-size: 12px; color: var(--text2); line-height: 1.4; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Health dot */
-.sys-health-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-.sys-health-up { background: var(--green); box-shadow: 0 0 4px var(--green); }
-.sys-health-down { background: var(--red); box-shadow: 0 0 4px var(--red); animation: pulse 1.5s infinite; }
-.sys-health-unknown { background: var(--text2); opacity: .5; }
+.sys-health-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.sys-health-up { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sys-health-down { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1.5s infinite; }
+.sys-health-unknown { background: var(--text2); opacity: .4; }
 
 /* Scan overlay */
 .sys-scan { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text2); padding: 4px 8px; background: var(--bg); border-radius: 4px; }
@@ -172,12 +173,12 @@ a { color: var(--accent); text-decoration: none; }
 .sys-scan-date { margin-left: auto; }
 
 /* Links row */
-.sys-links { display: flex; gap: 6px; flex-wrap: wrap; }
-.sys-link { font-size: 11px; font-family: 'SF Mono', 'Fira Code', monospace; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; color: var(--accent); text-decoration: none; transition: all .12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-.sys-link:hover { border-color: var(--accent); background: var(--surface2); }
-.sys-link-https { border-color: rgba(88,166,255,.3); }
-.sys-link-port { color: var(--text2); }
-.sys-link-repo { color: var(--purple); border-color: rgba(188,140,255,.2); }
+.sys-links { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px; border-top: 1px solid var(--border); }
+.sys-link { font-size: 11px; font-family: 'SF Mono', 'Fira Code', monospace; padding: 4px 10px; border-radius: 14px; text-decoration: none; transition: all .12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+.sys-link:hover { opacity: .8; }
+.sys-link-https { background: rgba(88,166,255,.12); color: var(--accent); }
+.sys-link-port { background: var(--surface2); color: var(--text2); }
+.sys-link-repo { background: rgba(188,140,255,.1); color: var(--purple); }
 
 /* Children (sub-services) */
 .sys-children { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; background: var(--bg); border-radius: 4px; margin-top: 2px; }
