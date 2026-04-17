@@ -132,7 +132,16 @@ a { color: var(--accent); text-decoration: none; }
 /* Hub — Systems dashboard */
 .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
 .hub-stack { margin-bottom: 28px; }
-.hub-stack-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.hub-stack-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 10px; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 4px 4px 0; }
+.hub-stack[data-stack="infra"] .hub-stack-title { border-left-color: var(--red); }
+.hub-stack[data-stack="observability"] .hub-stack-title { border-left-color: var(--orange); }
+.hub-stack[data-stack="iiab"] .hub-stack-title { border-left-color: var(--green); }
+.hub-stack[data-stack="devops"] .hub-stack-title { border-left-color: var(--cyan); }
+.hub-stack[data-stack="b2b"] .hub-stack-title { border-left-color: var(--purple); }
+.hub-stack[data-stack="data"] .hub-stack-title { border-left-color: var(--yellow); }
+.hub-stack[data-stack="native"] .hub-stack-title { border-left-color: var(--accent); }
+.hub-stack[data-stack="voip"] .hub-stack-title { border-left-color: #e879f9; }
+.hub-stack[data-stack="engineering"] .hub-stack-title { border-left-color: #a3e635; }
 .hub-stack.hidden { display: none; }
 .hub-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
 

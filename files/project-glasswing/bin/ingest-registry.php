@@ -41,5 +41,6 @@ $repo = $container->getByType(App\Model\SystemRepository::class);
 
 $result = $repo->ingestRegistry($registryPath);
 
-echo "Ingested {$result['imported']} systems, created {$result['stacks_created']} stack parents\n";
+$merged = $result['merged'] ?? 0;
+echo "Ingested {$result['imported']} systems, created {$result['stacks_created']} stack parents, merged $merged duplicates\n";
 echo "Registry: $registryPath\n";

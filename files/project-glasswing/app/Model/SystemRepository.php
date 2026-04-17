@@ -281,7 +281,98 @@ final class SystemRepository
 			$imported++;
 		}
 
-		return ['imported' => $imported, 'stacks_created' => $stacksCreated];
+		// After ingest: merge orphan components_db entries into their registry
+		// counterparts by name, then delete the orphans.
+		$merged = $this->dedup();
+
+		return ['imported' => $imported, 'stacks_created' => $stacksCreated, 'merged' => $merged];
+	}
+
+
+	/**
+	 * Merge duplicate systems (same name, different source). Copies version,
+	 * upstream_repo, image, priority, version_var from components_db entry
+	 * into the registry entry, migrates scan_state, then deletes the orphan.
+	 *
+	 * @return int number of orphans merged + deleted
+	 */
+	public function dedup(): int
+	{
+		// Find names with >1 entry
+		$dupes = $this->db->query(
+			'SELECT name, COUNT(*) AS c FROM systems WHERE category != ? GROUP BY name HAVING c > 1',
+			'stack'
+		)->fetchAll();
+
+		$merged = 0;
+		foreach ($dupes as $row) {
+			$name = $row['name'];
+			$entries = $this->db->table('systems')->where('name', $name)->fetchAll();
+
+			// Prefer registry entry as the survivor (has parent_id, health)
+			$registry = null;
+			$others = [];
+			foreach ($entries as $entry) {
+				$arr = $entry->toArray();
+				if ($arr['source'] === 'registry') {
+					$registry = $arr;
+				} else {
+					$others[] = $arr;
+				}
+			}
+
+			if (!$registry || empty($others)) {
+				continue;
+			}
+
+			// Merge fields from the richest "other" into registry
+			foreach ($others as $other) {
+				$updates = [];
+				// Copy version if registry lacks one
+				if (empty($registry['version']) && !empty($other['version'])) {
+					$updates['version'] = $other['version'];
+				}
+				if (empty($registry['version_var']) && !empty($other['version_var'])) {
+					$updates['version_var'] = $other['version_var'];
+				}
+				if (empty($registry['upstream_repo']) && !empty($other['upstream_repo'])) {
+					$updates['upstream_repo'] = $other['upstream_repo'];
+				}
+				if (empty($registry['image']) && !empty($other['image'])) {
+					$updates['image'] = $other['image'];
+				}
+				// Prefer higher priority
+				$priOrder = ['high' => 3, 'medium' => 2, 'low' => 1];
+				$otherPri = $priOrder[$other['priority'] ?? 'medium'] ?? 2;
+				$regPri = $priOrder[$registry['priority'] ?? 'medium'] ?? 2;
+				if ($otherPri > $regPri) {
+					$updates['priority'] = $other['priority'];
+				}
+
+				if ($updates) {
+					$updates['updated_at'] = (new \DateTimeImmutable)->format('Y-m-d H:i:s');
+					$this->db->table('systems')->where('id', $registry['id'])->update($updates);
+				}
+
+				// Migrate scan_state FK from old ID to registry ID
+				$this->db->table('component_scan_state')
+					->where('component_id', $other['id'])
+					->update(['component_id' => $registry['id']]);
+
+				// Migrate remediation_items, pentest_targets, patches references
+				foreach (['remediation_items', 'pentest_targets', 'patches'] as $tbl) {
+					$this->db->table($tbl)
+						->where('component_id', $other['id'])
+						->update(['component_id' => $registry['id']]);
+				}
+
+				// Delete the orphan
+				$this->db->table('systems')->where('id', $other['id'])->delete();
+				$merged++;
+			}
+		}
+
+		return $merged;
 	}
 
 

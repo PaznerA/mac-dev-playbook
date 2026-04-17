@@ -37,9 +37,11 @@
 </div>
 
 {foreach $byStack as $stackName => $systems}
-	{continueIf $stackName === 'other' && count($systems) === 0}
+	{var $svcCount = 0}
+	{foreach $systems as $_s}{if $_s['category'] !== 'stack'}{var $svcCount = $svcCount + 1}{/if}{/foreach}
+	{continueIf $svcCount === 0}
 	<section class="hub-stack" data-stack="{$stackName}">
-		<h3 class="hub-stack-title">{$stackName|upper}</h3>
+		<h3 class="hub-stack-title">{$stackName|upper} <span style="opacity:.4;font-weight:400;margin-left:4px">{$svcCount}</span></h3>
 		<div class="hub-grid">
 			{foreach $systems as $sys}
 				{continueIf $sys['category'] === 'stack'}
