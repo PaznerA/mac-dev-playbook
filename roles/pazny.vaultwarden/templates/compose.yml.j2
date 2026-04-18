@@ -29,8 +29,8 @@ services:
       WEBSOCKET_ENABLED: "true"
 {% if install_authentik | default(false) %}
       SSO_ENABLED: "true"
-      SSO_CLIENT_ID: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'vaultwarden') | first).client_id }}"
-      SSO_CLIENT_SECRET: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'vaultwarden') | first).client_secret }}"
+      SSO_CLIENT_ID: "{{ authentik_oidc_vaultwarden_client_id }}"
+      SSO_CLIENT_SECRET: "{{ authentik_oidc_vaultwarden_client_secret }}"
       SSO_AUTHORITY: "https://{{ authentik_domain | default('auth.dev.local') }}/application/o/vaultwarden/"
       SSO_PKCE: "true"
       SSO_ONLY: "false"

@@ -1568,7 +1568,7 @@ authentik_oidc_apps:
     enabled: "{{ install_n8n | default(false) }}"
     client_id: "devboxnos-n8n"
     client_secret: "{{ global_password_prefix }}_pw_oidc_n8n"
-    redirect_uris: "https://{{ n8n_domain | default('n8n.dev.local') }}/rest/oauth2-credential/callback"
+    redirect_uris: "https://{{ n8n_domain | default('n8n.dev.local') }}/rest/oauth2-credential/callback https://{{ n8n_domain | default('n8n.dev.local') }}/rest/oidc/callback"
     launch_url: "https://{{ n8n_domain | default('n8n.dev.local') }}"
   - name: "Metabase"
     slug: "metabase"
@@ -1754,6 +1754,10 @@ authentik_oidc_hedgedoc_client_id: "{{ (authentik_oidc_apps | selectattr('slug',
 authentik_oidc_hedgedoc_client_secret: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'hedgedoc') | first).client_secret }}"
 authentik_oidc_bookstack_client_id: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'bookstack') | first).client_id }}"
 authentik_oidc_bookstack_client_secret: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'bookstack') | first).client_secret }}"
+authentik_oidc_n8n_client_id: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'n8n') | first).client_id }}"
+authentik_oidc_n8n_client_secret: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'n8n') | first).client_secret }}"
+authentik_oidc_vaultwarden_client_id: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'vaultwarden') | first).client_id }}"
+authentik_oidc_vaultwarden_client_secret: "{{ (authentik_oidc_apps | selectattr('slug', 'equalto', 'vaultwarden') | first).client_secret }}"
 
 # ==============================================================================
 # INFISICAL CE – Secrets Management (REST API, CLI, SDK)
