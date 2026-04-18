@@ -153,6 +153,8 @@
         accept_external_apps: "{{ homebrew_cask_accept_external_apps }}"
         sudo_password: "{{ ansible_become_password | default(omit) }}"
       loop: "{{ homebrew_cask_apps }}"
+      environment:
+        HOMEBREW_NO_AUTO_UPDATE: "1"
       notify:
         - Clear homebrew cache
 
@@ -170,6 +172,8 @@
         install_options: "{{ item.install_options | default(omit) }}"
         state: "{{ item.state | default('present') }}"
       loop: "{{ homebrew_installed_packages }}"
+      environment:
+        HOMEBREW_NO_AUTO_UPDATE: "1"
       notify:
         - Clear homebrew cache
 

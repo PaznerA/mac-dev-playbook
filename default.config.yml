@@ -305,7 +305,7 @@ homebrew_cask_accept_external_apps: true
 
 homebrew_cask_apps:
   # ── Infrastruktura ────────────────────────────────────────────────────────
-  - docker               # Docker Desktop (nutné pro Kiwix a OpenClaw)
+  - docker-desktop       # Docker Desktop (přejmenováno z 'docker' v brew 4.x)
 
   # ── Editory / IDE ─────────────────────────────────────────────────────────
   - visual-studio-code   # VS Code – hlavní editor
