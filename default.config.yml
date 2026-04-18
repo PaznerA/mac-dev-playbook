@@ -315,20 +315,20 @@ homebrew_cask_apps:
 
   # ── Terminály ─────────────────────────────────────────────────────────────
   - ghostty              # Ghostty – GPU-accelerated terminál (nový standard)
-  - iterm2               # iTerm2 – záložní terminál
-  # - warp              # Warp – AI terminál (alternativa)
+  # - iterm2             # iTerm2 – záložní terminál
+  # - warp               # Warp – AI terminál (alternativa)
 
   # ── Prohlížeče ────────────────────────────────────────────────────────────
   - brave-browser        # Brave – privacy-first prohlížeč (doporučeno)
   - google-chrome        # Chrome – pro testování
   - firefox              # Firefox – pro testování
-  # - arc               # Arc – alternativní prohlížeč
+  # - arc                # Arc – alternativní prohlížeč
 
   # ── Produktivita / Systém ─────────────────────────────────────────────────
   - raycast              # Raycast – Spotlight replacement (AI, snippets, scripts)
 
   # ── Komunikace ────────────────────────────────────────────────────────────
-  - slack                # Slack – teamová komunikace
+  #- slack                # Slack – teamová komunikace
   - discord              # Discord – komunity a voice chat
 
   # ── Správa souborů / DB ───────────────────────────────────────────────────
@@ -357,7 +357,7 @@ homebrew_cask_apps:
   # ── Kreativní nástroje ────────────────────────────────────────────────────
   - blender              # Blender – 3D modelování, animace, rendering
   # - fl-studio            # FL Studio – není v Homebrew, instaluj manuálně z image-line.com
-  # - gimp               # GIMP – rastrová grafika (open-source PS)
+  - gimp                 # GIMP – rastrová grafika (open-source PS)
   # - inkscape           # Inkscape – vektorová grafika (open-source AI)
   # - davinci-resolve    # DaVinci Resolve – video střih
 
@@ -373,7 +373,7 @@ homebrew_cask_apps:
 
   # ── Systémové utility ─────────────────────────────────────────────────────
   # - dropbox              # Dropbox – cloud sync (odkomentuj v config.yml pokud chceš)
-  - jordanbaird-ice      # Ice – free Bartender (organizace menu baru)
+  #- jordanbaird-ice      # Ice – free Bartender (organizace menu baru)
   - hiddenbar            # Hidden Bar – schovávání ikon v menu baru (MAS alt.)
   - stats                # Stats – CPU/GPU/RAM/network v menu baru
   - onyx                 # OnyX – údržba macOS, cache cleanup, hidden prefs
@@ -385,10 +385,10 @@ homebrew_cask_apps:
   - syncthing-app        # Syncthing – P2P file sync mezi zařízeními
   - imazing              # iMazing v3 – správa iOS/iPadOS zařízení, zálohy
   # - rectangle          # Rectangle – window manager
-  # - alt-tab            # AltTab – Windows-like app switcher
+  - alt-tab            # AltTab – Windows-like app switcher
   # - bettertouchtool    # BetterTouchTool – trackpad/klávesnice customization
   # ── Volitelné produktivitní nástroje (default: opt-in v config.yml) ──────
-  # - antinote           # Antinote – rychlé poznámky, alternativa Apple Notes
+  - antinote           # Antinote – rychlé poznámky, alternativa Apple Notes
   # - cotypist           # Cotypist – AI text autocomplete (není v brew, manuální)
   # - boring-notch       # boring.notch – customizace notche (GitHub, manuální)
   # - flux-markdown      # flux-markdown – markdown editor (GitHub, manuální)
