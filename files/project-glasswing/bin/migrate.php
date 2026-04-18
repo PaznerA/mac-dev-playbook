@@ -36,9 +36,9 @@ $db->exec('PRAGMA journal_mode = WAL');
 $db->exec('PRAGMA foreign_keys = ON');
 
 // Check if already migrated
-$count = $db->querySingle('SELECT COUNT(*) FROM components');
+$count = $db->querySingle('SELECT COUNT(*) FROM systems WHERE source = "components_db"');
 if ($count > 0) {
-	echo "Already migrated ($count components in database). Skipping.\n";
+	echo "Already migrated ($count systems from components_db in database). Skipping.\n";
 	$db->close();
 	exit(0);
 }
@@ -59,9 +59,9 @@ try {
 		$components = $data['components'] ?? $data;
 
 		$stmt = $db->prepare(
-			'INSERT OR IGNORE INTO components
-			(id, name, category, stack, image, version_var, default_version, pinned, network_exposed, has_web_ui, priority, upstream_repo, port, domain)
-			VALUES (:id, :name, :category, :stack, :image, :version_var, :default_version, :pinned, :network_exposed, :has_web_ui, :priority, :upstream_repo, :port, :domain)'
+			'INSERT OR IGNORE INTO systems
+			(id, name, category, stack, image, version_var, version, pinned, network_exposed, has_web_ui, priority, upstream_repo, port, domain, source)
+			VALUES (:id, :name, :category, :stack, :image, :version_var, :default_version, :pinned, :network_exposed, :has_web_ui, :priority, :upstream_repo, :port, :domain, "components_db")'
 		);
 
 		foreach ($components as $comp) {
