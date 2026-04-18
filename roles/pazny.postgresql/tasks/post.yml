@@ -125,11 +125,17 @@
     - _pg_ready.rc | default(1) == 0
     - not ansible_check_mode
 
-- name: "[PostgreSQL] Create users"
+- name: "[PostgreSQL] Create or update users (idempotent password sync)"
   ansible.builtin.command: >
     {{ docker_bin }} compose -p infra
     exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
-    -c "CREATE USER {{ item.user }} WITH PASSWORD '{{ item.pass }}';"
+    -c "DO $$ BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ item.user }}') THEN
+        CREATE USER {{ item.user }} WITH PASSWORD '{{ item.pass }}';
+      ELSE
+        ALTER USER {{ item.user }} WITH PASSWORD '{{ item.pass }}';
+      END IF;
+    END $$;"
   loop: >-
     {{ [
          {'user': outline_db_user | default('outline'), 'pass': outline_db_password | default(global_password_prefix + '_pw_outline')},
