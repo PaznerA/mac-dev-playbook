@@ -196,14 +196,11 @@
       {{
         [stacks_dir]
         +
-        (install_mariadb | default(false)) | ternary(
-          [mariadb_data_dir | default(ansible_facts['env']['HOME'] + '/mariadb/data')], [])
+        [mariadb_data_dir | default(ansible_facts['env']['HOME'] + '/mariadb/data')]
         +
-        (install_postgresql | default(false)) | ternary(
-          [postgresql_data_dir | default(ansible_facts['env']['HOME'] + '/postgresql/data')], [])
+        [postgresql_data_dir | default(ansible_facts['env']['HOME'] + '/postgresql/data')]
         +
-        (redis_docker | default(false)) | ternary(
-          [redis_data_dir | default(ansible_facts['env']['HOME'] + '/redis/data')], [])
+        [redis_data_dir | default(ansible_facts['env']['HOME'] + '/redis/data')]
         +
         (install_wordpress | default(false)) | ternary(
           [wordpress_dir | default(ansible_facts['env']['HOME'] + '/projects/wordpress')], [])
