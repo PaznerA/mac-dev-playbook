@@ -103,3 +103,8 @@
     grafana_data_dir: "{{ external_storage_root }}/observability/grafana"
     influxdb_data_dir: "{{ external_storage_root }}/observability/influxdb/data"
     influxdb_config_dir: "{{ external_storage_root }}/observability/influxdb/config"
+
+# ── LLM models (Ollama, persistent across --blank) ─────────────────────────
+- name: "[External SSD] Override Ollama models path"
+  ansible.builtin.set_fact:
+    ollama_models_dir: "{{ external_storage_root }}/llmModels"

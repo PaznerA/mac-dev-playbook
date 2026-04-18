@@ -90,11 +90,13 @@
     - "{{ tempo_storage_path }}"
     - "{{ grafana_data_dir }}"
 
-# ── Ollama modely ────────────────────────────────────────────────────────────
+# ── Ollama modely (persistent across --blank) ──────────────────────────────
+# Path is set by external-paths.yml: ollama_models_dir → {{ external_storage_root }}/llmModels
+# OpenClaw role handles launchctl setenv + .zshrc export.
 
-- name: "[External SSD] Create Ollama models directory"
+- name: "[External SSD] Create LLM models directory"
   ansible.builtin.file:
-    path: "{{ external_storage_root }}/ollama/models"
+    path: "{{ ollama_models_dir | default(external_storage_root + '/llmModels') }}"
     state: directory
     mode: '0755'
   when: external_storage_ollama | default(true) | bool
@@ -179,9 +181,7 @@
     marker: "# {mark} EXTERNAL STORAGE (ansible managed)"
     block: |
       # ── External SSD: {{ external_storage_root }} ──
-      {% if external_storage_ollama | default(true) | bool %}
-      export OLLAMA_MODELS="{{ external_storage_root }}/ollama/models"
-      {% endif %}
+      # OLLAMA_MODELS is managed by OpenClaw role (marker: OPENCLAW – ANSIBLE MANAGED)
       {% if external_storage_caches | default(true) | bool %}
       export HOMEBREW_CACHE="{{ external_storage_root }}/cache/homebrew"
       export npm_config_cache="{{ external_storage_root }}/cache/npm"
@@ -190,14 +190,7 @@
       {% endif %}
     create: true
 
-# ── Ollama launchd override (OLLAMA_MODELS pro daemon) ───────────────────────
-
-- name: "[External SSD] Configure Ollama launchd env (OLLAMA_MODELS)"
-  ansible.builtin.command: >
-    launchctl setenv OLLAMA_MODELS "{{ external_storage_root }}/ollama/models"
-  changed_when: false
-  failed_when: false
-  when: external_storage_ollama | default(true) | bool
+# OLLAMA_MODELS launchd env is now managed by pazny.openclaw role
 
 # ── Souhrn ───────────────────────────────────────────────────────────────────
 
@@ -227,7 +220,7 @@
       │    loki        → {{ external_storage_root }}/observability/loki
       │    tempo       → {{ external_storage_root }}/observability/tempo
       {% if external_storage_ollama | default(true) | bool %}
-      │  Ollama:       → {{ external_storage_root }}/ollama/models
+      │  LLM Models:   → {{ ollama_models_dir | default(external_storage_root + '/llmModels') }}
       {% endif %}
       {% if external_storage_caches | default(true) | bool %}
       │  Caches:       → {{ external_storage_root }}/cache/{npm,pip,composer,homebrew}

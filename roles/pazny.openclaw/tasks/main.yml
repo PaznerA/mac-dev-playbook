@@ -11,9 +11,16 @@
     name: ollama
     state: latest
 
-- name: "[Ollama] Set memory optimization env vars"
+- name: "[Ollama] Ensure models directory exists (persistent across --blank)"
+  ansible.builtin.file:
+    path: "{{ ollama_models_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: "[Ollama] Set launchd env vars (models path + memory optimization)"
   ansible.builtin.command: "launchctl setenv {{ item.key }} {{ item.value }}"
   loop:
+    - { key: "OLLAMA_MODELS", value: "{{ ollama_models_dir }}" }
     - { key: "OLLAMA_MAX_LOADED_MODELS", value: "{{ ollama_max_loaded_models | default(1) }}" }
     - { key: "OLLAMA_NUM_PARALLEL", value: "{{ ollama_num_parallel | default(2) }}" }
     - { key: "OLLAMA_KEEP_ALIVE", value: "{{ ollama_keep_alive | default('5m') }}" }
@@ -66,6 +73,7 @@
   ansible.builtin.command: ollama pull {{ openclaw_model }}
   environment:
     PATH: "{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
+    OLLAMA_MODELS: "{{ ollama_models_dir }}"
   changed_when: false
   failed_when: false
   # Stahování modelu může trvat déle (27B ~ 17GB).
@@ -184,6 +192,7 @@
     marker: "# {mark} OPENCLAW – ANSIBLE MANAGED"
     block: |
       export OLLAMA_API_KEY="ollama-local"
+      export OLLAMA_MODELS="{{ ollama_models_dir }}"
       export OLLAMA_MAX_LOADED_MODELS="{{ ollama_max_loaded_models | default(1) }}"
       export OLLAMA_NUM_PARALLEL="{{ ollama_num_parallel | default(2) }}"
       export OLLAMA_KEEP_ALIVE="{{ ollama_keep_alive | default('5m') }}"

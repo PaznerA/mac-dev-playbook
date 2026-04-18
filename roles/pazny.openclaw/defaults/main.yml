@@ -28,6 +28,11 @@ ollama_num_parallel: 2         # Max paralelních inference requestů
 ollama_keep_alive: "5m"        # Uvolnit model z RAM po nečinnosti (default 5m, 0 = ihned)
 ollama_flash_attention: 1      # Flash attention pro MLX (rychlejší, méně paměti)
 
+# Cesta ke stáhnutým modelům — persistent i při --blank.
+# Na externím SSD: {{ external_storage_root }}/llmModels (override přes external-paths.yml).
+# Fallback: ~/.ollama/models (default Ollama path, NEpřežije --blank).
+ollama_models_dir: "{{ ansible_facts['env']['HOME'] }}/.ollama/models"
+
 # Spustit openclaw jako launchd daemon (vždy běžící, autorestart)
 openclaw_install_daemon: true
 openclaw_domain: "claw.dev.local"
