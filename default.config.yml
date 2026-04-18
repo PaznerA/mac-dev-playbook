@@ -157,7 +157,7 @@ install_rustfs: true             # RustFS – S3-compatible object storage (drop
 # ── B2B stack (CRM/ERP/helpdesk/chat/wiki) ──────────────────────────────────
 install_erpnext: false            # ERPNext – CRM + ERP + HR + Accounting              [vyžaduje: MariaDB, Redis Docker]
 install_freescout: true          # FreeScout – helpdesk / ticketing                    [vyžaduje: MariaDB]
-install_mattermost: true         # Mattermost – team chat                              [vyžaduje: PostgreSQL]
+install_mattermost: false        # Mattermost – REMOVED (no ARM64 FOSS image). DB/user retained for migration.
 install_outline: true            # Outline – team wiki / knowledge base                [vyžaduje: PostgreSQL, Redis Docker]
 install_hedgedoc: false           # HedgeDoc – collaborative markdown [Docker, vyžaduje: PostgreSQL]
 install_bookstack: false          # BookStack – wiki platform [Docker, vyžaduje: MariaDB]
@@ -358,7 +358,7 @@ homebrew_cask_apps:
   - blender              # Blender – 3D modelování, animace, rendering
   # - fl-studio            # FL Studio – není v Homebrew, instaluj manuálně z image-line.com
   - gimp                 # GIMP – rastrová grafika (open-source PS)
-  # - inkscape           # Inkscape – vektorová grafika (open-source AI)
+  - inkscape             # Inkscape – vektorová grafika (open-source AI)
   # - davinci-resolve    # DaVinci Resolve – video střih
 
   # ── Observability ─────────────────────────────────────────────────────────

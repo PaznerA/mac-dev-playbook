@@ -31,5 +31,5 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/iiab/overrides/ntfy.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart ntfy

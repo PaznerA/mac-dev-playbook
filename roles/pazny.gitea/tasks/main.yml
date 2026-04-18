@@ -37,5 +37,5 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/devops/overrides/gitea.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart gitea

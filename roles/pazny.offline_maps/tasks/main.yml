@@ -122,5 +122,5 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/iiab/overrides/tileserver.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart offline_maps

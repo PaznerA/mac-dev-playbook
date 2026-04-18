@@ -25,7 +25,7 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/iiab/overrides/n8n.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart n8n
 
 - name: "[pazny.n8n] Enable n8n nginx vhost"

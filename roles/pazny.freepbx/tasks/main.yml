@@ -23,5 +23,5 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/voip/overrides/freepbx.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart freepbx

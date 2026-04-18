@@ -23,7 +23,7 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/devops/overrides/code-server.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart code_server
 
 - name: "[pazny.code_server] Enable nginx vhost"

@@ -92,7 +92,7 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/devops/overrides/gitlab.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart gitlab
 
 - name: "[pazny.gitlab] Display post-install note"

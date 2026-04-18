@@ -27,5 +27,5 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/infra/overrides/traefik.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart traefik

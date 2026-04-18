@@ -17,5 +17,5 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/engineering/overrides/qgis_server.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart qgis_server

@@ -394,7 +394,8 @@
     # ──────────────────────────────────────────────────────────────────────────
     - name: "Auto-regenerate stateless secrets (every run — safe group)"
       ansible.builtin.set_fact:
-        authentik_secret_key: "{{ lookup('pipe', 'openssl rand -hex 50') }}"
+        # authentik_secret_key: presunuto do persisted secrets — regen kazdy run
+        # invalidoval vsechny SSO sessions (Django SECRET_KEY = CSRF + session signing)
         vaultwarden_admin_token: "{{ lookup('pipe', 'openssl rand -base64 48') }}"
         paperclip_auth_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
         jsos_session_secret: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
@@ -420,6 +421,7 @@
         bluesky_pds_jwt_secret: "{% if '_pw_' in (bluesky_pds_jwt_secret | default('')) or (bluesky_pds_jwt_secret | default('') | length) < 32 %}{{ lookup('pipe', 'openssl rand -hex 16') }}{% else %}{{ bluesky_pds_jwt_secret }}{% endif %}"
         bluesky_pds_rotation_key: "{% if (bluesky_pds_rotation_key | default('') | length) < 32 %}{{ lookup('pipe', 'openssl rand -hex 32') }}{% else %}{{ bluesky_pds_rotation_key }}{% endif %}"
         outline_secret_key: "{% if '_pw_' in (outline_secret_key | default('')) or (outline_secret_key | default('') | length) != 64 %}{{ lookup('pipe', 'openssl rand -hex 32') }}{% else %}{{ outline_secret_key }}{% endif %}"
+        authentik_secret_key: "{% if '_pw_' in (authentik_secret_key | default('')) or (authentik_secret_key | default('') | length) < 50 %}{{ lookup('pipe', 'openssl rand -hex 50') }}{% else %}{{ authentik_secret_key }}{% endif %}"
       tags: ['always']
 
     - name: "Regenerate DESTRUCTIVE stateless secrets (blank or destroy_state)"

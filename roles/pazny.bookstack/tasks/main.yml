@@ -24,7 +24,7 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/b2b/overrides/bookstack.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart bookstack
 
 - name: "[pazny.bookstack] Deploy nginx vhost"

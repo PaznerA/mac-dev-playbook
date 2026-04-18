@@ -25,5 +25,5 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/observability/overrides/grafana.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart grafana

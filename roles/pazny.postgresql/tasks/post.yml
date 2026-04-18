@@ -38,7 +38,9 @@
     exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
     -c "DROP DATABASE IF EXISTS {{ item }};"
   loop: >-
-    {{ ['outline', 'metabase', 'superset']
+    {{ ((install_outline | default(false)) | ternary([outline_db_name | default('outline')], []))
+       + ((install_metabase | default(false)) | ternary([metabase_db_name | default('metabase')], []))
+       + ((install_superset | default(false)) | ternary([superset_db_name | default('superset')], []))
        + ((install_authentik | default(false)) | ternary([authentik_db_name | default('authentik')], []))
        + ((install_infisical | default(false)) | ternary([infisical_db_name | default('infisical')], []))
        + ((install_mattermost | default(false)) | ternary([mattermost_db_name | default('mattermost')], []))
@@ -82,7 +84,9 @@
     exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
     -c "DROP ROLE IF EXISTS {{ item }};"
   loop: >-
-    {{ ['outline', 'metabase', 'superset']
+    {{ ((install_outline | default(false)) | ternary([outline_db_user | default('outline')], []))
+       + ((install_metabase | default(false)) | ternary([metabase_db_user | default('metabase')], []))
+       + ((install_superset | default(false)) | ternary([superset_db_user | default('superset')], []))
        + ((install_authentik | default(false)) | ternary([authentik_db_user | default('authentik')], []))
        + ((install_infisical | default(false)) | ternary([infisical_db_user | default('infisical')], []))
        + ((install_mattermost | default(false)) | ternary([mattermost_db_user | default('mattermost')], []))
@@ -107,7 +111,9 @@
     exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
     -c "CREATE DATABASE {{ item }};"
   loop: >-
-    {{ ['outline', 'metabase', 'superset']
+    {{ ((install_outline | default(false)) | ternary([outline_db_name | default('outline')], []))
+       + ((install_metabase | default(false)) | ternary([metabase_db_name | default('metabase')], []))
+       + ((install_superset | default(false)) | ternary([superset_db_name | default('superset')], []))
        + ((install_authentik | default(false)) | ternary([authentik_db_name | default('authentik')], []))
        + ((install_infisical | default(false)) | ternary([infisical_db_name | default('infisical')], []))
        + ((install_mattermost | default(false)) | ternary([mattermost_db_name | default('mattermost')], []))
@@ -137,11 +143,12 @@
       END IF;
     END $$;"
   loop: >-
-    {{ [
-         {'user': outline_db_user | default('outline'), 'pass': outline_db_password | default(global_password_prefix + '_pw_outline')},
-         {'user': metabase_db_user | default('metabase'), 'pass': metabase_db_password | default(global_password_prefix + '_pw_metabase')},
-         {'user': superset_db_user | default('superset'), 'pass': superset_db_password | default(global_password_prefix + '_pw_superset')}
-       ]
+    {{ ((install_outline | default(false)) | ternary(
+         [{'user': outline_db_user | default('outline'), 'pass': outline_db_password | default(global_password_prefix + '_pw_outline')}], []))
+       + ((install_metabase | default(false)) | ternary(
+         [{'user': metabase_db_user | default('metabase'), 'pass': metabase_db_password | default(global_password_prefix + '_pw_metabase')}], []))
+       + ((install_superset | default(false)) | ternary(
+         [{'user': superset_db_user | default('superset'), 'pass': superset_db_password | default(global_password_prefix + '_pw_superset')}], []))
        + ((install_authentik | default(false)) | ternary(
          [{'user': authentik_db_user | default('authentik'), 'pass': authentik_db_password | default(global_password_prefix + '_pw_authentik_db')}], []))
        + ((install_infisical | default(false)) | ternary(
@@ -173,7 +180,9 @@
     -d {{ item }}
     -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
   loop: >-
-    {{ ['outline', 'metabase', 'superset']
+    {{ ((install_outline | default(false)) | ternary([outline_db_name | default('outline')], []))
+       + ((install_metabase | default(false)) | ternary([metabase_db_name | default('metabase')], []))
+       + ((install_superset | default(false)) | ternary([superset_db_name | default('superset')], []))
        + ((install_authentik | default(false)) | ternary([authentik_db_name | default('authentik')], []))
        + ((install_infisical | default(false)) | ternary([infisical_db_name | default('infisical')], []))
        + ((install_mattermost | default(false)) | ternary([mattermost_db_name | default('mattermost')], []))
@@ -197,11 +206,12 @@
     exec -T postgresql psql -U {{ postgresql_root_user | default('postgres') }}
     -c "GRANT ALL PRIVILEGES ON DATABASE {{ item.db }} TO {{ item.user }}; ALTER DATABASE {{ item.db }} OWNER TO {{ item.user }};"
   loop: >-
-    {{ [
-         {'db': 'outline', 'user': outline_db_user | default('outline')},
-         {'db': 'metabase', 'user': metabase_db_user | default('metabase')},
-         {'db': 'superset', 'user': superset_db_user | default('superset')}
-       ]
+    {{ ((install_outline | default(false)) | ternary(
+         [{'db': outline_db_name | default('outline'), 'user': outline_db_user | default('outline')}], []))
+       + ((install_metabase | default(false)) | ternary(
+         [{'db': metabase_db_name | default('metabase'), 'user': metabase_db_user | default('metabase')}], []))
+       + ((install_superset | default(false)) | ternary(
+         [{'db': superset_db_name | default('superset'), 'user': superset_db_user | default('superset')}], []))
        + ((install_authentik | default(false)) | ternary(
          [{'db': authentik_db_name | default('authentik'), 'user': authentik_db_user | default('authentik')}], []))
        + ((install_infisical | default(false)) | ternary(

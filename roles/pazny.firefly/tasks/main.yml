@@ -40,7 +40,7 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ stacks_dir }}/b2b/overrides/firefly.yml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart firefly
 
 - name: "[pazny.firefly] Deploy nginx vhost"
