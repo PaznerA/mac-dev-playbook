@@ -779,6 +779,12 @@
       tags: ['import', 'never']
 
     # ──────────────────────────────────────────────────────────────────────────
+    # Auto-start konfigurace (Docker Desktop login item, PM2 save, restart policies)
+    # ──────────────────────────────────────────────────────────────────────────
+    - import_tasks: tasks/autostart.yml
+      tags: ['autostart', 'always']
+
+    # ──────────────────────────────────────────────────────────────────────────
     # Finální přehled služeb (vždy na konci)
     # ──────────────────────────────────────────────────────────────────────────
     - import_tasks: tasks/final-summary.yml
