@@ -1,0 +1,185 @@
+---
+# ==============================================================================
+# pazny.hermes/tasks/main.yml
+#
+# Instaluje Hermes Agent framework jako pip venv + launchd daemon.
+# Volano pres import_role v main.yml po openclaw.
+# ==============================================================================
+
+# ── 1. Adresáre ───────────────────────────────────────────────────────────────
+
+- name: "[Hermes] Create directory structure"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ hermes_home }}"
+    - "{{ hermes_home }}/workspace"
+    - "{{ hermes_config_dir }}"
+    - "{{ hermes_config_dir }}/skills"
+    - "{{ hermes_log_dir }}"
+
+# ── 2. Python venv ────────────────────────────────────────────────────────────
+
+- name: "[Hermes] Check Python 3.11+ availability"
+  ansible.builtin.command: "python3 --version"
+  register: _python_version
+  changed_when: false
+  failed_when: false
+
+- name: "[Hermes] Ensure Python 3.11+ via Homebrew"
+  community.general.homebrew:
+    name: "python@3.13"
+    state: present
+  when: "'Python 3.1' not in (_python_version.stdout | default(''))"
+  failed_when: false
+
+- name: "[Hermes] Create Python venv"
+  ansible.builtin.command: >
+    {{ homebrew_prefix }}/bin/python3 -m venv {{ hermes_venv }}
+  args:
+    creates: "{{ hermes_venv }}/bin/python"
+
+- name: "[Hermes] Upgrade pip in venv"
+  ansible.builtin.command: >
+    {{ hermes_venv }}/bin/pip install --upgrade pip setuptools wheel
+  changed_when: false
+  failed_when: false
+
+- name: "[Hermes] Install hermes-agent package"
+  ansible.builtin.command: >
+    {{ hermes_venv }}/bin/pip install --upgrade
+    '{{ hermes_package }}[{{ hermes_extras }}]=={{ hermes_version }}'
+  register: _hermes_pip
+  changed_when: "'Successfully installed' in (_hermes_pip.stdout | default(''))"
+  failed_when:
+    - _hermes_pip.rc != 0
+    - "'already satisfied' not in (_hermes_pip.stdout | default(''))"
+
+# ── 3. Config render ──────────────────────────────────────────────────────────
+
+- name: "[Hermes] Render config.yaml"
+  ansible.builtin.template:
+    src: hermes-config.yaml.j2
+    dest: "{{ hermes_config_dir }}/config.yaml"
+    mode: '0600'
+  notify: Restart hermes
+
+# ── 4. Model pull (Hermes 4 14B) ──────────────────────────────────────────────
+
+- name: "[Hermes] Pull Hermes 4 14B model via Ollama"
+  ansible.builtin.command: ollama pull {{ hermes_primary_model }}
+  environment:
+    PATH: "{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
+    OLLAMA_MODELS: "{{ ollama_models_dir | default(ansible_facts['env']['HOME'] + '/.ollama/models') }}"
+    OLLAMA_HOST: "http://127.0.0.1:11434"
+  changed_when: false
+  failed_when: false
+  timeout: 1800
+
+- name: "[Hermes] Create shortname alias for Hermes model"
+  ansible.builtin.shell: |
+    cat <<EOF | ollama create {{ hermes_primary_model_shortname }} -f -
+    FROM {{ hermes_primary_model }}
+    PARAMETER temperature {{ hermes_temperature | default(0.6) }}
+    PARAMETER top_p {{ hermes_top_p | default(0.95) }}
+    PARAMETER top_k {{ hermes_top_k | default(20) }}
+    EOF
+  environment:
+    PATH: "{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
+    OLLAMA_HOST: "http://127.0.0.1:11434"
+  register: _hermes_alias
+  changed_when: "'created' in (_hermes_alias.stdout | default(''))"
+  failed_when: false
+
+# ── 5. launchd daemon ─────────────────────────────────────────────────────────
+
+- name: "[Hermes] Deploy launchd plist"
+  ansible.builtin.template:
+    src: com.hermes.agent.plist.j2
+    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/{{ hermes_launchctl_label }}.plist"
+    mode: '0644'
+  when: hermes_install_daemon | default(true)
+  notify: Restart hermes
+
+- name: "[Hermes] Load launchd daemon"
+  ansible.builtin.shell: |
+    plist="$HOME/Library/LaunchAgents/{{ hermes_launchctl_label }}.plist"
+    launchctl unload "$plist" 2>/dev/null || true
+    launchctl load "$plist"
+  args:
+    executable: /bin/bash
+  when: hermes_install_daemon | default(true)
+  changed_when: false
+  failed_when: false
+
+# ── 6. Nginx vhost (volitelne) ────────────────────────────────────────────────
+
+- name: "[Hermes] Deploy nginx vhost (Authentik-protected)"
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/nginx/sites-available/hermes.conf"
+    dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/hermes.conf"
+    mode: '0644'
+  when:
+    - install_nginx | default(true)
+    - hermes_web_enabled | default(true)
+  notify: Restart nginx
+
+- name: "[Hermes] Enable nginx vhost symlink"
+  ansible.builtin.file:
+    src: "{{ homebrew_prefix }}/etc/nginx/sites-available/hermes.conf"
+    dest: "{{ homebrew_prefix }}/etc/nginx/sites-enabled/hermes.conf"
+    state: link
+    force: true
+  when:
+    - install_nginx | default(true)
+    - hermes_web_enabled | default(true)
+  notify: Restart nginx
+
+# ── 7. Health check + info ────────────────────────────────────────────────────
+
+- name: "[Hermes] Wait for web API to be ready"
+  ansible.builtin.uri:
+    url: "http://{{ hermes_web_host }}:{{ hermes_web_port }}/health"
+    status_code: [200]
+    timeout: 5
+  register: _hermes_health
+  retries: 10
+  delay: 3
+  until: _hermes_health.status | default(0) == 200
+  failed_when: false
+  when: hermes_web_enabled | default(true)
+
+- name: "[Hermes] Print installation info"
+  ansible.builtin.debug:
+    msg: |
+      ══════════════════════════════════════════════════════════════════
+       Hermes Agent nasazen
+      ══════════════════════════════════════════════════════════════════
+       Version:     {{ hermes_version }}
+       Venv:        {{ hermes_venv }}
+       Config:      {{ hermes_config_dir }}/config.yaml
+       Logs:        {{ hermes_log_dir }}/hermes.log
+       Web API:     http://{{ hermes_web_host }}:{{ hermes_web_port }}
+      {% if hermes_web_enabled | default(true) and install_nginx | default(true) %}
+       URL:         https://{{ hermes_domain }}
+      {% endif %}
+       daemon:      launchctl list | grep {{ hermes_launchctl_label }}
+
+       Models:
+         Primary:   {{ hermes_primary_model_shortname }} ({{ hermes_primary_model }})
+         Heavy:     {{ hermes_heavy_model }} (delegate)
+      {% if hermes_anthropic_api_key | length > 0 %}
+         API:       Anthropic Claude (via API key)
+      {% endif %}
+      {% if hermes_claude_code_enabled | default(true) %}
+         CLI:       Claude Code (user's subscription)
+      {% endif %}
+
+       MCP servery: {{ hermes_mcp_servers | length }} (filesystem, git, fetch, memory, time)
+
+       Prvni pouziti:
+         {{ hermes_venv }}/bin/hermes               # interaktivni TUI
+         tail -f {{ hermes_log_dir }}/hermes.log    # daemon log
+      ══════════════════════════════════════════════════════════════════

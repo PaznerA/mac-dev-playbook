@@ -1,0 +1,106 @@
+---
+# ==============================================================================
+# pazny.hermes — Hermes Agent framework (Nous Research)
+#
+# Python 3.11+ agent daemon with:
+#   - Skill autogeneration (agentskills.io format)
+#   - Cross-channel gateway (Telegram, Signal, Slack, Email, etc.)
+#   - FTS5 cross-session memory
+#   - Cron-scheduled agents
+#   - Subagent RPC (parallel workstreams)
+#   - Model-agnostic: Ollama, Anthropic, OpenAI, OpenRouter, HF, Bedrock
+#   - MCP client (consumes our mcpo gateway's underlying MCP servers)
+#
+# Architektura:
+#   1) Hermes 4 14B (~10GB) — orchestrator + MCP caller + mensi tasky
+#   2) Delegace velkych ukolu:
+#      - Local dense: qwen2.5-coder:32b (20GB) — on-demand via Ollama
+#      - Claude Code CLI — user's Claude subscription (zero API cost)
+#      - Anthropic API — volitelne, rychle prototypovani
+#
+# RAM rozpočet na 36GB Mac Studio:
+#   - Docker stack:        ~12 GB
+#   - Hermes 14B (x2):     ~20 GB (2 paralelni instance)
+#   - Zbývá:               ~4 GB pro OS + cache
+#   Pro heavy task: 1 Hermes + 1 dense 32B = ~30GB (krátkodobé)
+# ==============================================================================
+
+hermes_user: "{{ ansible_facts['user_id'] }}"
+hermes_home: "{{ ansible_facts['env']['HOME'] }}/agents/hermes"
+hermes_venv: "{{ ansible_facts['env']['HOME'] }}/agents/hermes/.venv"
+hermes_config_dir: "{{ ansible_facts['env']['HOME'] }}/.hermes"
+hermes_log_dir: "{{ ansible_facts['env']['HOME'] }}/agents/log"
+
+# Hermes Agent pip package (beta, rychly vyvoj — pin pres hermes_version)
+hermes_package: "hermes-agent"
+hermes_version: "0.10.0"              # April 2026, beta
+hermes_extras: "mcp,web"              # MCP client + FastAPI web UI (pro nginx vhost)
+
+# ── Modely ────────────────────────────────────────────────────────────────────
+
+# Primary model — Hermes 4 14B (~10GB Q5_K_M)
+# NOT v oficialni ollama library → pull pres HF GGUF
+hermes_primary_model: "hf.co/NousResearch/Hermes-4-14B-GGUF:Q5_K_M"
+hermes_primary_model_shortname: "hermes-4-14b"     # alias pro config
+
+# Heavy-duty delegate — lokalni dense coder (sdilen s OpenClaw)
+hermes_heavy_model: "qwen2.5-coder:32b"
+
+# ── Backend endpoints ─────────────────────────────────────────────────────────
+
+hermes_ollama_host: "http://127.0.0.1:11434"        # lokalni Ollama
+
+# Anthropic API key (z credentials.yml, volitelne)
+# Pokud set → Hermes muze volat Claude pres API pro rychle prototypy
+hermes_anthropic_api_key: "{{ anthropic_api_key | default('') }}"
+
+# Claude Code CLI delegation (user's $20/mo subscription)
+# Hermes ho vola jako shell tool: `claude --print "..."`
+hermes_claude_code_enabled: true
+
+# ── MCP ───────────────────────────────────────────────────────────────────────
+
+# Hermes MCP client → napojit na nase MCP servery (pres mcpo gateway)
+# mcpo expose-ne jednotlive servery jako OpenAPI, ale Hermes mluvi raw MCP,
+# takze se pripojuji primo k MCP serverum (stdio/sse, bez mcpo vrstvy)
+hermes_mcp_servers:
+  - name: "filesystem"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "{{ ansible_facts['env']['HOME'] }}/projects", "{{ ansible_facts['env']['HOME'] }}/agents/log"]
+  - name: "git"
+    command: "uvx"
+    args: ["mcp-server-git", "--repository", "{{ ansible_facts['env']['HOME'] }}/projects"]
+  - name: "fetch"
+    command: "uvx"
+    args: ["mcp-server-fetch"]
+  - name: "memory"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+    env:
+      MEMORY_FILE_PATH: "{{ ansible_facts['env']['HOME'] }}/.hermes/memory.json"
+  - name: "time"
+    command: "uvx"
+    args: ["mcp-server-time", "--local-timezone=Europe/Prague"]
+
+# ── Web UI / API ──────────────────────────────────────────────────────────────
+
+hermes_web_enabled: true                            # FastAPI na hermes_web_port
+hermes_web_host: "127.0.0.1"
+hermes_web_port: 18790                              # vedle openclaw 18789
+hermes_domain: "hermes.dev.local"
+
+# ── Daemon ────────────────────────────────────────────────────────────────────
+
+hermes_install_daemon: true                         # launchd plist
+hermes_keep_alive: true                             # autorestart
+hermes_launchctl_label: "com.hermes.agent"
+
+# ── Concurrent agents ─────────────────────────────────────────────────────────
+
+hermes_max_concurrent_subagents: 4                  # paralelni RPC workstreams
+hermes_max_parallel_tool_calls: 10
+
+# Sampling (doporuceny by Nous: temp=0.6, top_p=0.95, top_k=20 pro tool use)
+hermes_temperature: 0.6
+hermes_top_p: 0.95
+hermes_top_k: 20

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>{{ hermes_launchctl_label }}</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{ hermes_venv }}/bin/hermes-agent</string>
+        <string>--config</string>
+        <string>{{ hermes_config_dir }}/config.yaml</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>{{ homebrew_prefix }}/bin:/usr/local/bin:/usr/bin:/bin:{{ hermes_venv }}/bin</string>
+        <key>HOME</key>
+        <string>{{ ansible_facts['env']['HOME'] }}</string>
+        <key>OLLAMA_HOST</key>
+        <string>{{ hermes_ollama_host }}</string>
+{% if hermes_anthropic_api_key | length > 0 %}
+        <key>ANTHROPIC_API_KEY</key>
+        <string>{{ hermes_anthropic_api_key }}</string>
+{% endif %}
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>{{ hermes_home }}</string>
+
+    <key>StandardOutPath</key>
+    <string>{{ hermes_log_dir }}/hermes.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>{{ hermes_log_dir }}/hermes.stderr.log</string>
+
+    <key>KeepAlive</key>
+    <{{ 'true' if hermes_keep_alive | default(true) else 'false' }}/>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>ProcessType</key>
+    <string>Interactive</string>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>

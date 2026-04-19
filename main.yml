@@ -682,6 +682,17 @@
       when: install_openclaw | default(false)
       tags: ['openclaw', 'ai', 'agent']
 
+    # ──────────────────────────────────────────────────────────────────────────
+    # Hermes Agent (Nous Research) — Python framework, Ollama-backed, MCP-enabled
+    # Orchestrator + MCP caller, delegates heavy tasks to qwen2.5-coder:32b or
+    # Claude Code CLI / Anthropic API. See roles/pazny.hermes/defaults/main.yml.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: "Hermes Agent (pazny.hermes role)"
+      ansible.builtin.import_role:
+        name: pazny.hermes
+      when: install_hermes | default(false)
+      tags: ['hermes', 'ai', 'agent']
+
     - import_tasks: tasks/pi-agents.yml
       when: install_pi_agents | default(false)
       tags: ['pi', 'pi-agents', 'ai', 'agent']

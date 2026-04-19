@@ -1,0 +1,10 @@
+---
+- name: Restart hermes
+  ansible.builtin.shell: |
+    plist="$HOME/Library/LaunchAgents/{{ hermes_launchctl_label | default('com.hermes.agent') }}.plist"
+    launchctl unload "$plist" 2>/dev/null || true
+    sleep 1
+    launchctl load "$plist" 2>/dev/null || true
+  args:
+    executable: /bin/bash
+  failed_when: false

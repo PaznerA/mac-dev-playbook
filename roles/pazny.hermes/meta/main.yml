@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: hermes
+  namespace: pazny
+  author: pazny
+  description: Hermes Agent framework (Nous Research) — Python daemon with MCP, skill autogen, cross-channel gateway
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: MacOSX
+      versions: [all]
+  galaxy_tags:
+    - ai
+    - agent
+    - hermes
+    - nous
+    - mcp
+dependencies: []
