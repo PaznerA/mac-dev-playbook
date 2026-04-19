@@ -17,7 +17,7 @@
     state: directory
     mode: '0755'
 
-- name: "[Ollama] Set launchd env vars (models path + memory optimization)"
+- name: "[Ollama] Set launchd env vars (models path + memory + KV cache)"
   ansible.builtin.command: "launchctl setenv {{ item.key }} {{ item.value }}"
   loop:
     - { key: "OLLAMA_MODELS", value: "{{ ollama_models_dir }}" }
@@ -25,6 +25,7 @@
     - { key: "OLLAMA_NUM_PARALLEL", value: "{{ ollama_num_parallel | default(2) }}" }
     - { key: "OLLAMA_KEEP_ALIVE", value: "{{ ollama_keep_alive | default('5m') }}" }
     - { key: "OLLAMA_FLASH_ATTENTION", value: "{{ ollama_flash_attention | default(1) }}" }
+    - { key: "OLLAMA_KV_CACHE_TYPE", value: "{{ ollama_kv_cache_type | default('q8_0') }}" }
   loop_control:
     label: "{{ item.key }}={{ item.value }}"
   changed_when: false
@@ -78,6 +79,20 @@
   changed_when: false
   failed_when: false
   timeout: 1800
+
+- name: "[Ollama] Pull additional models (MoE fallback + dense heavy-duty)"
+  ansible.builtin.command: ollama pull {{ item }}
+  environment:
+    PATH: "{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
+    OLLAMA_MODELS: "{{ ollama_models_dir }}"
+    OLLAMA_HOST: "http://127.0.0.1:11434"
+  loop: "{{ openclaw_additional_models | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  changed_when: false
+  failed_when: false
+  timeout: 1800
+  when: (openclaw_pull_additional_models | default(true)) | bool
 
 # ── 2. OpenClaw instalace ──────────────────────────────────────────────────────
 
@@ -193,6 +208,8 @@
       export OLLAMA_MAX_LOADED_MODELS="{{ ollama_max_loaded_models | default(1) }}"
       export OLLAMA_NUM_PARALLEL="{{ ollama_num_parallel | default(2) }}"
       export OLLAMA_KEEP_ALIVE="{{ ollama_keep_alive | default('5m') }}"
+      export OLLAMA_FLASH_ATTENTION="{{ ollama_flash_attention | default(1) }}"
+      export OLLAMA_KV_CACHE_TYPE="{{ ollama_kv_cache_type | default('q8_0') }}"
     create: true
 
 - name: "[OpenClaw] Secure openclaw config directory permissions"
