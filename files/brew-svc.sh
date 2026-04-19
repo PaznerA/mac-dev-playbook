@@ -4,21 +4,26 @@
 #
 # brew services (brew 4.x) uses Ruby API that hangs 30min+ on macOS.
 # This script uses direct launchctl unload/load — instant effect.
+#
+# Compatible with macOS system bash 3.2 (no associative arrays, no declare -A).
 set -euo pipefail
 
 ACTION="${1:?Usage: brew-svc.sh start|stop|restart <service>}"
 SVC="${2:?Usage: brew-svc.sh start|stop|restart <service>}"
 
-# Custom LaunchAgents (prefered over brew-managed plists — they have env vars)
-# Add entries here when services need persistent EnvironmentVariables.
-declare -A CUSTOM_AGENT_PLISTS=(
-  [ollama]="$HOME/Library/LaunchAgents/com.ollama.agent.plist"
-)
+# Custom LaunchAgents (prefered over brew-managed plists — they have env vars).
+# Add a case here when services need persistent EnvironmentVariables.
+custom_plist_for() {
+  case "$1" in
+    ollama) echo "$HOME/Library/LaunchAgents/com.ollama.agent.plist" ;;
+    *)      echo "" ;;
+  esac
+}
 
 # plist locations (user vs system)
 USER_PLIST="$HOME/Library/LaunchAgents/homebrew.mxcl.${SVC}.plist"
 SYS_PLIST="/Library/LaunchDaemons/homebrew.mxcl.${SVC}.plist"
-CUSTOM_PLIST="${CUSTOM_AGENT_PLISTS[$SVC]:-}"
+CUSTOM_PLIST="$(custom_plist_for "$SVC")"
 
 do_stop() {
   # Custom LaunchAgent (if defined for this service) takes priority
