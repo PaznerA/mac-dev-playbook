@@ -1,0 +1,60 @@
+# =============================================================================
+# Hermes Agent — CLI configuration
+# Ansible-managed. Edit roles/pazny.hermes/templates/cli-config.yaml.j2
+# Format: https://github.com/NousResearch/hermes-agent/blob/main/cli-config.yaml.example
+# =============================================================================
+
+# ── Model: local Ollama (provider alias "ollama" = "custom") ────────────────
+model:
+  default: "{{ hermes_primary_model_shortname }}"
+  provider: "custom"                                    # Ollama uses OpenAI-compat /v1
+  base_url: "{{ hermes_ollama_host }}/v1"
+  api_key: "ollama-local"                               # Ollama ignoruje auth; placeholder
+  temperature: {{ hermes_temperature | default(0.6) }}
+  top_p: {{ hermes_top_p | default(0.95) }}
+
+# ── Terminal backend: local (sandboxed na hostu) ────────────────────────────
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 180
+  lifetime_seconds: 300
+
+# ── Delegation: heavy tasks routed to qwen2.5-coder:32b ─────────────────────
+delegation:
+  max_iterations: 50
+  default_toolsets: ["terminal", "file", "web"]
+  model: "{{ hermes_heavy_model }}"                     # delegate bigger tasks to dense coder
+  provider: "custom"
+
+# ── Memory: SQLite FTS5 (cross-session) ─────────────────────────────────────
+memory:
+  enabled: true
+
+# ── Skills: autogen + self-edit ─────────────────────────────────────────────
+skills:
+  autogen: true
+  storage: "{{ hermes_config_dir }}/skills"
+
+# ── MCP servers (stdio transport) ───────────────────────────────────────────
+# Alternativne: `hermes mcp add <name> --command ...` pro interactive setup
+mcp_servers:
+{% for srv in hermes_mcp_servers %}
+  {{ srv.name }}:
+    command: "{{ srv.command }}"
+    args: {{ srv.args | tojson }}
+{% if srv.env is defined %}
+    env:
+{% for k, v in srv.env.items() %}
+      {{ k }}: "{{ v }}"
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+# ── Concurrency ──────────────────────────────────────────────────────────────
+agent:
+  max_parallel_tool_calls: {{ hermes_max_parallel_tool_calls | default(10) }}
+
+# ── Display ──────────────────────────────────────────────────────────────────
+display:
+  color: true

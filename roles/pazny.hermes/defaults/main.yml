@@ -31,10 +31,13 @@ hermes_venv: "{{ ansible_facts['env']['HOME'] }}/agents/hermes/.venv"
 hermes_config_dir: "{{ ansible_facts['env']['HOME'] }}/.hermes"
 hermes_log_dir: "{{ ansible_facts['env']['HOME'] }}/agents/log"
 
-# Hermes Agent pip package (beta, rychly vyvoj — pin pres hermes_version)
-hermes_package: "hermes-agent"
-hermes_version: "0.10.0"              # April 2026, beta
+# Hermes Agent: NENI na PyPI — instaluje se z git clone + `uv pip install -e .`
+# Pin pres hermes_version_tag (git tag). Upstream releases: v2026.X.Y
+hermes_repo_url: "https://github.com/NousResearch/hermes-agent.git"
+hermes_version_tag: "v2026.4.16"      # = Hermes Agent 0.10.0 (April 2026, beta)
 hermes_extras: "mcp,web"              # MCP client + FastAPI web UI (pro nginx vhost)
+                                      # Plny seznam: all, mcp, web, messaging, cron, slack,
+                                      # matrix, cli, voice, honcho, tts-premium, rl, ...
 
 # ── Modely ────────────────────────────────────────────────────────────────────
 
@@ -89,11 +92,10 @@ hermes_web_host: "127.0.0.1"
 hermes_web_port: 18790                              # vedle openclaw 18789
 hermes_domain: "hermes.dev.local"
 
-# ── Daemon ────────────────────────────────────────────────────────────────────
-
-hermes_install_daemon: true                         # launchd plist
-hermes_keep_alive: true                             # autorestart
-hermes_launchctl_label: "com.hermes.agent"
+# ── Daemon mode (volitelne, manualni po deployu) ──────────────────────────────
+# Hermes nema generic daemon mode. Pokud chces persistent:
+#   hermes gateway install   # launchd plist pro Telegram/Discord messaging
+#   hermes mcp serve &       # standalone MCP server background
 
 # ── Concurrent agents ─────────────────────────────────────────────────────────
 

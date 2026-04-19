@@ -20,49 +20,80 @@
     - "{{ hermes_config_dir }}/skills"
     - "{{ hermes_log_dir }}"
 
-# ── 2. Python venv ────────────────────────────────────────────────────────────
+# ── 2. uv package manager + Python 3.11+ ─────────────────────────────────────
+# Hermes Agent NENI na PyPI — instaluje se pres git clone + `uv pip install -e .`
+# (per official install.sh script). uv je rychlejsi nez pip, Python 3.11+ je
+# required.
 
-- name: "[Hermes] Check Python 3.11+ availability"
-  ansible.builtin.command: "python3 --version"
-  register: _python_version
-  changed_when: false
+- name: "[Hermes] Ensure uv package manager via Homebrew"
+  community.general.homebrew:
+    name: uv
+    state: present
   failed_when: false
 
 - name: "[Hermes] Ensure Python 3.11+ via Homebrew"
   community.general.homebrew:
     name: "python@3.13"
     state: present
-  when: "'Python 3.1' not in (_python_version.stdout | default(''))"
   failed_when: false
 
-- name: "[Hermes] Create Python venv"
+# ── 3. Git clone hermes-agent ─────────────────────────────────────────────────
+
+- name: "[Hermes] Clone hermes-agent repository"
+  ansible.builtin.git:
+    repo: "{{ hermes_repo_url }}"
+    dest: "{{ hermes_home }}/src"
+    version: "{{ hermes_version_tag }}"
+    force: false
+    depth: 1
+  register: _hermes_clone
+  failed_when:
+    - _hermes_clone.rc is defined
+    - _hermes_clone.rc | default(0) != 0
+    - "'Already up to date' not in (_hermes_clone.msg | default(''))"
+
+# ── 4. Create venv + install via uv ──────────────────────────────────────────
+
+- name: "[Hermes] Create uv venv with Python 3.11+"
   ansible.builtin.command: >
-    {{ homebrew_prefix }}/bin/python3 -m venv {{ hermes_venv }}
+    {{ homebrew_prefix }}/bin/uv venv {{ hermes_venv }} --python 3.13
   args:
     creates: "{{ hermes_venv }}/bin/python"
+  environment:
+    PATH: "{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
 
-- name: "[Hermes] Upgrade pip in venv"
-  ansible.builtin.command: >
-    {{ hermes_venv }}/bin/pip install --upgrade pip setuptools wheel
-  changed_when: false
-  failed_when: false
-
-- name: "[Hermes] Install hermes-agent package"
-  ansible.builtin.command: >
-    {{ hermes_venv }}/bin/pip install --upgrade
-    '{{ hermes_package }}[{{ hermes_extras }}]=={{ hermes_version }}'
-  register: _hermes_pip
-  changed_when: "'Successfully installed' in (_hermes_pip.stdout | default(''))"
+- name: "[Hermes] Install hermes-agent via uv pip install -e ."
+  ansible.builtin.shell: |
+    source {{ hermes_venv }}/bin/activate
+    {{ homebrew_prefix }}/bin/uv pip install -e '.[{{ hermes_extras }}]'
+  args:
+    chdir: "{{ hermes_home }}/src"
+    executable: /bin/bash
+  environment:
+    PATH: "{{ homebrew_prefix }}/bin:{{ ansible_facts['env']['PATH'] | default('', true) }}"
+    VIRTUAL_ENV: "{{ hermes_venv }}"
+  register: _hermes_install
+  changed_when: "'Installed' in (_hermes_install.stdout | default('')) or 'Successfully' in (_hermes_install.stdout | default(''))"
   failed_when:
-    - _hermes_pip.rc != 0
-    - "'already satisfied' not in (_hermes_pip.stdout | default(''))"
+    - _hermes_install.rc != 0
+    - "'Requirement already satisfied' not in (_hermes_install.stdout | default(''))"
 
-# ── 3. Config render ──────────────────────────────────────────────────────────
+# ── 5. Config render (.env + cli-config.yaml) ───────────────────────────────
+# Hermes hleda tyto soubory v ~/.hermes/:
+#   .env            — env vars loaded at startup (API keys, provider, web port)
+#   cli-config.yaml — main config (model, terminal, delegation, mcp_servers)
 
-- name: "[Hermes] Render config.yaml"
+- name: "[Hermes] Render .env file"
   ansible.builtin.template:
-    src: hermes-config.yaml.j2
-    dest: "{{ hermes_config_dir }}/config.yaml"
+    src: hermes.env.j2
+    dest: "{{ hermes_config_dir }}/.env"
+    mode: '0600'
+  notify: Restart hermes
+
+- name: "[Hermes] Render cli-config.yaml"
+  ansible.builtin.template:
+    src: cli-config.yaml.j2
+    dest: "{{ hermes_config_dir }}/cli-config.yaml"
     mode: '0600'
   notify: Restart hermes
 
@@ -93,93 +124,59 @@
   changed_when: "'created' in (_hermes_alias.stdout | default(''))"
   failed_when: false
 
-# ── 5. launchd daemon ─────────────────────────────────────────────────────────
+# ── 6. Doctor check (verify install) ─────────────────────────────────────────
+# Hermes nema persistent daemon mode (jen `gateway install` pro messaging +
+# `mcp serve` pro MCP expose). Daemon ponechavame na uzivatele — playbook
+# nainstaluje + nakonfiguruje, user ho spusti dle potreby:
+#   hermes chat                  — interaktivni rezim
+#   hermes gateway install       — launchd plist pro Telegram/Discord
+#   hermes mcp serve             — expose Hermes conversations jako MCP server
 
-- name: "[Hermes] Deploy launchd plist"
-  ansible.builtin.template:
-    src: com.hermes.agent.plist.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/Library/LaunchAgents/{{ hermes_launchctl_label }}.plist"
-    mode: '0644'
-  when: hermes_install_daemon | default(true)
-  notify: Restart hermes
-
-- name: "[Hermes] Load launchd daemon"
-  ansible.builtin.shell: |
-    plist="$HOME/Library/LaunchAgents/{{ hermes_launchctl_label }}.plist"
-    launchctl unload "$plist" 2>/dev/null || true
-    launchctl load "$plist"
-  args:
-    executable: /bin/bash
-  when: hermes_install_daemon | default(true)
+- name: "[Hermes] Run hermes doctor to verify install"
+  ansible.builtin.command: "{{ hermes_venv }}/bin/hermes doctor"
+  register: _hermes_doctor
   changed_when: false
   failed_when: false
+  environment:
+    HOME: "{{ ansible_facts['env']['HOME'] }}"
 
-# ── 6. Nginx vhost (volitelne) ────────────────────────────────────────────────
-
-- name: "[Hermes] Deploy nginx vhost (Authentik-protected)"
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/nginx/sites-available/hermes.conf"
-    dest: "{{ homebrew_prefix }}/etc/nginx/sites-available/hermes.conf"
-    mode: '0644'
-  when:
-    - install_nginx | default(true)
-    - hermes_web_enabled | default(true)
-  notify: Restart nginx
-
-- name: "[Hermes] Enable nginx vhost symlink"
-  ansible.builtin.file:
-    src: "{{ homebrew_prefix }}/etc/nginx/sites-available/hermes.conf"
-    dest: "{{ homebrew_prefix }}/etc/nginx/sites-enabled/hermes.conf"
-    state: link
-    force: true
-  when:
-    - install_nginx | default(true)
-    - hermes_web_enabled | default(true)
-  notify: Restart nginx
-
-# ── 7. Health check + info ────────────────────────────────────────────────────
-
-- name: "[Hermes] Wait for web API to be ready"
-  ansible.builtin.uri:
-    url: "http://{{ hermes_web_host }}:{{ hermes_web_port }}/health"
-    status_code: [200]
-    timeout: 5
-  register: _hermes_health
-  retries: 10
-  delay: 3
-  until: _hermes_health.status | default(0) == 200
-  failed_when: false
-  when: hermes_web_enabled | default(true)
+- name: "[Hermes] Doctor output"
+  ansible.builtin.debug:
+    msg: "{{ _hermes_doctor.stdout_lines | default([]) | select('match', '.*(Python|Required|Configuration|Auth).*') | list }}"
+  when: _hermes_doctor.stdout is defined
 
 - name: "[Hermes] Print installation info"
   ansible.builtin.debug:
     msg: |
       ══════════════════════════════════════════════════════════════════
-       Hermes Agent nasazen
+       Hermes Agent nainstalovan
       ══════════════════════════════════════════════════════════════════
-       Version:     {{ hermes_version }}
+       Version tag: {{ hermes_version_tag }}
        Venv:        {{ hermes_venv }}
-       Config:      {{ hermes_config_dir }}/config.yaml
-       Logs:        {{ hermes_log_dir }}/hermes.log
-       Web API:     http://{{ hermes_web_host }}:{{ hermes_web_port }}
-      {% if hermes_web_enabled | default(true) and install_nginx | default(true) %}
-       URL:         https://{{ hermes_domain }}
-      {% endif %}
-       daemon:      launchctl list | grep {{ hermes_launchctl_label }}
+       Source:      {{ hermes_home }}/src
+       Config:      {{ hermes_config_dir }}/cli-config.yaml (+ .env)
+       Skills:      {{ hermes_config_dir }}/skills
 
        Models:
-         Primary:   {{ hermes_primary_model_shortname }} ({{ hermes_primary_model }})
-         Heavy:     {{ hermes_heavy_model }} (delegate)
+         Primary:   {{ hermes_primary_model_shortname }}
+                    (via Ollama, zdroj: {{ hermes_primary_model }})
+         Heavy:     {{ hermes_heavy_model }} (delegation.model)
       {% if hermes_anthropic_api_key | length > 0 %}
-         API:       Anthropic Claude (via API key)
+         API:       Anthropic Claude (ANTHROPIC_API_KEY v .env)
       {% endif %}
       {% if hermes_claude_code_enabled | default(true) %}
-         CLI:       Claude Code (user's subscription)
+         CLI:       Claude Code (hermes claw pro integration)
       {% endif %}
 
-       MCP servery: {{ hermes_mcp_servers | length }} (filesystem, git, fetch, memory, time)
+       MCP servery v configu: {{ hermes_mcp_servers | length }} (filesystem, git, fetch, memory, time)
 
        Prvni pouziti:
-         {{ hermes_venv }}/bin/hermes               # interaktivni TUI
-         tail -f {{ hermes_log_dir }}/hermes.log    # daemon log
+         {{ hermes_venv }}/bin/hermes                      # interaktivni TUI
+         {{ hermes_venv }}/bin/hermes chat                 # chat mode
+         {{ hermes_venv }}/bin/hermes claw                 # OpenClaw integration
+         {{ hermes_venv }}/bin/hermes gateway install      # launchd pro messaging
+         {{ hermes_venv }}/bin/hermes mcp serve            # Hermes jako MCP server
+
+       Shell alias (muzes pridat do ~/.zshrc):
+         alias hermes="{{ hermes_venv }}/bin/hermes"
       ══════════════════════════════════════════════════════════════════

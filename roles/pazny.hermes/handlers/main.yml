@@ -1,10 +1,8 @@
 ---
+# Hermes nema generic daemon mode. Restart se resi per-use-case:
+#   - hermes gateway restart  (messaging)
+#   - launchctl kickstart com.hermes.gateway  (po `gateway install`)
+# Tenhle handler je stub — config rerenders se propisi pri dalsim CLI volani.
 - name: Restart hermes
-  ansible.builtin.shell: |
-    plist="$HOME/Library/LaunchAgents/{{ hermes_launchctl_label | default('com.hermes.agent') }}.plist"
-    launchctl unload "$plist" 2>/dev/null || true
-    sleep 1
-    launchctl load "$plist" 2>/dev/null || true
-  args:
-    executable: /bin/bash
-  failed_when: false
+  ansible.builtin.debug:
+    msg: "Hermes config updated. Restart relevant mode manually: `hermes gateway restart` or `hermes mcp serve` etc."
