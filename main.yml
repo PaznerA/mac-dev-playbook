@@ -693,6 +693,16 @@
       when: install_hermes | default(false)
       tags: ['hermes', 'ai', 'agent']
 
+    # ──────────────────────────────────────────────────────────────────────────
+    # OpenCode — AI coding TUI (sst.dev) s lokalnim Ollama providerem
+    # Alternativa k Claude Code / Cursor, ale open-source a lokalni.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: "OpenCode AI TUI (pazny.opencode role)"
+      ansible.builtin.import_role:
+        name: pazny.opencode
+      when: install_opencode | default(false)
+      tags: ['opencode', 'ai']
+
     - import_tasks: tasks/pi-agents.yml
       when: install_pi_agents | default(false)
       tags: ['pi', 'pi-agents', 'ai', 'agent']

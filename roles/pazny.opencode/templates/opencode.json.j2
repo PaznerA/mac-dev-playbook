@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "{{ opencode_ollama_base_url }}"
+      },
+      "models": {
+{% for m in opencode_ollama_models %}
+        "{{ m.tag }}": {
+          "name": "{{ m.display }}"
+        }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+      }
+    }{% if opencode_add_anthropic | default(false) %},
+    "anthropic": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "Anthropic Claude",
+      "options": {
+        "apiKey": "{{ anthropic_api_key }}"
+      },
+      "models": {
+        "claude-opus-4-7": { "name": "Claude Opus 4.7" },
+        "claude-sonnet-4-7": { "name": "Claude Sonnet 4.7" }
+      }
+    }{% endif %}{% if opencode_add_openai | default(false) %},
+    "openai": {
+      "npm": "@ai-sdk/openai",
+      "name": "OpenAI",
+      "options": {
+        "apiKey": "{{ openai_api_key }}"
+      }
+    }{% endif %}
+
+  },
+  "model": "{{ opencode_default_model }}"
+}

@@ -1,0 +1,40 @@
+---
+# ==============================================================================
+# pazny.opencode — OpenCode (sst.dev) AI coding TUI s lokalnimi Ollama modely
+#
+# Docs: https://opencode.ai/docs
+# Repo: https://github.com/sst/opencode
+#
+# Instaluje pres oficialni `curl | bash` installer do ~/.opencode/bin/opencode.
+# Konfiguruje lokalni Ollama provider (bez api key, OpenAI-compat /v1 endpoint).
+# ==============================================================================
+
+opencode_install_path: "{{ ansible_facts['env']['HOME'] }}/.opencode"
+opencode_binary: "{{ ansible_facts['env']['HOME'] }}/.opencode/bin/opencode"
+opencode_config_dir: "{{ ansible_facts['env']['HOME'] }}/.config/opencode"
+opencode_config_file: "{{ ansible_facts['env']['HOME'] }}/.config/opencode/opencode.json"
+
+# Ollama endpoint (lokalni, OpenAI-compat /v1)
+opencode_ollama_base_url: "http://127.0.0.1:11434/v1"
+
+# Default model — prvni v seznamu se automaticky pouzije
+opencode_default_model: "ollama/qwen3-coder:30b"
+
+# Modely dostupne pres OpenCode → Ollama
+# Formaty: 'tag' (Ollama tag) + 'display' (zobrazene jmeno)
+opencode_ollama_models:
+  - tag: "qwen3-coder:30b"
+    display: "Qwen3 Coder 30B (MoE, primary coding agent)"
+  - tag: "qwen2.5-coder:32b"
+    display: "Qwen2.5 Coder 32B (dense, GPT-4o-class refactor)"
+  - tag: "hermes3:8b"
+    display: "Hermes 3 8B (lightweight orchestrator)"
+  - tag: "qwen3:14b"
+    display: "Qwen3 14B (generalist)"
+
+# Volitelne: pridat dalsi providery (Anthropic, OpenAI) — nutno nastavit API key
+opencode_add_anthropic: "{{ anthropic_api_key is defined and (anthropic_api_key | length) > 0 }}"
+opencode_add_openai: "{{ openai_api_key is defined and (openai_api_key | length) > 0 }}"
+
+# Symlink do Homebrew PATH — opencode bude volatelne bez ~/.opencode/bin v PATH
+opencode_symlink_to_homebrew: true

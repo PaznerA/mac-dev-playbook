@@ -1,0 +1,109 @@
+---
+# ==============================================================================
+# pazny.opencode/tasks/main.yml
+#
+# Instaluje OpenCode + konfiguruje lokalni Ollama provider.
+# Volano z main.yml pres `import_role` (ne Docker).
+# ==============================================================================
+
+# OpenCode install priority:
+#   1. Brew formula (preferred, brew-managed upgrades)
+#   2. Curl installer fallback (pokud brew nemá)
+
+- name: "[OpenCode] Check for existing brew install"
+  ansible.builtin.stat:
+    path: "{{ homebrew_prefix }}/bin/opencode"
+  register: _opencode_brew
+
+- name: "[OpenCode] Install via Homebrew (if not already present)"
+  community.general.homebrew:
+    name: opencode
+    state: present
+  when: not _opencode_brew.stat.exists
+  register: _opencode_brew_install
+  failed_when: false
+
+- name: "[OpenCode] Re-check binary after brew install"
+  ansible.builtin.stat:
+    path: "{{ homebrew_prefix }}/bin/opencode"
+  register: _opencode_final_check
+
+- name: "[OpenCode] Fallback to curl installer (if brew failed)"
+  ansible.builtin.shell: |
+    curl -fsSL https://opencode.ai/install | bash
+  args:
+    executable: /bin/bash
+  when: not _opencode_final_check.stat.exists
+  register: _opencode_curl
+  changed_when: _opencode_curl.rc == 0
+  failed_when: false
+
+- name: "[OpenCode] Set effective binary path"
+  ansible.builtin.set_fact:
+    opencode_effective_binary: "{{ homebrew_prefix + '/bin/opencode' if _opencode_final_check.stat.exists else opencode_binary }}"
+
+# ── Config ───────────────────────────────────────────────────────────────────
+
+- name: "[OpenCode] Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ opencode_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: "[OpenCode] Render opencode.json with Ollama provider"
+  ansible.builtin.template:
+    src: opencode.json.j2
+    dest: "{{ opencode_config_file }}"
+    mode: '0600'
+
+# ── Symlink do Homebrew PATH (volitelne, bez nej je opencode jen z ~/.opencode/bin) ─
+
+# Symlink jen pokud je curl install (brew uz je v PATH)
+- name: "[OpenCode] Symlink binary into Homebrew bin (curl install only)"
+  ansible.builtin.file:
+    src: "{{ opencode_binary }}"
+    dest: "{{ homebrew_prefix }}/bin/opencode"
+    state: link
+    force: true
+  when:
+    - opencode_symlink_to_homebrew | default(true)
+    - not _opencode_brew.stat.exists
+    - not _opencode_final_check.stat.exists
+  failed_when: false
+
+# ── Verifikace ───────────────────────────────────────────────────────────────
+
+- name: "[OpenCode] Verify opencode runs"
+  ansible.builtin.command: "{{ opencode_effective_binary }} --version"
+  register: _opencode_version
+  changed_when: false
+  failed_when: false
+
+- name: "[OpenCode] Print installation info"
+  ansible.builtin.debug:
+    msg: |
+      ══════════════════════════════════════════════════════════════════
+       OpenCode nainstalovan
+      ══════════════════════════════════════════════════════════════════
+       Binary:      {{ opencode_binary }}
+       Symlink:     {{ 'pazny.homebrew_prefix/bin/opencode' if opencode_symlink_to_homebrew else 'NE (pridej ~/.opencode/bin do PATH)' }}
+       Config:      {{ opencode_config_file }}
+       Version:     {{ _opencode_version.stdout | default('unknown') }}
+
+       Providers:
+         ollama      → {{ opencode_ollama_base_url }} ({{ opencode_ollama_models | length }} modelu)
+      {% if opencode_add_anthropic | default(false) %}
+         anthropic   → Claude Opus 4.7 / Sonnet 4.7 (API key nastaven)
+      {% endif %}
+      {% if opencode_add_openai | default(false) %}
+         openai      → API key nastaven
+      {% endif %}
+
+       Default model: {{ opencode_default_model }}
+
+       Spusteni:
+         opencode                      # v aktualnim adresari (projekt)
+         opencode --model ollama/hermes3:8b   # prepnout model
+
+       Prepnout provider/model v TUI: /provider
+      ══════════════════════════════════════════════════════════════════

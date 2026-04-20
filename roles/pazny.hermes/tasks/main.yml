@@ -136,6 +136,22 @@
     dest: "{{ hermes_config_dir }}/skills/devboxnos/SKILL.md"
     mode: '0644'
 
+# ── Symlinks do Homebrew PATH ───────────────────────────────────────────────
+# Venv bin je pod ~/agents/hermes/.venv/bin — neni v globalnim PATH.
+# Symlink do /opt/homebrew/bin ho zpristupni ze vsech sheellu bez export PATH.
+
+- name: "[Hermes] Symlink hermes binary into Homebrew bin (global PATH)"
+  ansible.builtin.file:
+    src: "{{ hermes_venv }}/bin/{{ item }}"
+    dest: "{{ homebrew_prefix }}/bin/{{ item }}"
+    state: link
+    force: true
+  loop:
+    - hermes
+    - hermes-agent
+    - hermes-acp
+  failed_when: false
+
 # ── 4. Model pull (Hermes 3 8B z oficialni Ollama library) ──────────────────
 
 - name: "[Hermes] Pull Hermes 3 8B model via Ollama"

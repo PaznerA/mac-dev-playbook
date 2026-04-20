@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: opencode
+  namespace: pazny
+  author: pazny
+  description: OpenCode AI coding TUI (sst.dev) with local Ollama provider configured
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: MacOSX
+      versions: [all]
+  galaxy_tags:
+    - ai
+    - coding
+    - opencode
+    - ollama
+dependencies: []
