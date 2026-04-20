@@ -99,6 +99,43 @@
     mode: '0600'
   notify: Restart hermes
 
+# ── 5.5. Persona + memory seed + custom skills ─────────────────────────────
+# SOUL.md je hlavni persona ("Inspektor Klepítko" + awareness devBoxNOS stacku).
+# MEMORY.md je seed perzistentni pameti s aktualnim stavem enabled_* služeb.
+# SKILL.md v skills/devboxnos/ poskytuje DevOps akcni patterns.
+
+- name: "[Hermes] Deploy SOUL.md persona (Inspektor Klepítko)"
+  ansible.builtin.template:
+    src: SOUL.md.j2
+    dest: "{{ hermes_config_dir }}/SOUL.md"
+    mode: '0644'
+  notify: Restart hermes
+
+- name: "[Hermes] Ensure memories dir exists"
+  ansible.builtin.file:
+    path: "{{ hermes_config_dir }}/memories"
+    state: directory
+    mode: '0755'
+
+- name: "[Hermes] Deploy MEMORY.md seed (current stack state)"
+  ansible.builtin.template:
+    src: MEMORY.md.j2
+    dest: "{{ hermes_config_dir }}/memories/MEMORY.md"
+    mode: '0644'
+    force: "{{ hermes_force_memory_reset | default(false) }}"   # 2nd+ run zachova user memories
+
+- name: "[Hermes] Ensure custom skills dir exists"
+  ansible.builtin.file:
+    path: "{{ hermes_config_dir }}/skills/devboxnos"
+    state: directory
+    mode: '0755'
+
+- name: "[Hermes] Deploy devboxnos custom skill"
+  ansible.builtin.template:
+    src: skills/devboxnos/SKILL.md.j2
+    dest: "{{ hermes_config_dir }}/skills/devboxnos/SKILL.md"
+    mode: '0644'
+
 # ── 4. Model pull (Hermes 3 8B z oficialni Ollama library) ──────────────────
 
 - name: "[Hermes] Pull Hermes 3 8B model via Ollama"

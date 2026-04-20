@@ -1,0 +1,151 @@
+---
+name: devboxnos
+description: DevOps skills pro devBoxNOS Ansible playbook — orchestrace Docker stacku, delegation na Claude Code / local dense model, logování agentické práce.
+version: 1.0.0
+author: Inspektor Klepítko
+license: MIT
+platforms: [macos]
+metadata:
+  hermes:
+    tags: [devops, docker, ansible, mac-studio, orchestration, delegation]
+prerequisites:
+  commands: [docker, ansible-playbook, nginx, claude]
+---
+
+# devBoxNOS DevOps Skill
+
+Operuješ na Mac Studio M2 Ultra home lab se 47+ kontejnery orchestrovanými
+Ansible playbookem. Playbook = single source of truth.
+
+## Kdy použít
+
+- User žádá check/restart/debug Docker služby
+- Úprava nginx vhost, SSL cert
+- Změna v Ansible playbooku (`~/projects/mac-dev-playbook`)
+- Delegace velkého úkolu na Claude Code nebo dense model
+- Vytvoření logu v `~/agents/log/`
+
+## Kdy NEpoužít
+
+- Běžný chat, vysvětlování konceptů
+- Úkol který nezahrnuje infrastrukturu/Docker/Ansible
+
+## Core patterns
+
+### 1. Health check všech stacků
+
+```bash
+for stack in infra observability iiab devops b2b data engineering voip; do
+  echo "=== $stack ==="
+  docker compose -p "$stack" ps 2>/dev/null | grep -v "healthy\|Up"
+done
+```
+
+### 2. Najdi službu co crashuje
+
+```bash
+docker ps -a --format '{{ "{{" }}.Names{{ "}}" }} {{ "{{" }}.Status{{ "}}" }}' | grep -i "restart\|exited\|unhealthy"
+docker logs <container> 2>&1 | tail -50
+```
+
+### 3. Restart stacku (po změně compose)
+
+```bash
+cd ~/stacks/<stack>
+docker compose -p <stack> -f docker-compose.yml \
+  $(find overrides -name '*.yml' -exec echo '-f {}' \;) \
+  up -d <service>
+```
+
+### 4. Playbook change workflow
+
+```bash
+cd ~/projects/mac-dev-playbook
+# 1. Edit role / task
+vim roles/pazny.<service>/templates/compose.yml.j2
+# 2. Dry run
+ansible-playbook main.yml -K --check --tags <service> --diff
+# 3. Apply
+ansible-playbook main.yml -K --tags <service>
+# 4. Commit
+git add -A && git commit -m "feat(<service>): <change>"
+```
+
+## Delegation playbook
+
+### Claude Code (user má subscription, preferuj pro produkční úkoly)
+
+```bash
+# Non-interactive, print result
+claude --print "DevOps task: <detailní brief s file paths a acceptance criteria>"
+
+# Když úkol vyžaduje file access (claude vidí soubory z cwd)
+cd ~/projects/nejaky-projekt && claude --print "..."
+```
+
+### Local dense model (qwen2.5-coder:32b) — heavy refactor, long context
+
+Volej via Ollama OpenAI-compat:
+```python
+# via Hermes delegation feature — set v config.yaml
+delegation:
+  model: "qwen2.5-coder:32b"
+  provider: "custom"
+```
+
+### Anthropic API (pokud máš ANTHROPIC_API_KEY)
+
+Přes Hermes "anthropic" provider — nastavuješ v config.yaml nebo per-call.
+Preferuj pro: prompt caching (velký kontext), extended thinking režim.
+
+## Logování
+
+Každý netriviální task loguj do `~/agents/log/`:
+
+```
+# Filename: YYYY-MM-DD_TASK-NNN_popis.md
+
+---
+date: 2026-04-20 14:30
+agent: Inspektor Klepítko (Hermes)
+task_id: TASK-042
+status: COMPLETE
+priority: HIGH
+tags: [nginx, ssl, mkcert]
+---
+
+# TASK-042: Deploy new vhost for myapp.dev.local
+
+## Cíl
+Nasadit vhost pro novou aplikaci...
+
+## Kroky
+1. ...
+
+## Výsledek
+...
+```
+
+## MCP tools rychlá reference
+
+| Tool | Příklad |
+|------|---------|
+| `filesystem_read` | číst soubory v `~/projects` a `~/agents/log` |
+| `git_log` | historie lokálních repositářů |
+| `fetch` | HTTP request s user-agentem |
+| `memory_save` | persistovat fact pro budoucí sessions |
+| `time_now` | aktuální datum/čas v Europe/Prague |
+
+Pokud je spuštěný mcpo (`install_mcp_gateway: true`), navíc:
+
+| Tool | Příklad |
+|------|---------|
+| `grafana_query` | PromQL/LogQL přes MCP |
+| `postgres_query` | read-only SQL dotaz (mcp_readonly user) |
+
+## Bezpečnost
+
+- **NIKDY** nelog API klíče, hesla, tokens
+- **NIKDY** nepublikuj `~/.devboxnos/secrets.yml` ani `~/projects/mac-dev-playbook/credentials.yml`
+- Před `git add -A` vždy zkontroluj, že neletí něco citlivého
+- SSL certy přes mkcert jsou dev-only; nikdy je nepoužívej pro production

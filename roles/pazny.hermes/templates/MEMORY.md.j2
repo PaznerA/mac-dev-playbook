@@ -1,0 +1,129 @@
+# Inspektor Klepítko — Persistentní paměť
+
+Tento soubor je **seed paměti** vygenerovaný Ansible playbookem.
+Hermes si ho přečte na začátku session a může k němu přidávat nové vzpomínky.
+
+## Kdy aktualizováno
+
+- **Datum:** {{ ansible_date_time.date | default(ansible_facts.date_time.date | default('unknown')) }}
+- **Playbook HEAD:** _(updates on each ansible run)_
+- **Global password prefix:** `{{ global_password_prefix | default('???') }}_` (interně používáno pro creds)
+
+## Enabled services (aktuální stav)
+
+### Infra stack
+{% for flag, name in [
+    ('install_authentik', 'Authentik (SSO, auth.dev.local)'),
+    ('install_infisical', 'Infisical vault (vault.dev.local)'),
+    ('install_vaultwarden', 'Vaultwarden password manager (pass.dev.local)'),
+    ('install_mariadb', 'MariaDB'),
+    ('install_portainer', 'Portainer (portainer.dev.local)'),
+    ('install_bluesky_pds', 'Bluesky PDS (bsky.dev.lan)'),
+] %}
+{% if vars[flag] | default(false) %}- ✅ {{ name }}
+{% endif %}
+{% endfor %}
+
+### Observability
+{% for flag, name in [
+    ('install_observability', 'Grafana + Prometheus + Loki + Tempo'),
+    ('install_influxdb', 'InfluxDB 2.x time-series'),
+] %}
+{% if vars[flag] | default(false) %}- ✅ {{ name }}
+{% endif %}
+{% endfor %}
+
+### IIAB (knowledge + media + automation)
+{% for flag, name in [
+    ('install_nextcloud', 'Nextcloud (cloud.dev.local)'),
+    ('install_n8n', 'n8n flow automation (n8n.dev.local)'),
+    ('install_kiwix', 'Kiwix offline Wikipedia (kiwix.dev.local)'),
+    ('install_jellyfin', 'Jellyfin media server (media.dev.local)'),
+    ('install_openwebui', 'Open WebUI chat (ai.dev.local) — tvé primary UI'),
+    ('install_puter', 'Puter web desktop (os.dev.local)'),
+    ('install_ntfy', 'ntfy push notifications'),
+    ('install_nodered', 'Node-RED (flow automation)'),
+    ('install_homeassistant', 'Home Assistant'),
+    ('install_calibreweb', 'Calibre-Web ebooks'),
+    ('install_rustfs', 'RustFS S3-compatible storage'),
+    ('install_mcp_gateway', 'mcpo MCP-to-OpenAPI proxy (mcp.dev.local)'),
+] %}
+{% if vars[flag] | default(false) %}- ✅ {{ name }}
+{% endif %}
+{% endfor %}
+
+### DevOps
+{% for flag, name in [
+    ('install_gitea', 'Gitea (gitea.dev.local)'),
+    ('install_woodpecker', 'Woodpecker CI'),
+    ('install_gitlab', 'GitLab'),
+    ('install_code_server', 'code-server (VS Code v prohlížeči)'),
+    ('install_paperclip', 'Paperclip'),
+] %}
+{% if vars[flag] | default(false) %}- ✅ {{ name }}
+{% endif %}
+{% endfor %}
+
+### B2B (wiki, helpdesk, finance)
+{% for flag, name in [
+    ('install_outline', 'Outline (wiki.dev.local)'),
+    ('install_freescout', 'FreeScout helpdesk (helpdesk.dev.local)'),
+    ('install_bookstack', 'BookStack wiki'),
+    ('install_firefly', 'Firefly III personal finance'),
+    ('install_hedgedoc', 'HedgeDoc collaborative markdown'),
+    ('install_onlyoffice', 'ONLYOFFICE Document Server'),
+] %}
+{% if vars[flag] | default(false) %}- ✅ {{ name }}
+{% endif %}
+{% endfor %}
+
+## LLM modely v Ollama
+
+| Model | Role | Velikost |
+|-------|------|----------|
+| `{{ hermes_primary_model }}` | Orchestrator (to jsi ty) | ~5 GB |
+| `{{ hermes_heavy_model }}` | Dense coder (delegation target) | ~20 GB |
+| `qwen3-coder:30b` | MoE primary agent (OpenClaw) | ~19 GB |
+
+Limit: `OLLAMA_MAX_LOADED_MODELS={{ ollama_max_loaded_models | default(2) }}` — 2 současně v RAM.
+
+## Tvé akční vzorce
+
+### Pro tool use (MCP servery)
+
+Nemusíš si pamatovat syntaxi — MCP tools jsou ti dostupné jako function calls.
+Volej je přirozeně: _"načti README z projektu X"_ → použiješ `filesystem_read`.
+
+### Pro delegaci
+
+**Malé/rychlé** → deleguj sám:
+```
+user: "Jaká je teplota v /var/log/system.log?"
+→ shell("tail -50 /var/log/system.log | grep temp")
+```
+
+**Velké kódové** → delegate:
+```
+user: "Refactor celého gameStore.ts do featureflag-driven pattern"
+→ delegate(provider="custom", model="{{ hermes_heavy_model }}",
+           task=<detailní brief>)
+```
+
+**Produkční/neznámé** → claude shell:
+```
+user: "Navrhni mi migraci z Postgres 16 na 17 pro naše Docker stacky"
+→ shell("claude --print 'DevOps task: migrate...'")
+```
+
+## Co teď víš o userovi
+
+- **Jméno:** pazny
+- **Email:** pazny.develop@gmail.com
+- **Stroj:** Mac Studio M2 Ultra, 36 GB
+- **Preferuje:** česky, pragmatické řešení, dobrá observability, security-aware
+- **Má Claude Code subscription** (deleguj velké úkoly tam, šetříš API kredit)
+- **Git workflow:** master-primary, krátké feat/fix větve, žádné Co-Authored-By
+
+## Dodatečné vzpomínky
+
+_Hermes si může přidat nové vzpomínky níže prostřednictvím memory MCP toolu nebo příkazu `hermes memory`._
