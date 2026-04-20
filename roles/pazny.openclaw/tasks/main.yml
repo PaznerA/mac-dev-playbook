@@ -210,6 +210,24 @@
   changed_when: false
   failed_when: false
 
+# Idempotent model upgrade: onboarding skipuje pokud config existuje, ale uzivatel
+# mohl zmenit openclaw_model. Nasilne upraveni `agents.defaults.model.primary`
+# aby playbook mohl upgradnout/downgradnout model aniz by user musel wipe.
+- name: "[OpenClaw] Force-update primary model in existing config"
+  ansible.builtin.shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "{{ homebrew_prefix }}/opt/nvm/nvm.sh" ] && source "{{ homebrew_prefix }}/opt/nvm/nvm.sh"
+    nvm use default
+    openclaw config set agents.defaults.model.primary "ollama/{{ openclaw_model }}" --strict-json
+  args:
+    executable: /bin/zsh
+  environment:
+    NVM_DIR: "{{ ansible_facts['env']['HOME'] }}/.nvm"
+  when: _oc_config.stat.exists
+  register: _oc_model_update
+  changed_when: _oc_model_update.rc == 0
+  failed_when: false
+
 # ── 5. Workspace bootstrap soubory ──────────────────────────────────────────
 
 - name: "[OpenClaw] Deploy SOUL.md (Inspektor Klepítko persona)"
