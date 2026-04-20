@@ -1,3 +1,11 @@
+> **Moved to [thisisait/nOS](https://github.com/thisisait/nOS)**
+>
+> This repository has been migrated under the **nOS** brand. All future
+> development happens there. This repo is archived — read-only, kept
+> for historical reference.
+
+---
+
 # Mac Dev Playbook – Pazny Edition
 
 Ansible playbook pro automatizaci macOS vývojového prostředí na **Mac Studio (Apple Silicon, 36 GB RAM)**. Vychází z projektu [geerlingguy/mac-dev-playbook](https://github.com/geerlingguy/mac-dev-playbook) a rozšiřuje ho o self-hosted AI agenta, plný observability stack a offline knowledge services.
